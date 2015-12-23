@@ -1,10 +1,12 @@
 import binascii
 import glob
 import natsort
+import string
 import struct
+import sys
 
 data = list()
-for a in natsort.natsorted(glob.glob('./packetdata/pdata*')):
+for a in natsort.natsorted(glob.glob('./'+sys.argv[1]+'pdata*')):
 	with open(a, 'rb') as f:
 		data.append(f.read())
 
@@ -38,7 +40,7 @@ for tele in data:
 
 		for participant in range(64):
 			packString += "16s"
-	
+
 	elif len(tele) == 1347:
 		packString  = "HB64s64s64s64s64s"
 
@@ -47,6 +49,6 @@ for tele in data:
 
 	telemetryData.append(struct.unpack(packString, tele))
 
-with open('tele.csv', 'w') as f:
+with open('./'+sys.argv[1]+'tele.csv', 'w') as f:
 	for p in telemetryData:
-		f.write(",".join(str(x) for x in p)+"\n")
+		f.write(",".join(string.strip(str(x), '\x00') for x in p)+"\n")
