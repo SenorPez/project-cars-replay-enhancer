@@ -13,12 +13,20 @@ sock.bind(server_address)
 
 i = 0;
 directory = "packetdata-"+datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-if not os.path.exists(directory):
-	os.makedirs(directory)
-while True:
-	data, address = sock.recvfrom(65565)
-	print >> sys.stderr, 'Writing packet #%s' % i
-	f = open('./'+directory+'/pdata'+str(i), 'w')
-	f.write(data)
-	f.close()
-	i+=1
+try:
+	if not os.path.exists(directory):
+		os.makedirs(directory)
+	while True:
+		data, address = sock.recvfrom(65565)
+		print >> sys.stderr, 'Writing packet #%s' % i
+		f = open('./'+directory+'/pdata'+str(i), 'w')
+		f.write(data)
+		f.close()
+		i+=1
+
+except KeyboardInterrupt:
+	print 'Closing listener on port %s' % server_address[1]
+
+finally:
+	if i == 0:
+		os.rmdir(directory)
