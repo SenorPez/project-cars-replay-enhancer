@@ -7,6 +7,7 @@ def displayPosition(stdscr, tData, pData):
 	startTime = -1
 
 	for data in tData:
+		stdscr.redrawwin()
 		#Race not yet started.
 		if int(data[9]) & int('111', 2) == 1:
 			#stdscr.clear()
@@ -20,24 +21,81 @@ def displayPosition(stdscr, tData, pData):
 				stdscr.addstr(0, 0, "Press any key to begin race!")
 				stdscr.refresh()
 				stdscr.getkey()
+				stdscr.clear()
 
-			standings = sorted({(int(data[182+i*9]), n, int(data[184+i*9])) for (i, n) in pData})
+				sectorBests = [-1, -1, -1]
+				personalBests = [[-1, -1, -1] for x in range(64)]
+				bestLap = -1
+				personalBestLaps = [-1 for x in range(64)]
+				lastLaps = [[-1, -1, -1] for x in range(64)]
+				curses.init_pair(1, curses.COLOR_MAGENTA, curses.COLOR_BLACK)
+				curses.init_pair(2, curses.COLOR_GREEN, curses.COLOR_BLACK)
 
+			standings = sorted({(int(data[182+i*9]), n, int(data[184+i*9]), i) for (i, n) in pData})
 			#stdscr.clear()
-			stdscr.move(0, 0)
-			stdscr.clrtoeol()
-			stdscr.move(1, 0)
-			stdscr.clrtoeol()
 			stdscr.addstr(0, 0, "Current Lap: {}".format(max(standings, key=lambda x: x[2])[2]))
-			stdscr.addstr(1, 0, "Current Time: {}".format(data[13]))
+			stdscr.addstr(1, 0, "Current Time: {:.3f}".format(float(data[13])))
 			for i, standing in enumerate(standings, 2):
-				stdscr.move(i, 0)
-				stdscr.clrtoeol()
-				stdscr.addstr(i, 0, "{:>2}: {}".format(int(standing[0]) & int('01111111', 2), standing[1]))
+				stdscr.addstr(i, 0, "{:>2}: {:<30.30s}".format(int(standing[0]) & int('01111111', 2), standing[1]))
+				sector = int(data[185+standing[3]*9]) & int('111', 2)
+				stdscr.addstr(i, 15+sector*20, "{:20.20s}".format(' '))
+				
+				if float(data[186+standing[3]*9]) != -123:
+					if sector == 1:
+						printSector = 3
+						if lastLaps[standing[3]][0] != float(data[186+standing[3]*9]):
+							lastLaps[standing[3]][0] = float(data[186+standing[3]*9])
 
+						if bestLap == -1 or bestLap >= sum(lastLaps[standing[3]]):
+							bestLap = sum(lastLaps[standing[3]])
+							personalBestLaps[standing[3]] = sum(lastLaps[standing[3]])
+							stdscr.addstr(i, 15+20*4, "{:^20.3f}".format(float(sum(lastLaps[standing[3]]))), curses.color_pair(1))
+						elif personalBestLaps[standing[3]] == -1 or personalBestLaps[standing[3]] >= sum(lastLaps[standing[3]]):
+							personalBestLaps[standing[3]] = sum(lastLaps[standing[3]])
+							stdscr.addstr(i, 15+20*4, "{:^20.3f}".format(float(sum(lastLaps[standing[3]]))), curses.color_pair(2))
+						else:
+							stdscr.addstr(i, 15+20*4, "{:^20.3f}".format(float(sum(lastLaps[standing[3]]))))
+					else:
+						printSector = sector-1
+
+						if sector == 2:
+							if lastLaps[standing[3]][1] != float(data[186+standing[3]*9]):
+								lastLaps[standing[3]][1] = float(data[186+standing[3]*9])
+						else:
+							if lastLaps[standing[3]][2] != float(data[186+standing[3]*9]):
+								lastLaps[standing[3]][2] = float(data[186+standing[3]*9])
+
+					if sectorBests[printSector-1] == -1 or sectorBests[printSector-1] >= float(data[186+standing[3]*9]):
+						sectorBests[printSector-1] = float(data[186+standing[3]*9])
+						personalBests[standing[3]][printSector-1] = float(data[186+standing[3]*9])
+						stdscr.addstr(i, 15+20*printSector, "{:^20.3f}".format(float(data[186+standing[3]*9])), curses.color_pair(1))
+					elif personalBests[standing[3]][printSector-1] == -1 or personalBests[standing[3]][printSector-1] >= float(data[186+standing[3]*9]):
+						personalBests[standing[3]][printSector-1] = float(data[186+standing[3]*9])
+						stdscr.addstr(i, 15+20*printSector, "{:^20.3f}".format(float(data[186+standing[3]*9])), curses.color_pair(2))
+					else:
+						stdscr.addstr(i, 15+20*printSector, "{:^20.3f}".format(float(data[186+standing[3]*9])))
+
+			stdscr.addstr(16, 0, "{:>32}".format("Sector Bests:"))
+			for n, t in [(x, y) for x, y in enumerate(sectorBests, 1) if y != -1]:
+				stdscr.addstr(16, 15+20*n, "{:^20.3f}".format(float(t)))
+
+			if bestLap != -1:
+				stdscr.addstr(16, 15+20*4, "{:^20.3f}".format(float(bestLap)))
+			
 			stdscr.refresh()
 
 	#All done.
+	standings = sorted({(int(data[182+i*9]), n, int(data[184+i*9]), i) for (i, n) in pData})
+	if sectorBests[2] == -1 or sectorBests[2] >= float(data[186+standings[0][3]*9]):
+		sectorBests[2] = float(data[186+standings[0][3]*9])
+		personalBests[standings[0][3]][2] = float(data[186+standings[0][3]*9])
+		stdscr.addstr(2, 15+20*3, "{:^20.3f}".format(float(data[186+standings[0][3]*9])), curses.color_pair(1))
+	elif personalBests[standings[0][3]][2] == -1 or personalBests[standings[0][3]][2] >= float(data[186+standings[0][3]*9]):
+		personalBests[standings[0][3]][2] = float(data[186+standings[0][3]*9])
+		stdscr.addstr(2, 15+20*3, "{:^20.3f}".format(float(data[186+standings[0][3]*9])), curses.color_pair(2))
+	else:
+		stdscr.addstr(2, 15+20*3, "{:^20.3f}".format(float(data[186+standings[0][3]*9])))
+	
 	stdscr.move(1, 0)
 	stdscr.clrtoeol()
 	stdscr.addstr(1, 0, "Race finished. Press any key to exit!")
