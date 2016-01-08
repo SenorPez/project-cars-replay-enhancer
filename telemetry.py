@@ -6,7 +6,7 @@ import struct
 import sys
 
 if len(sys.argv) == 1:
-	print "Usage: 'python "+sys.argv[0]+" <packetdirectory>'";
+	print ("Usage: 'python "+sys.argv[0]+" <packetdirectory>'")
 
 else:
 	data = list()
@@ -55,4 +55,5 @@ else:
 
 	with open('./'+sys.argv[1]+'tele.csv', 'w') as f:
 		for p in telemetryData:
-			f.write(",".join(string.strip(str(x), '\x00') for x in p)+"\n")
+			f.write(",".join(str(x, encoding='utf-8').strip('\x00') if isinstance(x, bytes) else str(x).strip('\x00') for x in p)+"\n")
+			#f.write(",".join(string.strip(str(x), '\x00') for x in p)+"\n")
