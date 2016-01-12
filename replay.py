@@ -1,18 +1,18 @@
-from importlib import import_module
-import moviepy.editor as mpy
 import sys
 
-from black_test import black_test
-from get_telemetry import get_telemetry
-from make_results import make_results, make_results_mask
-from make_standings import make_standings, make_standings_mask
-from make_timer import make_timer, make_timer_mask
-from make_title import make_title, make_title_mask
-
 if len(sys.argv) != 4:
-	print ("Usage: 'python'"+sys.argv[0]+" <video> <videooptions> <packetdirectory>'")
-
+	print ("Usage: 'python "+sys.argv[0]+" <video> <videooptions> <packetdirectory>'")
 else:
+	from importlib import import_module
+	import moviepy.editor as mpy
+
+	from black_test import black_test
+	from get_telemetry import get_telemetry
+	from make_results import make_results, make_results_mask
+	from make_standings import make_standings, make_standings_mask
+	from make_timer import make_timer, make_timer_mask
+	from make_title import make_title, make_title_mask
+
 	g = import_module(sys.argv[2][:-3])
 	get_telemetry(sys.argv[3])
 	
@@ -56,4 +56,5 @@ else:
 	#output.save_frame("edit.jpg", 2)
 	#for frame in range(40, 50):
 		#output.save_frame("edit"+str(frame)+".jpg", frame)
-	output.subclip(video.duration-20, video.duration).write_videofile(sys.argv[1][:-4]+"-output.mp4", fps=10)
+	#output.subclip(0, 50).write_videofile(sys.argv[1][:-4]+"-output.mp4", fps=10)
+	output.write_videofile(sys.argv[1][:-4]+"-output.mp4")

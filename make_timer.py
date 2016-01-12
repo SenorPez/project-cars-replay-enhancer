@@ -26,9 +26,6 @@ def timer_data(t):
 		currentLap = min((int(data[10]), max([int(data[184+i*9]) for (i, n) in participantData])))
 		lap = "{}/{}".format(currentLap, data[10])
 
-		if data[10] == "15":
-			import pdb; pdb.set_trace()
-
 	else:
 		time = "{:.2f}".format(float(0))
 		data = telemetryData[0]
