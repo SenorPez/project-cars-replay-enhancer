@@ -1,5 +1,7 @@
 import csv
 
+from process_telemetry import process_telemetry
+
 import replay_globals as g
 
 def get_telemetry(telemetryDirectory, telemetryFile='tele.csv'):

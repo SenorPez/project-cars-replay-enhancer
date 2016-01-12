@@ -7,7 +7,6 @@ from make_results import make_results, make_results_mask
 from make_standings import make_standings, make_standings_mask
 from make_timer import make_timer, make_timer_mask
 from make_title import make_title, make_title_mask
-from process_telemetry import process_telemetry
 
 import replay_globals as g
 
@@ -50,9 +49,9 @@ else:
 									 standing,
 									 title,
 									 result])
-	#output.subclip(0, 40).write_videofile("edit.mp4", fps=10)
+	#output.subclip(0, 50).write_videofile("edit.mp4", fps=10)
 	#output.write_videofile("edit.mp4", fps=10)
-	#output.write_videofile("edit.mp4")
-	output.save_frame("edit.jpg", 2)
-	#for frame in range(40):
-		#output.save_frame("edit.jpg", frame)
+	output.write_videofile("edit.mp4")
+	#output.save_frame("edit.jpg", 2)
+	#for frame in range(40, 50):
+		#output.save_frame("edit"+str(frame)+".jpg", frame)
