@@ -8,7 +8,8 @@ sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 # Bind the socket to the port
 server_address = ("", 5606)
-print >> sys.stderr, 'Starting listener on port %s' % server_address[1]
+#print >> sys.stderr, 'Starting listener on port %s' % server_address[1]
+print("Starting listener on port {}".format(server_address[1]))
 sock.bind(server_address)
 
 i = 0;
@@ -18,14 +19,16 @@ try:
 		os.makedirs(directory)
 	while True:
 		data, address = sock.recvfrom(65565)
-		print >> sys.stderr, 'Writing packet #%s' % i
-		f = open('./'+directory+'/pdata'+str(i), 'w')
+		#print >> sys.stderr, 'Writing packet #%s' % i
+		print("Writing packet {}".format(i))
+		f = open('./'+directory+'/pdata'+str(i), 'wb')
 		f.write(data)
 		f.close()
 		i+=1
 
 except KeyboardInterrupt:
-	print 'Closing listener on port %s' % server_address[1]
+	print("Closing listener on port {}".format(server_address[1]))
+	#print 'Closing listener on port %s' % server_address[1]
 
 finally:
 	if i == 0:

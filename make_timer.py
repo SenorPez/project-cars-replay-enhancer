@@ -1,9 +1,11 @@
+from importlib import import_module
 from moviepy.video.io.bindings import PIL_to_npimage
 import PIL.Image as plim
 from PIL import ImageDraw
 from round_rectangle import round_rectangle
+import sys
 
-import replay_globals as g
+g = import_module(sys.argv[2][:-3])
 
 def timer_data(t):
 	racestart = g.racestart
@@ -23,6 +25,9 @@ def timer_data(t):
 
 		currentLap = min((int(data[10]), max([int(data[184+i*9]) for (i, n) in participantData])))
 		lap = "{}/{}".format(currentLap, data[10])
+
+		if data[10] == "15":
+			import pdb; pdb.set_trace()
 
 	else:
 		time = "{:.2f}".format(float(0))
