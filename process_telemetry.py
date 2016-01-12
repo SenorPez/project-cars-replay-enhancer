@@ -3,7 +3,6 @@ from natsort import natsorted
 from struct import unpack
 
 def process_telemetry(folder):
-	#data = list()
 	with open(folder+'tele.csv', 'w') as csvfile:
 		for a in natsorted(glob(folder+'pdata*')):
 			with open(a, 'rb') as packFile:
@@ -43,4 +42,4 @@ def process_telemetry(folder):
 						packString += "64s"
 
 				unpackData = unpack(packString, packData)
-				csvfile.write(",".join(str(x, encoding='utf-8').strip('\x00') if isinstance(x, bytes) else str(x).strip('\x00') for x in unpack(packString, packData))+"\n")
+				csvfile.write(",".join(str(x, encoding='utf-8').strip('\x00') if isinstance(x, bytes) else str(x).strip('\x00') for x in unpack(packString, packData)+(a,))+"\n")

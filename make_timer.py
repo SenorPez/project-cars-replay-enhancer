@@ -5,7 +5,7 @@ from PIL import ImageDraw
 from round_rectangle import round_rectangle
 import sys
 
-g = import_module(sys.argv[2][:-3])
+g = import_module(sys.argv[1][:-3])
 
 def timer_data(t):
 	racestart = g.racestart
@@ -23,7 +23,8 @@ def timer_data(t):
 			time = "{:.2f}".format(float(telemetryData[-1][13]))
 			data = telemetryData[-1]
 
-		currentLap = min((int(data[10]), max([int(data[184+i*9]) for (i, n) in participantData])))
+		#currentLap = min((int(data[10]), max([int(data[184+i*9]) for (i, n) in participantData])))
+		currentLap = min((int(data[10]), max([int(data[184+i*9]) for i, _, _, _ in g.participantData])))
 		lap = "{}/{}".format(currentLap, data[10])
 
 	else:

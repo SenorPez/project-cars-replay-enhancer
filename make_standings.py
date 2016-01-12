@@ -5,7 +5,7 @@ from PIL import ImageDraw
 from round_rectangle import round_rectangle
 import sys
 
-g = import_module(sys.argv[2][:-3])
+g = import_module(sys.argv[1][:-3])
 
 sectorStatus = [['current', 'none', 'none'] for x in range(64)]
 sectorBests = [-1, -1, -1]
@@ -101,10 +101,10 @@ def standings_data(t):
 	   cl 8: int Current lap
 	'''
 
-	standings = sorted({(int(data[182+i*9]) & int('01111111', 2), n.split(" ")[0][0]+". "+n.split(" ")[-1], float(data[181+i*9])/float(data[682]), int(i), int(data[185+i*9]) & int('111', 2), float(data[186+i*9]), float(data[-1]), int(data[183+i*9]), int(data[184+i*9])) for (i, n) in participantData})
+	standings = sorted({(int(data[182+i*9]) & int('01111111', 2), n.split(" ")[0][0]+". "+n.split(" ")[-1], float(data[181+i*9])/float(data[682]), int(i), int(data[185+i*9]) & int('111', 2), float(data[186+i*9]), float(data[-1]), int(data[183+i*9]), int(data[184+i*9])) for i, n, _, _ in participantData})
 
 	#Just get a real rough estimate on the maximum time for a lap.
-	maxTime = max([float(data[186+i*9]) for (i, n) in participantData])
+	maxTime = max([float(data[186+i*9]) for i, n, _, _ in participantData])
 	maxMinutes, maxSeconds = divmod(maxTime, 60)
 	maxHours, maxMinutes = divmod(maxMinutes, 60)
 

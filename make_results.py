@@ -5,7 +5,7 @@ from PIL import ImageDraw
 from round_rectangle import round_rectangle
 import sys
 
-g = import_module(sys.argv[2][:-3])
+g = import_module(sys.argv[1][:-3])
 
 def results_data():
 	telemetryData = g.telemetryData
@@ -22,7 +22,8 @@ def results_data():
 	subheadingtext = g.subheadingtext
 
 	data = telemetryData[-1]
-	startingGridData = sorted({(int(data[182+i*9]) & int('01111111', 2), n, t, c) for (i, n), t, c in zip(participantData, teamData, carData)})
+	#startingGridData = sorted({(int(data[182+i*9]) & int('01111111', 2), n, t, c) for (i, n), t, c in zip(participantData, teamData, carData)})
+	startingGridData = sorted((int(data[182+i*9]) & int('01111111', 2), n, t, c) for i, n, t, c in g.participantData)
 
 	widths = [(font.getsize(str(i))[0], font.getsize(n)[0], font.getsize(t)[0], font.getsize(c)[0], sum((font.getsize(str(i))[0], font.getsize(n)[0], font.getsize(t)[0], font.getsize(c)[0]))) for i, n, t, c in startingGridData]
 	widths.append((0, 0, 0, 0, headingfont.getsize(headingtext)[0]))
@@ -34,7 +35,7 @@ def results_data():
 	heights.append(headingfont.getsize(headingtext)[1])
 	heights.append(font.getsize(subheadingtext)[1])
 
-	columnWidths = [max(widths, key=lambda x: x[y])[y] for y in range(len(widths[0]))]
+	columnWidths = [max(widths[:-1], key=lambda x: x[y])[y] for y in range(len(widths[0][:-1]))]+[sum([max(widths[:-1], key=lambda x: x[y])[y] for y in range(len(widths[0][:-1]))])]
 	text_width = columnWidths[-1]+margin*3
 	text_height = sum(heights)+margin*len(heights)-1
 
