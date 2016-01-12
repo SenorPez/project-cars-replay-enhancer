@@ -1,5 +1,9 @@
 from PIL import ImageFont
 
+sourcevideo = "race1.mp4"
+sourcetelemetry = "./race1/"
+outputvideo = "race1-output.mp4"
+
 racestart = 3.5+0.8
 
 font = ImageFont.truetype("/usr/share/fonts/truetype/Roboto/Roboto-Regular.ttf", 15)
@@ -14,3 +18,10 @@ teamData = ["DarkNitro", "DarkNitro", "Rodrigues Racing", "Rodrigues Racing", "G
 
 participantData = list()
 telemetryData = list()
+
+#Video analysis variables
+threshold = 1
+gaptime = 1
+skipstart = 0
+skipend = 0
+cachefile = 'file.cache'
