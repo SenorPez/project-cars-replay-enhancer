@@ -1,8 +1,11 @@
 import csv
+from importlib import import_module
+import sys
 
 from process_telemetry import process_telemetry
 
-import replay_globals as g
+#import replay_globals as g
+g = import_module(sys.argv[2][:-3])
 
 def get_telemetry(telemetryDirectory, telemetryFile='tele.csv'):
 	try:

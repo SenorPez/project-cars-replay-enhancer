@@ -33,7 +33,7 @@ def black_test(filename, threshold=1, gaptime=1, skipstart=0, skipend=0, cache='
 		videostart = 0
 		videoend = video.duration
 
-	with open("file.cache", 'w') as h:
+	with open("file.cache", 'a') as h:
 		cache = csv.writer(h)
 		cache.writerow([filename, hashfile(open(filename, 'rb'), sha256()), videostart, videoend])
 	return mpy.VideoFileClip(filename).subclip(videostart, videoend)

@@ -1,9 +1,11 @@
+from importlib import import_module
 from moviepy.video.io.bindings import PIL_to_npimage
 import PIL.Image as plim
 from PIL import ImageDraw
 from round_rectangle import round_rectangle
+import sys
 
-import replay_globals as g
+g = import_module(sys.argv[2][:-3])
 
 sectorStatus = [['current', 'none', 'none'] for x in range(64)]
 sectorBests = [-1, -1, -1]

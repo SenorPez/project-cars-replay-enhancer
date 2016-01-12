@@ -1,3 +1,4 @@
+from importlib import import_module
 import moviepy.editor as mpy
 import sys
 
@@ -8,13 +9,12 @@ from make_standings import make_standings, make_standings_mask
 from make_timer import make_timer, make_timer_mask
 from make_title import make_title, make_title_mask
 
-import replay_globals as g
-
-if len(sys.argv) != 3:
-	print ("Usage: 'python'"+sys.argv[0]+" <video> <packetdirectory>'")
+if len(sys.argv) != 4:
+	print ("Usage: 'python'"+sys.argv[0]+" <video> <videooptions> <packetdirectory>'")
 
 else:
-	get_telemetry(sys.argv[2])
+	g = import_module(sys.argv[2][:-3])
+	get_telemetry(sys.argv[3])
 	
 	video = black_test(sys.argv[1])
 	video_width, video_height = video.size
@@ -51,7 +51,9 @@ else:
 									 result])
 	#output.subclip(0, 50).write_videofile("edit.mp4", fps=10)
 	#output.write_videofile("edit.mp4", fps=10)
-	output.write_videofile("edit.mp4")
+	#output.write_videofile("edit.mp4")
+	#output.subclip(50, 70).write_videofile("edit.mp4", fps=10)
 	#output.save_frame("edit.jpg", 2)
 	#for frame in range(40, 50):
 		#output.save_frame("edit"+str(frame)+".jpg", frame)
+	output.subclip(video.duration-20, video.duration).write_videofile(sys.argv[1][:-4]+"-output.mp4", fps=10)
