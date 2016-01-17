@@ -6,21 +6,14 @@ import moviepy.editor as mpy
 from numpy import diff, where
 import sys
 
-g = import_module(sys.argv[1][:-3])
+g = import_module(".".join(sys.argv[1][:-3].split('/')[1:]))
 
 def black_test(filename, threshold=1, gaptime=1, skipstart=0, skipend=0, cache='file.cache'):
-	threshold = g.threshold
-	gaptime = g.gaptime
-	skipstart = g.skipstart
-	skipend = g.skipend
-	cachefile = g.cachefile
-	#video = mpy.VideoFileClip(filename)
-
 	#Test file hash, because blackframe detection is slow, so we cache it.
 	#Get stored file.
 	try:
 		#with open("file.cache", 'r') as h:
-		with open(cachefile, 'r') as h:
+		with open(g.cachefile, 'r') as h:
 			cache = csv.reader(h)
 
 			for row in cache:
@@ -43,7 +36,7 @@ def black_test(filename, threshold=1, gaptime=1, skipstart=0, skipend=0, cache='
 			videoend = video.duration
 		finally:
 			#with open("file.cache", 'a') as h:
-			with open(cachefile, 'a') as h:
+			with open(g.cachefile, 'a') as h:
 				cache = csv.writer(h)
 				cache.writerow([filename, hashfile(open(filename, 'rb'), sha256()), videostart, videoend])
 			return mpy.VideoFileClip(filename).subclip(videostart, videoend)
