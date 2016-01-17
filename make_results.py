@@ -55,13 +55,14 @@ def results_data():
 		sectorTimes[i] = sectorTimes[i][:divmod(len(sectorTimes[i]), 3)[0]*3]
 
 		lapTimes[i] = [sum(sectorTimes[i][x:x+3]) for x in range(0, len(sectorTimes[i]), 3)]
+		personalBestLaps = [sum(x) for x in lapTimes]
 
 		sectorBests[i][0] = min([float(x[186+i*9]) for x in g.telemetryData if int(x[185+i*9]) & int('111', 2) == 2 and float(x[186+i*9]) != -123.0 and int(x[183+i*9]) & int('10000000', 2) == 0])
 		sectorBests[i][1] = min([float(x[186+i*9]) for x in g.telemetryData if int(x[185+i*9]) & int('111', 2) == 3 and float(x[186+i*9]) != -123.0 and int(x[183+i*9]) & int('10000000', 2) == 0])
 		sectorBests[i][2] = min([float(x[186+i*9]) for x in g.telemetryData if int(x[185+i*9]) & int('111', 2) == 1 and float(x[186+i*9]) != -123.0 and int(x[183+i*9]) & int('10000000', 2) == 0])
 
 	columnHeadings = [("Pos.", "Driver", "Team", "Car", "Laps", "Time", "Best Lap", "Best S1", "Best S2", "Best S3", "Points")]
-	columnData = [(str(p), n, t, c, str(l), makeET(sum(lapTimes[i])), "{:.2f}".format(float(min(lapTimes[i]))), "{:.2f}".format(float(sectorBests[i][0])), "{:.2f}".format(float(sectorBests[i][1])), "{:.2f}".format(float(sectorBests[i][2])), str(g.pointStructure[p]+g.pointStructure[0] if g.bestLap == g.personalBestLaps[i] else g.pointStructure[p])) for p, n, t, c, i, l in classification]
+	columnData = [(str(p), n, t, c, str(l), makeET(sum(lapTimes[i])), "{:.2f}".format(float(min(lapTimes[i]))), "{:.2f}".format(float(sectorBests[i][0])), "{:.2f}".format(float(sectorBests[i][1])), "{:.2f}".format(float(sectorBests[i][2])), str(g.pointStructure[p]+g.pointStructure[0] if min(personalBestLaps) == personalBestLaps[i] else g.pointStructure[p])) for p, n, t, c, i, l in classification]
 	columnData = columnHeadings+columnData
 
 	widths = [max([g.font.getsize(x[i])[0] for x in columnData]) for i in range(len(columnData[0]))]
