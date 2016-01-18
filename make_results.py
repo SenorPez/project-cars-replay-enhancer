@@ -42,7 +42,7 @@ def results_data():
 	lapTimes = [list() for x in range(len(classification))]
 	personalBestLaps = ['' for x in range(len(classification))]
 
-	for p, n, t, c, i, l in classification:
+	for p, n, t, c, i, l in classification[:16]:
 		lapFinish = raceFinish
 		if p != 1:
 			try:
@@ -63,7 +63,7 @@ def results_data():
 		sectorBests[i][2] = min([float(x[186+i*9]) for x in g.telemetryData if int(x[185+i*9]) & int('111', 2) == 1 and float(x[186+i*9]) != -123.0 and int(x[183+i*9]) & int('10000000', 2) == 0])
 
 	columnHeadings = [("Pos.", "Driver", "Team", "Car", "Laps", "Time", "Best Lap", "Best S1", "Best S2", "Best S3", "Points")]
-	columnData = [(str(p), n, t, c, str(l), makeET(sum(lapTimes[i])), "{:.2f}".format(float(min(lapTimes[i]))), "{:.2f}".format(float(sectorBests[i][0])), "{:.2f}".format(float(sectorBests[i][1])), "{:.2f}".format(float(sectorBests[i][2])), str(g.pointStructure[p]+g.pointStructure[0] if min(personalBestLaps) == personalBestLaps[i] else g.pointStructure[p])) for p, n, t, c, i, l in classification]
+	columnData = [(str(p), n, t, c, str(l), makeET(sum(lapTimes[i])), "{:.2f}".format(float(min(lapTimes[i]))), "{:.2f}".format(float(sectorBests[i][0])), "{:.2f}".format(float(sectorBests[i][1])), "{:.2f}".format(float(sectorBests[i][2])), str(g.pointStructure[p]+g.pointStructure[0] if min(personalBestLaps) == personalBestLaps[i] else g.pointStructure[p])) for p, n, t, c, i, l in classification[:16]]
 	columnData = columnHeadings+columnData
 
 	widths = [max([g.font.getsize(x[i])[0] for x in columnData]) for i in range(len(columnData[0]))]
@@ -115,7 +115,7 @@ def make_results():
 
 	columnPositions = [g.margin*(i+1)+sum(columnWidths[0:i]) if i == 0 else g.margin+g.columnMargin*i+sum(columnWidths[0:i]) for i, w in enumerate(columnWidths)]
 
-	for p, n, t, c, l, et, bl, bs1, bs2, bs3, pts in [list(zip(x, columnPositions)) for x in classification]:
+	for p, n, t, c, l, et, bl, bs1, bs2, bs3, pts in [list(zip(x, columnPositions)) for x in classification[:16]]:
 		draw.text((p[1], yPos), str(p[0]), fill='black', font=g.font)
 		draw.text((n[1], yPos), str(n[0]), fill='black', font=g.font)
 		draw.text((t[1], yPos), str(t[0]), fill='black', font=g.font)

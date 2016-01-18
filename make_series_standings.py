@@ -29,7 +29,7 @@ def series_data():
 	lapTimes = [list() for x in range(len(classification))]
 	personalBestLaps = ['' for x in range(len(classification))]
 
-	for p, n, t, c, i, l in classification:
+	for p, n, t, c, i, l in classification[:16]:
 		lapFinish = raceFinish
 		if p != 1:
 			try:
@@ -47,7 +47,7 @@ def series_data():
 
 	columnHeadings = [("Rank", "Driver", "Team", "Car", "Series Points")]
 	
-	columnData = [(n, t, c, str(g.points[i]+g.pointStructure[p]+g.pointStructure[0] if min(personalBestLaps) == personalBestLaps[i] else g.points[i]+g.pointStructure[p])) for p, n, t, c, i, l in classification]
+	columnData = [(n, t, c, str(g.points[i]+g.pointStructure[p]+g.pointStructure[0] if min(personalBestLaps) == personalBestLaps[i] else g.points[i]+g.pointStructure[p])) for p, n, t, c, i, l in classification[:16]]
 	columnData = [(str(i),)+x for i, x in enumerate(sorted(columnData, key=lambda x: int(x[3]), reverse=True), 1)]
 	columnData = columnHeadings + columnData
 
