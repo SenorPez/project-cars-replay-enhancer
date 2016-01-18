@@ -158,7 +158,8 @@ def update_data(t):
 		try:
 			data = [x for x in g.telemetryData if x[-1] > t-g.racestart][0]
 		except IndexError:
-			data = g.telemetryData[-1]
+			raceFinish = [i for i, data in reversed(list(enumerate(g.telemetryData))) if int(data[9]) & int('111', 2) == 2][0] + 1
+			data = g.telemetryData[raceFinish]
 	else:
 		data = g.telemetryData[0]
 	'''
