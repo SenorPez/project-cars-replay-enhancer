@@ -1,5 +1,6 @@
 from importlib import import_module
 from moviepy.video.io.bindings import PIL_to_npimage
+from numpy import diff, where
 import PIL.Image as plim
 from PIL import ImageDraw
 import sys
@@ -24,9 +25,27 @@ def series_data():
 	#Renumber
 	classification = [(p,) + tuple(rest) for p, (i, *rest) in enumerate(classification, 1)]
 
+	sectorTimes = [list() for x in range(len(classification))]
+	lapTimes = [list() for x in range(len(classification))]
+
+	for p, n, t, c, i, l in classification:
+		lapFinish = raceFinish
+		if p != 1:
+			try:
+				while (g.telemetryData[raceFinish][183+i*9] == g.telemetryData[lapFinish][183+i*9]):
+					lapFinish += 1
+			except IndexError:
+				lapFinish = len(g.telemetryData)-1
+
+		sectorTimes[i] = [float(g.telemetryData[x][186+i*9]) for x in where(diff([int(y[185+i*9]) & int('111', 2) for y in g.telemetryData[:lapFinish+1]]) != 0)[0].tolist() if float(g.telemetryData[x][186+i*9]) != -123.0]+[float(g.telemetryData[lapFinish][186+i*9])]
+		sectorTimes[i] = sectorTimes[i][:divmod(len(sectorTimes[i]), 3)[0]*3]
+
+		lapTimes[i] = [sum(sectorTimes[i][x:x+3]) for x in range(0, len(sectorTimes[i]), 3)]
+		personalBestLaps = [sum(x) for x in lapTimes]
+
 	columnHeadings = [("Rank", "Driver", "Team", "Car", "Series Points")]
 	
-	columnData = [(n, t, c, str(g.points[i]+g.pointStructure[p]+g.pointStructure[0] if g.bestLap == g.personalBestLaps[i] else g.points[i]+g.pointStructure[p])) for p, n, t, c, i, l in classification]
+	columnData = [(n, t, c, str(g.points[i]+g.pointStructure[p]+g.pointStructure[0] if min(personalBestLaps) == personalBestLaps[i] else g.points[i]+g.pointStructure[p])) for p, n, t, c, i, l in classification]
 	columnData = [(str(i),)+x for i, x in enumerate(sorted(columnData, key=lambda x: int(x[3]), reverse=True), 1)]
 	columnData = columnHeadings + columnData
 

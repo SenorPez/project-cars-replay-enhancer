@@ -9,9 +9,7 @@ if len(sys.argv) != 2:
 	print("Usage: 'python'"+sys.argv[0]+" <configfile'")
 
 else:
-	g = import_module(sys.argv[1][:-3])
+	g = import_module(".".join(sys.argv[1][:-3].split('/')[1:]))
 	get_telemetry(g.sourcetelemetry)
-	#string = "\n".join("{0:>2}: {1}".format(sorted([(int(i), str(n)) for (i, n) in g.participantData])))
 	string = "\n".join(["{0:>2}: {1}".format(x, y) for (x, y) in sorted([(int(i), str(n)) for i, n, *rest in g.participantData])])
-	#string = "\n".join(natsorted(["{0:>2}: {1}".format(int(i), n) for (i, n) in g.participantData]))
 	print(string)
