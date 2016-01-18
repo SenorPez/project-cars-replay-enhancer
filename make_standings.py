@@ -20,6 +20,10 @@ maxLapTime = -1
 
 standings = list()
 
+changeGroup = False
+nextChangeTime = -1
+currentGroup = 10
+
 def sector_rectangles(data, height):
 	invalidColor = (255, 0, 0)
 	currentColor = (255, 255, 0)
@@ -60,7 +64,7 @@ def write_data(material, standings, dataHeight, columnWidths):
 	columnPositions = [g.margin*(i+1)+sum(columnWidths[0:i]) if i == 0 else g.margin+g.columnMargin*(i)+sum(columnWidths[0:i]) for i, w in enumerate(columnWidths)]
 	yPos = g.margin/2
 
-	for p, n, r, i, s, l, et, lx, cl in standings:
+	for p, n, r, i, s, l, et, lx, cl in standings[:10]+standings[currentGroup:currentGroup+6]:
 		for pp, nn, ss, ll, rr in [list(zip((p, n, s, l, r), columnPositions+[0]))]:
 			draw.text((pp[1], yPos), str(pp[0]), fill='black', font=g.font)
 			draw.text((nn[1], yPos), str(nn[0]), fill='black', font=g.font)
@@ -118,19 +122,17 @@ def make_material(t, bgOnly=False):
 	widths = [(g.font.getsize(str(p))[0], g.font.getsize(str(n))[0], int(g.margin*1.5), max([g.font.getsize(str(sizeString))[0], g.font.getsize("+00 laps")[0]])) for p, n, *rest in standings]
 	heights = [max(g.font.getsize(str(p))[1], g.font.getsize(str(n))[1], g.font.getsize(str("{:.2f}".format(0.00)))[1]) for p, n, *rest in standings]
 	dataHeight = max(heights)
-	heights = [dataHeight for x in standings]
+
+	heights = [dataHeight for x in standings[:16]]
 
 	columnWidths = [max(widths, key=lambda x: x[y])[y] for y in range(len(widths[0]))]
 	text_width = sum(columnWidths)+g.columnMargin*(len(widths[0])-1)
 	text_height = sum(heights)+g.margin*(len(heights)-1)
 
 	material = plim.new('RGBA', (text_width+g.margin*2, text_height+g.margin))
+	yPos = 0
 
-	dataMaterial = plim.new('RGBA', (text_width+g.margin*2, dataHeight+g.margin), (255, 255, 255, 128))
-	material.paste(dataMaterial, (0, 0))
-
-	yPos = dataHeight+g.margin
-	for i, r in enumerate(standings[1:-1]):
+	for i, r in enumerate(standings[:16]):
 		if i % 2:
 			materialColor = (255, 255, 255, 128)
 		else:
@@ -139,20 +141,16 @@ def make_material(t, bgOnly=False):
 		dataMaterial = plim.new('RGBA', (text_width+g.margin*2, dataHeight+g.margin), materialColor)
 		material.paste(dataMaterial, (0, yPos))
 		yPos += dataHeight+g.margin
-
-	i += 1
-	if i % 2:
-		materialColor = (255, 255, 255, 128)
-	else:
-		materialColor = (192, 192, 192, 128)
-	dataMaterial = plim.new('RGBA', (text_width+g.margin*2, dataHeight+g.margin), materialColor)
-	material.paste(dataMaterial, (0, yPos))
-
+	
 	return material if bgOnly else write_data(material, standings, dataHeight, columnWidths)
 
 def update_data(t):
 	global leaderLapsCompleted
 	global leaderET
+
+	global changeGroup
+	global nextChangeTime
+	global currentGroup
 
 	if t >= g.racestart:
 		try:
@@ -176,6 +174,12 @@ def update_data(t):
 	'''
 	
 	standings = sorted({(int(data[182+i*9]) & int('01111111', 2), n.split(" ")[0][0]+". "+n.split(" ")[-1], float(data[181+i*9])/float(data[682]), int(i), int(data[185+i*9]) & int('111', 2), float(data[186+i*9]), float(data[-1]), int(data[183+i*9]), int(data[184+i*9])) for i, n, *rest in g.participantData})
+
+	if nextChangeTime == -1:
+		nextChangeTime = t+5
+	elif t > nextChangeTime:
+		currentGroup = currentGroup+6 if currentGroup+6 < len(standings) else 10
+		nextChangeTime = t+5
 
 	for p, n, r, i, s, l, et, lx, cl in standings:
 		if s == 1:
