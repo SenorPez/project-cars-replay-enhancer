@@ -8,11 +8,10 @@ import sys
 
 g = import_module(".".join(sys.argv[1][:-3].split('/')[1:]))
 
-def black_test(filename, threshold=1, gaptime=1, skipstart=0, skipend=0, cache='file.cache'):
+def black_test(filename):
 	#Test file hash, because blackframe detection is slow, so we cache it.
 	#Get stored file.
 	try:
-		#with open("file.cache", 'r') as h:
 		with open(g.cachefile, 'r') as h:
 			cache = csv.reader(h)
 
@@ -28,14 +27,13 @@ def black_test(filename, threshold=1, gaptime=1, skipstart=0, skipend=0, cache='
 		blackframe = mpy.ColorClip(video.size, duration=video.duration).set_fps(video.fps).get_frame(0).astype("uint8")
 		
 		try:
-			blackframes = [t for (t, f) in video.iter_frames(with_times=True) if f.mean() < threshold]
-			videostart = blackframes[where(diff(blackframes)>gaptime)[0][0+skipstart]]
-			videoend = blackframes[::-1][where(diff(blackframes[::-1])<-gaptime)[0][0+skipend]]
+			blackframes = [t for (t, f) in video.iter_frames(with_times=True) if f.mean() < g.threshold]
+			videostart = blackframes[where(diff(blackframes)>g.gaptime)[0][0+g.skipstart]]
+			videoend = blackframes[::-1][where(diff(blackframes[::-1])<-g.gaptime)[0][0+g.skipend]]
 		except IndexError:
 			videostart = 0
 			videoend = video.duration
 		finally:
-			#with open("file.cache", 'a') as h:
 			with open(g.cachefile, 'a') as h:
 				cache = csv.writer(h)
 				cache.writerow([filename, hashfile(open(filename, 'rb'), sha256()), videostart, videoend])
