@@ -27,6 +27,7 @@ def series_data():
 
 	sectorTimes = [list() for x in range(len(classification))]
 	lapTimes = [list() for x in range(len(classification))]
+	personalBestLaps = ['' for x in range(len(classification))]
 
 	for p, n, t, c, i, l in classification:
 		lapFinish = raceFinish
@@ -38,10 +39,11 @@ def series_data():
 				lapFinish = len(g.telemetryData)-1
 
 		sectorTimes[i] = [float(g.telemetryData[x][186+i*9]) for x in where(diff([int(y[185+i*9]) & int('111', 2) for y in g.telemetryData[:lapFinish+1]]) != 0)[0].tolist() if float(g.telemetryData[x][186+i*9]) != -123.0]+[float(g.telemetryData[lapFinish][186+i*9])]
+
 		sectorTimes[i] = sectorTimes[i][:divmod(len(sectorTimes[i]), 3)[0]*3]
 
 		lapTimes[i] = [sum(sectorTimes[i][x:x+3]) for x in range(0, len(sectorTimes[i]), 3)]
-		personalBestLaps = [sum(x) for x in lapTimes]
+		personalBestLaps[i] = min([x for x in lapTimes[i]])
 
 	columnHeadings = [("Rank", "Driver", "Team", "Car", "Series Points")]
 	

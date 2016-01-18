@@ -40,6 +40,7 @@ def results_data():
 	sectorBests = [[-1, -1, -1] for x in range(len(classification))]
 	sectorTimes = [list() for x in range(len(classification))]
 	lapTimes = [list() for x in range(len(classification))]
+	personalBestLaps = ['' for x in range(len(classification))]
 
 	for p, n, t, c, i, l in classification:
 		lapFinish = raceFinish
@@ -55,7 +56,7 @@ def results_data():
 		sectorTimes[i] = sectorTimes[i][:divmod(len(sectorTimes[i]), 3)[0]*3]
 
 		lapTimes[i] = [sum(sectorTimes[i][x:x+3]) for x in range(0, len(sectorTimes[i]), 3)]
-		personalBestLaps = [sum(x) for x in lapTimes]
+		personalBestLaps[i] = min([x for x in lapTimes[i]])
 
 		sectorBests[i][0] = min([float(x[186+i*9]) for x in g.telemetryData if int(x[185+i*9]) & int('111', 2) == 2 and float(x[186+i*9]) != -123.0 and int(x[183+i*9]) & int('10000000', 2) == 0])
 		sectorBests[i][1] = min([float(x[186+i*9]) for x in g.telemetryData if int(x[185+i*9]) & int('111', 2) == 3 and float(x[186+i*9]) != -123.0 and int(x[183+i*9]) & int('10000000', 2) == 0])
