@@ -1,7 +1,7 @@
 # project-cars-replay-enhancer
 Project CARS Replay Enhancer: Combines telemetry data with replay video to improve Project CARS replays.
 
-Current release: 0.1  
+Current release: 0.2  
 Current edge state: Rough  
 Current mood: Nervous  
 
@@ -21,6 +21,13 @@ The scripts are currently not fast enough for live broadcasting.
 Telemetry packet capture is performed by running the `packetgrab.py` script on the network. This captures UDP packets broadcast by Project CARS (make sure you've enabled UDP broadcast) and store them to a subdirectory for future processing.
 
 > **NOTE:** As most internet video runs at 30 frames per second, you want to set your UDP broadcast rate to at least 30 packets per second, otherwise there may be noticeable "phasing" between video and data displays.
+
+####Telemetry Capture Best Practices:
+There are a few things to do to optimize the telemetry data used by the Project CARS Replay Enhancer.
+
+* Telemetry capture should be started before entering the race. The preferred time for this would be at the menu before clicking the **Drive** button on the menu.
+* At the end of the race, do not click **Continue** or stop telemetry capture until this **Race Time** numbers post. (Make sure you scroll down to see the later cars!) Despite you being on the results screen, the remaining cars will finish their lap and this is captured by the telemetry.
+* Each collection of telemetry packet captures should only contain a single race. Restarting, if that is allowed, is allowed. The parser automatically detects the latest complete (start->finish) race in each collection; if multiple complete races are included in the telemetry, only the last one will be used. (Opened issue #12 to consider removing this limitation.)
     
 ###Video Capture:
 There is no video capture functionality included in the scripts. How you get the video to your local machine is left as an exercise for the reader. For my PS4, I stream the replay to YouTube which then archives it and then can be downloaded using [youtube-dl](https://rg3.github.io/youtube-dl/ "youtube-dl"). Video capture devices such as an Elgato work just fine as well (probably better, actually).
@@ -32,14 +39,14 @@ To run the replay enhancer, run the `replay.py` script with a configuration file
 Usage is `python replay.py <configfile>;`
     
 ####Config File:
-A sample configuration file is included in the repository as globals_template.py. This contains values that are passed between the various scripts. All values must be included; there are no defaults. Additional values can be added as needed.
+A sample configuration file is included in the repository as `globals_template.py`. This contains values that are passed between the various scripts. All values must be included; there are no defaults. Additional values can be added as needed.
       
 `sourcevideo`: Path to the source video.  
 `sourcetelemetry`: Path to the directory of captured telemetry data. Make sure to include the trailing slash!
 `outputvideo`: Path to the desired output video. Images are be output using this file name with a .jpg extension.
       
-`racestart`: This is used to synchronize the telemetry data with the video.  
-The easiest way to find this number is to make a low-quality video, pause on a new lap, and note the differential between 0.00 on the timer and the actual time displayed.
+`racestart`: This is used to synchronize the telemetry data with the video. This is the number of seconds between the start of the replay video (after blackframe detection, see below) and the green flag dropping.  
+In testing, this number always seems to be **close to** but not exactly 3.5 seconds. One method to find this value is to use the default 3.5 and note how much it needs to be adjusted based on the difference on the timer between 0.00 and the displayed time on a new lap.
       
 `font`, `headingfont`: Pillow ImageFont objects defining fonts. These names (font, headingfont) are used by display modules.  
 Add new values as needed by new display modules.
@@ -51,7 +58,7 @@ Add new values as needed by new display modules.
 Add new values as needed by new display modules.
       
 `carData`, `teamData`: Python lists that map cars and teams to participants, based on their index.  
-There is a utility script (show_participants.py) that dumps participant name and indexes for ease of creating these lists.
+There is a utility script (`show_participants.py`) that dumps participant name and indexes for ease of creating these lists.
       
 > **NOTE:** Due to UDP packet limitations, these aren't included in the data. I typically use a race-ending screenshot to save this data, and manually enter it.
       
@@ -87,7 +94,7 @@ Note that if you wanted to, you could use this to create replays of single laps.
 > **NOTE:** If you later change something, such as your `skipstart` or `skipend` parameters, you **NEED TO REMOVE** the entry in the cache file. (Or just delete the entire cache.) Since it's **HORRIBLY SLOW**, if the file is seen in the cache data, we just use that cache data.
         
 ####Output Selection:
-Output selection is currently super-hacky. See the bottom of replay.py for a few options, and comment and uncomment lines to create what you want. This is definitely something that should be added as an option instead by whatever.
+Output selection is currently super-hacky. See the bottom of `replay.py` for a few options, and comment and uncomment lines to create what you want. This is definitely something that should be added as an option instead by whatever.
       
 ####Display Modules:
 The various modules add the replay data to the video and are modular in nature. There are a few included right now:
@@ -96,9 +103,9 @@ The various modules add the replay data to the video and are modular in nature. 
 * `make_timer`: Creates a laptime and lap counter.
 * `make_title`: Creates a title screen.
         
-Each callable function in the modules can take no arguments; a "t" value, indicating the current video time, is automatically passed by MoviePy. The above modules all include a "base" function (which returns the graphic) and a "mask" version of the function (which returns the alpha values for the graphic).
+Each callable function in the modules can take no arguments; a `t` value, indicating the current video time, is automatically passed by MoviePy. The above modules all include a "base" function (which returns the graphic) and a "mask" version of the function (which returns the alpha values for the graphic).
       
-For information on compositing the video and the module output, see the MoviePy documentation, and the compositing sections in replay.py
+For information on compositing the video and the module output, see the MoviePy documentation, and the compositing sections in `replay.py`
       
 ##Enhancing the Enhancer?
 You're more than welcome to do so! Write new modules, speed up new modules, feel free. If you have any issues or questions please communicate them here!
