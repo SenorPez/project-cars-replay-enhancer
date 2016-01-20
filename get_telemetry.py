@@ -1,10 +1,13 @@
 import csv
 from importlib import import_module
+import os.path
 import sys
 
 from process_telemetry import process_telemetry
 
-g = import_module(".".join(sys.argv[1][:-3].split('/')[1:]))
+paths = os.path.split(os.path.abspath(sys.argv[1]))
+sys.path.insert(0, paths[0])
+g = import_module(os.path.splitext(paths[1])[0])
 
 def get_telemetry(telemetryDirectory, telemetryFile='tele.csv'):
 	try:

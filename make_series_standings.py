@@ -1,11 +1,14 @@
 from importlib import import_module
 from moviepy.video.io.bindings import PIL_to_npimage
 from numpy import diff, where
+import os.path
 import PIL.Image as plim
 from PIL import ImageDraw
 import sys
 
-g = import_module(".".join(sys.argv[1][:-3].split('/')[1:]))
+paths = os.path.split(os.path.abspath(sys.argv[1]))
+sys.path.insert(0, paths[0])
+g = import_module(os.path.splitext(paths[1])[0])
 
 def series_data():
 	#Find out who is lapped at the finish.
@@ -48,7 +51,15 @@ def series_data():
 	columnHeadings = [("Rank", "Driver", "Team", "Car", "Series Points")]
 	
 	columnData = [(n, t, c, str(g.points[i]+g.pointStructure[p]+g.pointStructure[0] if min(personalBestLaps) == personalBestLaps[i] else g.points[i]+g.pointStructure[p])) for p, n, t, c, i, l in classification[:16]]
-	columnData = [(str(i),)+x for i, x in enumerate(sorted(columnData, key=lambda x: int(x[3]), reverse=True), 1)]
+	for i, x in enumerate(sorted(columnData, key=lambda x: (-int(x[3]), str(x[0]).split(" ")[-1]))):
+		try:
+			if columnData[i][-1] == columnData[i-1][-1]:
+				columnData[i] = (str(columnData[i-1][0]),)+x
+			else:
+				raise IndexError
+		except IndexError:
+			columnData[i] = (str(i+1),)+x
+
 	columnData = columnHeadings + columnData
 
 	widths = [max([g.font.getsize(x[i])[0] for x in columnData]) for i in range(len(columnData[0]))]

@@ -1,12 +1,15 @@
 import csv
-from importlib import import_module
 from hashfile import hashfile
 from hashlib import sha256
+from importlib import import_module
 import moviepy.editor as mpy
 from numpy import diff, where
+import os.path
 import sys
 
-g = import_module(".".join(sys.argv[1][:-3].split('/')[1:]))
+paths = os.path.split(os.path.abspath(sys.argv[1]))
+sys.path.insert(0, paths[0])
+g = import_module(os.path.splitext(paths[1])[0])
 
 def black_test(filename):
 	#Test file hash, because blackframe detection is slow, so we cache it.

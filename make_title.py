@@ -1,10 +1,13 @@
 from importlib import import_module
 from moviepy.video.io.bindings import PIL_to_npimage
+import os.path
 import PIL.Image as plim
 from PIL import ImageDraw
 import sys
 
-g = import_module(".".join(sys.argv[1][:-3].split('/')[1:]))
+paths = os.path.split(os.path.abspath(sys.argv[1]))
+sys.path.insert(0, paths[0])
+g = import_module(os.path.splitext(paths[1])[0])
 
 def title_data():
 	data = g.telemetryData[0]

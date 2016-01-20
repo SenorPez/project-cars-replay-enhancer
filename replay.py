@@ -1,7 +1,10 @@
+import os.path
 import sys
 
 if len(sys.argv) != 2:
 	print ("Usage: 'python "+sys.argv[0]+" <configfile>'")
+elif not os.path.isfile(sys.argv[1]):
+	print (sys.argv[1]+" not found. Please check the path and try again.")
 else:
 	from importlib import import_module
 	import moviepy.editor as mpy
@@ -16,7 +19,9 @@ else:
 	from make_series_standings import make_series_standings, make_series_standings_mask
 	from UpdatedVideoClip import UpdatedVideoClip, simWorld
 
-	g = import_module(".".join(sys.argv[1][:-3].split('/')[1:]))
+	paths = os.path.split(os.path.abspath(sys.argv[1]))
+	sys.path.insert(0, paths[0])
+	g = import_module(os.path.splitext(paths[1])[0])
 	get_telemetry(g.sourcetelemetry)
 
 	video = black_test(g.sourcevideo)
@@ -56,12 +61,11 @@ else:
 	output.write_videofile(g.outputvideo)
 
 	#Full video, low framerate
-	#output.subclip(output.duration-60, output.duration).write_videofile(g.outputvideo, fps=10)
+	#output.write_videofile(g.outputvideo, fps=10)
 
 	#Subclip video.
-	#output.subclip(30, 40).write_videofile(g.outputvideo, fps=10)
-	#output.subclip(output.duration-25, output.duration).write_videofile(g.outputvideo, fps=10)
-	#output.subclip(output.duration-25, output.duration-15).write_videofile(g.outputvideo, fps=10)
+	#output.subclip(0, 45).write_videofile(g.outputvideo, fps=10)
+	#output.subclip(output.duration-60, output.duration).write_videofile(g.outputvideo, fps=10)
 
 	#Single frame.
 	#output.save_frame(g.outputvideo+".jpg", 30)
