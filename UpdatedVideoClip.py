@@ -10,20 +10,13 @@ class simWorld():
 
 	def update(self):
 		self.mod.update_data(self.clip_t)
-		#update_standings_data(self.clip_t)
-		#make_standings(self.clip_t, False)
 		self.clip_t += float(1/self.ups)
 
 	def to_frame(self):
 		return PIL_to_npimage(self.mod.make_material(self.clip_t).convert('RGB'))
-		#return PIL_to_npimage(make_material(self.clip_t).convert('RGB'))
-		#return make_standings(self.clip_t, True)
 
 	def make_mask(self):
 		return self.mod.make_mask(self.clip_t)
-		#return PIL_to_npimage(self.mod.make_material(self.clip_t))
-		#return PIL_to_npimage(self.mod.make_material(self.clip_t).split()[-1].convert('RGB'))
-		#return PIL_to_npimage(self.mod.make_mask(self.clip_t).split()[-1].convert('RGB'))
 
 class UpdatedVideoClip(mpy.VideoClip):
 	"""
