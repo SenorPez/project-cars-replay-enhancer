@@ -1,20 +1,26 @@
 from PIL import ImageFont
 
-sourcevideo = "race1.mp4"
-sourcetelemetry = "./race1/"
-outputvideo = "race1-output.mp4"
+sourcevideo = "./demo/demo.mp4"
+sourcetelemetry = "demo/demotelemetry/"
+outputvideo = "./demo/demo-output.mp4"
+
+backdrop = "./demo/Ruapuna.jpg"
+logo = "./demo/Ruapuna.png"
+logo_height = 150
+logo_width = 150
 
 racestart = 3.5+0.8
 
-font = ImageFont.truetype("/usr/share/fonts/truetype/Roboto/Roboto-Regular.ttf", 15)
-headingfont = ImageFont.truetype("/usr/share/fonts/truetype/Roboto/Roboto-Medium.ttf", 20)
+font = ImageFont.truetype("./demo/Roboto-Regular.ttf", 15)
+headingfont = ImageFont.truetype("./demo/Roboto-Medium.ttf", 20)
 
 margin = 20
+columnMargin = 10
 
-headingtext = "Kart One UK Nationals"
-subheadingtext = "Round 1 of 3 - Sprint Race - Glencairn East"
-carData = ["125cc Shifter Kart" for x in range(12)]
-teamData = ["DarkNitro", "DarkNitro", "Rodrigues Racing", "Rodrigues Racing", "Greased Lightning", "Greased Lightning", "Galileo", "Galileo", "Barracuda", "Barracuda", "Victory Motorsports", "Victory Motorsports"]
+headingtext = "Ruapuna Scion Spectacular"
+subheadingtext = "Ruapuna Club"
+carData = ["Scion FR-S" for x in range(21)]
+teamData = [None for x in range(21)]
 
 participantData = list()
 telemetryData = list()
@@ -24,4 +30,15 @@ threshold = 1
 gaptime = 1
 skipstart = 0
 skipend = 0
-cachefile = 'file.cache'
+cachefile = './demo/file.cache'
+
+#Best sectors and laps.
+sectorBests = [-1, -1, -1]
+personalBests = [[-1, -1, -1] for x in range(64)]
+bestLap = -1
+personalBestLaps = [-1 for x in range(64)]
+
+elapsedTimes = [-1 for x in range(64)]
+
+pointStructure = [0, 15, 12, 10, 8, 6, 4, 2, 1, 0, 0, 0, 0]
+points = [0 for x in range(21)]
