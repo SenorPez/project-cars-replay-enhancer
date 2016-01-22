@@ -44,4 +44,4 @@ def process_telemetry(folder):
 					packString += "64x"
 
 				unpackData = unpack(packString, packData)
-				csvfile.write(",".join(str(x, encoding='utf-8').replace('\x00', '') if isinstance(x, bytes) else str(x).replace('\x00', '') for x in unpack(packString, packData)+(a,))+"\n")
+				csvfile.write(",".join(str(x, encoding='utf-8', errors='ignore').replace('\x00', '') if isinstance(x, bytes) else str(x).replace('\x00', '') for x in unpack(packString, packData)+(a,))+"\n")
