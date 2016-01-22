@@ -27,7 +27,7 @@ def get_telemetry(telemetryDirectory, telemetryFile='tele.csv'):
 					if len(p[1]):
 						g.participantData.append(p)
 			elif int(row[1]) & 3 == 2:
-				for p in enumerate(row[3:-1], row[2]):
+				for p in enumerate(row[3:-1], int(row[2])):
 					if len(p[1]):
 						g.participantData.append(p)
 			else:
@@ -41,7 +41,8 @@ def get_telemetry(telemetryDirectory, telemetryFile='tele.csv'):
 		raceEnd = -1
 
 		raceEnd = [i for i, data in reversed(list(enumerate(g.telemetryData))) if int(data[9]) & int('111', 2) == 3][0] + 1
-		raceStart = [i for i, data in reversed(list(enumerate(g.telemetryData[:raceEnd]))) if int(data[9]) & int('111', 2) == 0][0] + 1
+		raceFinish = [i for i, data in reversed(list(enumerate(g.telemetryData[:raceEnd]))) if int(data[9]) & int('111', 2) == 2][0] + 1
+		raceStart = [i for i, data in reversed(list(enumerate(g.telemetryData[:raceFinish]))) if int(data[9]) & int('111', 2) == 0][0] + 1
 
 		#For some reason, the telemetry doesn't immediately load the stadndings before a race. Step through until we do have them.
 		while sum([int(g.telemetryData[raceStart][182+i*9]) & int('01111111', 2) for i in range(56)]) == 0:

@@ -20,7 +20,6 @@ def makeET(rawET):
 		return "{:d}:{:05.2f}".format(int(maxMinutes), float(maxSeconds))
 	else:
 		return "{:.2f}".format(float(maxSeconds))
-    
 
 def results_data():
 	#Find out who is lapped at the finish.
@@ -34,8 +33,8 @@ def results_data():
 
 	#Get lead lap classification, then append lapped classifications.
 	data = g.telemetryData[-1]
-	classification = sorted((int(data[182+i*9]) & int('01111111', 2), n, t, c, i, int(data[10])) for i, n, t, c in g.participantData if i in leadLapIndexes)
-	classification += sorted((int(data[182+i*9]) & int('01111111', 2), n, t, c, i, int(data[183+i*9])) for i, n, t, c in g.participantData if i in lappedIndexes)
+	classification = sorted((int(data[182+i*9]) & int('01111111', 2), n, t if t is not None else "", c, i, int(data[10])) for i, n, t, c in g.participantData if i in leadLapIndexes)
+	classification += sorted((int(data[182+i*9]) & int('01111111', 2), n, t if t is not None else "", c, i, int(data[183+i*9])) for i, n, t, c in g.participantData if i in lappedIndexes)
 
 	#Renumber
 	classification = [(p,) + tuple(rest) for p, (i, *rest) in enumerate(classification, 1)]
@@ -66,7 +65,12 @@ def results_data():
 		sectorBests[i][2] = min([float(x[186+i*9]) for x in g.telemetryData if int(x[185+i*9]) & int('111', 2) == 1 and float(x[186+i*9]) != -123.0 and int(x[183+i*9]) & int('10000000', 2) == 0])
 
 	columnHeadings = [("Pos.", "Driver", "Team", "Car", "Laps", "Time", "Best Lap", "Best S1", "Best S2", "Best S3", "Points")]
-	columnData = [(str(p), n, t, c, str(l), makeET(sum(lapTimes[i])), "{:.2f}".format(float(min(lapTimes[i]))), "{:.2f}".format(float(sectorBests[i][0])), "{:.2f}".format(float(sectorBests[i][1])), "{:.2f}".format(float(sectorBests[i][2])), str(g.pointStructure[p]+g.pointStructure[0] if min(personalBestLaps) == personalBestLaps[i] else g.pointStructure[p])) for p, n, t, c, i, l in classification[:16]]
+	
+	if len(g.pointStructure) < 17:
+		g.pointStructure += [0] * (17-len(g.pointStructure))
+
+	columnData = [(str(p), n, t, c, str(l), makeET(sum(lapTimes[i])), "{:.2f}".format(float(min(lapTimes[i]))), "{:.2f}".format(float(sectorBests[i][0])), "{:.2f}".format(float(sectorBests[i][1])), "{:.2f}".format(float(sectorBests[i][2])), str(g.pointStructure[p]+g.pointStructure[0] if min([x for x in personalBestLaps if isinstance(x, float)]) == personalBestLaps[i] else g.pointStructure[p])) for p, n, t, c, i, l in classification[:16]]
+	columnHeadings = [tuple([x if len([y[i] for y in columnData if len(y[i])]) else "" for i, x in enumerate(*columnHeadings)])]
 	columnData = columnHeadings+columnData
 
 	widths = [max([g.font.getsize(x[i])[0] for x in columnData]) for i in range(len(columnData[0]))]
@@ -78,7 +82,7 @@ def results_data():
 	heights.append(g.headingfont.getsize(g.headingtext)[1])
 	heights.append(g.font.getsize(g.subheadingtext)[1])
 
-	text_width = widths[-1]+g.columnMargin*(len(widths)-1)
+	text_width = widths[-1]+g.columnMargin*(len([x for x in widths[:-1] if x != 0])-1)
 	text_height = sum(heights)+g.margin*len(heights)-1
 
 	headerHeight = g.headingfont.getsize(g.headingtext)[1]+g.font.getsize(g.subheadingtext)[1]+g.margin*2
@@ -113,15 +117,16 @@ def make_results():
 	yPos += g.headingfont.getsize(g.headingtext)[1]
 
 	draw.text((20, yPos), g.subheadingtext, fill='white', font=g.font)
-	yPos += g.font.getsize(g.headingtext)[1]+g.margin
+	yPos += g.font.getsize(g.subheadingtext)[1]+g.margin
 	yPos += g.margin/2
 
-	columnPositions = [g.margin*(i+1)+sum(columnWidths[0:i]) if i == 0 else g.margin+g.columnMargin*i+sum(columnWidths[0:i]) for i, w in enumerate(columnWidths)]
+	columnPositions = [g.margin if i == 0 else g.margin+g.columnMargin*i+sum(columnWidths[0:i]) if columnWidths[i-1] != 0 else g.margin+g.columnMargin*(i-1)+sum(columnWidths[0:(i-1)]) for i, w in enumerate(columnWidths)]
 
-	for p, n, t, c, l, et, bl, bs1, bs2, bs3, pts in [list(zip(x, columnPositions)) for x in classification[:16]]:
+	for p, n, t, c, l, et, bl, bs1, bs2, bs3, pts in [list(zip(x, columnPositions)) for x in classification]:
 		draw.text((p[1], yPos), str(p[0]), fill='black', font=g.font)
 		draw.text((n[1], yPos), str(n[0]), fill='black', font=g.font)
-		draw.text((t[1], yPos), str(t[0]), fill='black', font=g.font)
+		if t != "":
+			draw.text((t[1], yPos), str(t[0]), fill='black', font=g.font)
 		draw.text((c[1], yPos), str(c[0]), fill='black', font=g.font)
 		draw.text((l[1]+(columnWidths[4]-g.font.getsize(str(l[0]))[0])/2, yPos), str(l[0]), fill='black', font=g.font)
 		draw.text((et[1]+(columnWidths[5]-g.font.getsize(str(et[0]))[0])/2, yPos), str(et[0]), fill='black', font=g.font)

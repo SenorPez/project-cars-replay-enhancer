@@ -5,13 +5,15 @@ import PIL.Image as plim
 from PIL import ImageDraw
 import sys
 
+from format_time import format_time
+
 paths = os.path.split(os.path.abspath(sys.argv[1]))
 sys.path.insert(0, paths[0])
 g = import_module(os.path.splitext(paths[1])[0])
 
 def write_data(material, dataHeight, time, lap):
 	draw = ImageDraw.Draw(material)
-	draw.text((g.margin, int(g.margin/2)), time, fill='black', font=g.font)
+	draw.text((g.margin, int(g.margin/2)), format_time(time), fill='black', font=g.font)
 	draw.text((g.margin, dataHeight+int(g.margin*1.5)), lap, fill='black', font=g.font)
 	
 	return material
@@ -33,19 +35,20 @@ def make_material(t, bgOnly=False):
 	return material if bgOnly else write_data(material, dataHeight, time, lap)
 
 def update_data(t):
-	if t >= g.racestart:
+	if t > g.racestart:
 		try:
 			time = "{:.2f}".format(float([x for x in g.telemetryData if x[-1] > t-g.racestart][0][13]))
 			data = [x for x in g.telemetryData if x[-1] > t-g.racestart][0]
 		except IndexError:
-			time = "{:.2f}".format(float(g.telemetryData[-1][13]))
-			data = g.telemetryData[-1]
+			raceFinish = [i for i, data in reversed(list(enumerate(g.telemetryData))) if int(data[9]) & int('111', 2) == 2][0] + 1
+			time = "{:.2f}".format(float(g.telemetryData[raceFinish][13]))
+			data = g.telemetryData[raceFinish]
 
-		currentLap = min((int(data[10]), max([int(data[184+i*9]) for i, _, _, _ in g.participantData])))
+		currentLap = min((int(data[10]), int(data[184+int(data[3])*9])))
 		lap = "{}/{}".format(currentLap, data[10])
-
+	
 	else:
-		time = "{:.2f}".format(float(0))
+		time = "0.00"
 		data = g.telemetryData[0]
 		lap = "{}/{}".format(1, data[10])
 

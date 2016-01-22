@@ -6,6 +6,8 @@ import PIL.Image as plim
 from PIL import ImageDraw
 import sys
 
+from format_time import format_time
+
 paths = os.path.split(os.path.abspath(sys.argv[1]))
 sys.path.insert(0, paths[0])
 g = import_module(os.path.splitext(paths[1])[0])
@@ -75,17 +77,15 @@ def write_data(material, standings, dataHeight, columnWidths):
 
 			if isinstance(lastLapSplits[i], int) and lastLapSplits[i] < 0:
 				lastLapTime = "{}".format('')
-				timeWidth = 0
 			elif isinstance(lastLapSplits[i], int):
 				suffix = " laps" if lastLapSplits[i] > 1 else " lap"
 				lastLapTime = "{:+d}".format(lastLapSplits[i])+suffix
-				timeWidth = g.font.getsize(lastLapTime)[0]
 			elif isinstance(lastLapSplits[i], float) and lastLapSplits[i] > 0:
-				lastLapTime = "{:.2f}".format(lastLapSplits[i])
-				timeWidth = g.font.getsize(lastLapTime)[0]
+				lastLapTime = format_time(lastLapSplits[i])
 			elif isinstance(lastLapSplits[i], float):
-				lastLapTime = "{:+.2f}".format(lastLapSplits[i]*-1)
-				timeWidth = g.font.getsize(lastLapTime)[0]
+				lastLapTime = "+"+format_time(lastLapSplits[i]*-1)
+
+			timeWidth = g.font.getsize(lastLapTime)[0]
 
 			tPos = int(materialWidth-g.margin-timeWidth)
 
@@ -155,7 +155,7 @@ def update_data(t):
 	global nextChangeTime
 	global currentGroup
 
-	if t >= g.racestart:
+	if t > g.racestart:
 		try:
 			data = [x for x in g.telemetryData if x[-1] > t-g.racestart][0]
 		except IndexError:
@@ -176,7 +176,7 @@ def update_data(t):
 	   cl 8: int Current lap
 	'''
 	
-	standings = sorted({(int(data[182+i*9]) & int('01111111', 2), n.split(" ")[0][0]+". "+n.split(" ")[-1], float(data[181+i*9])/float(data[682]), int(i), int(data[185+i*9]) & int('111', 2), float(data[186+i*9]), float(data[-1]), int(data[183+i*9]), int(data[184+i*9])) for i, n, *rest in g.participantData})
+	standings = sorted({(int(data[182+i*9]) & int('01111111', 2), n.split(" ")[0][0]+". "+n.split(" ")[-1] if len(n.split(" ")) > 1 else n, float(data[181+i*9])/float(data[682]), int(i), int(data[185+i*9]) & int('111', 2), float(data[186+i*9]), float(data[-1]), int(data[183+i*9]), int(data[184+i*9])) for i, n, *rest in g.participantData})
 
 	if nextChangeTime == -1:
 		nextChangeTime = t+5

@@ -36,10 +36,12 @@ def process_telemetry(folder):
 						packString += "64s"
 
 				elif len(packData) == 1347:
-					packString  = "HB64s64s64s64s64s"
+					packString  = "HB64s64s64s64s"
 
 					for participant in range(16):
 						packString += "64s"
 
+					packString += "64x"
+
 				unpackData = unpack(packString, packData)
-				csvfile.write(",".join(str(x, encoding='utf-8').strip('\x00') if isinstance(x, bytes) else str(x).strip('\x00') for x in unpack(packString, packData)+(a,))+"\n")
+				csvfile.write(",".join(str(x, encoding='utf-8').replace('\x00', '') if isinstance(x, bytes) else str(x).replace('\x00', '') for x in unpack(packString, packData)+(a,))+"\n")

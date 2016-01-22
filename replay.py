@@ -64,7 +64,7 @@ else:
 	#output.write_videofile(g.outputvideo, fps=10)
 
 	#Subclip video.
-	#output.subclip(0, 45).write_videofile(g.outputvideo, fps=10)
+	#output.subclip(0, 10).write_videofile(g.outputvideo, fps=10)
 	#output.subclip(output.duration-60, output.duration).write_videofile(g.outputvideo, fps=10)
 
 	#Single frame.
