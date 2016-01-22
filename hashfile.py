@@ -1,4 +1,3 @@
-import hashlib
 def hashfile(afile, hasher, blocksize=65536):
 	buf = afile.read(blocksize)
 	while len(buf) > 0:

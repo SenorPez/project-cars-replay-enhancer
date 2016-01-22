@@ -8,15 +8,15 @@ elif not os.path.isfile(sys.argv[1]):
 else:
 	from importlib import import_module
 	import moviepy.editor as mpy
-	from moviepy.editor import afx, vfx
+	from moviepy.editor import vfx
 	from moviepy.video.io.bindings import PIL_to_npimage
 	from PIL import Image
 
 	from black_test import black_test
 	from get_telemetry import get_telemetry
-	from make_results import make_results, make_results_mask
-	from make_title import make_title, make_title_mask
-	from make_series_standings import make_series_standings, make_series_standings_mask
+	from make_results import make_results
+	from make_title import make_title
+	from make_series_standings import make_series_standings
 	from UpdatedVideoClip import UpdatedVideoClip, simWorld
 
 	paths = os.path.split(os.path.abspath(sys.argv[1]))

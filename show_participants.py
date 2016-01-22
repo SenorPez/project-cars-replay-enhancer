@@ -1,5 +1,4 @@
 from importlib import import_module
-from natsort import natsorted
 import os.path
 import sys
 

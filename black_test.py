@@ -27,7 +27,6 @@ def black_test(filename):
 	except FileNotFoundError:
 		#Nothing found in the cache, so detect and add to cache.
 		video = mpy.VideoFileClip(filename)
-		blackframe = mpy.ColorClip(video.size, duration=video.duration).set_fps(video.fps).get_frame(0).astype("uint8")
 		
 		try:
 			blackframes = [t for (t, f) in video.iter_frames(with_times=True) if f.mean() < g.threshold]

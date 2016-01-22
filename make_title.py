@@ -27,7 +27,6 @@ def title_data():
 	text_height = sum(heights)+g.margin*len(heights)-1
 
 	headerHeight = g.headingfont.getsize(g.headingtext)[1]+g.font.getsize(g.subheadingtext)[1]+g.margin*2
-	bodyHeight = text_height-headerHeight
 
 	topMaterial = plim.new('RGBA', (text_width+g.margin*2, headerHeight), (255, 0, 0))
 

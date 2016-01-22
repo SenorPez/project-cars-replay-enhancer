@@ -104,7 +104,7 @@ def displayPosition(stdscr, tData, pData):
 	
 
 if len(sys.argv) == 1:
-	print "Usage: 'python "+sys.argv[0]+" <packetdirectory>'"
+	print ("Usage: 'python "+sys.argv[0]+" <packetdirectory>'")
 
 else:
 	try:
