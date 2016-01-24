@@ -57,7 +57,8 @@ def series_data():
 		g.points += [0] * (17-len(g.points))
 
 	columnData = [(n, t, c, str(g.points[i]+g.pointStructure[p]+g.pointStructure[0] if min([x for x in personalBestLaps if isinstance(x, float)]) == personalBestLaps[i] else g.points[i]+g.pointStructure[p])) for p, n, t, c, i, l in classification[:16]]
-	for i, x in enumerate(sorted(columnData, key=lambda x: (-int(x[3]), str(x[0]).split(" ")[-1]))):
+	columnData = sorted(columnData, key=lambda x: (-int(x[3]), str(x[0]).split(" ")[-1]))
+	for i, x in enumerate(columnData):
 		if i == 0:
 			columnData[i] = (str(1),)+x
 		elif columnData[i][-1] == columnData[i-1][-1]:
