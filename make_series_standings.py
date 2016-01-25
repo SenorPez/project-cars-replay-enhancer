@@ -82,7 +82,10 @@ def series_data():
 
 	headerHeight = g.headingfont.getsize(g.headingtext)[1]+g.font.getsize(g.subheadingtext)[1]+g.margin*2
 
-	topMaterial = plim.new('RGBA', (text_width+g.margin*2, headerHeight), (255, 0, 0))
+	topMaterial = plim.new('RGBA', (text_width+g.margin*2, headerHeight), g.headingcolor)
+	serieslogo = plim.open(g.serieslogo).resize((topMaterial.height, topMaterial.height))
+	topMaterial.paste(serieslogo, (topMaterial.width-serieslogo.width, 0))
+
 	material = plim.new('RGBA', (text_width+g.margin*2, text_height))
 	material.paste(topMaterial, (0, 0))
 	
@@ -126,3 +129,47 @@ def make_series_standings():
 def make_series_standings_mask():
 	material, *rest = series_data()
 	return PIL_to_npimage(material.split()[-1].convert('RGB'))
+
+def make_champion():
+	_, standings, *rest = series_data()
+
+	heading_width = g.headingfont.getsize(g.headingtext)[0]+g.margin*2
+	text_width = max([max([g.headingfont.getsize(n)[0] if r == '1' else g.font.getsize(n)[0], g.font.getsize(t)[0]+g.columnMargin, g.font.getsize(c)[0]+g.columnMargin]) for r, n, t, c, *rest in standings[1:4]]+[g.headingfont.getsize("Champion")[0]]+[g.font.getsize("Runner Up")[0]])+g.margin*2
+
+	heading_height = g.headingfont.getsize(g.headingtext)[1]+g.margin*2
+	text_height = max([300, sum([g.headingfont.getsize(n)[1]+g.font.getsize(t)[1]+g.font.getsize(c)[1] if r == '1' else g.font.getsize(n)[1]+g.font.getsize(t)[1]+g.font.getsize(c)[1] for r, n, t, c, *rest in standings[1:4]]+[g.headingfont.getsize("Champion")[1]]+[g.font.getsize("Runner Up")[1]*2])+g.margin*4])
+
+	width = max((heading_width, 300+text_width))
+	height = heading_height+text_height
+
+	topMaterial = plim.new('RGBA', (width, heading_height), g.headingcolor)
+	seriesLogo = plim.open(g.serieslogo).resize((300, 300))
+
+	material = plim.new('RGBA', (width, height), (255, 255, 255))
+	material.paste(topMaterial, (0, 0))
+	material.paste(seriesLogo, (0, heading_height))
+
+	draw = ImageDraw.Draw(material)
+
+	draw.text((g.margin, g.margin), g.headingtext, fill='white', font=g.headingfont)
+
+	xPos = 300+g.margin
+	yPos = heading_height+g.margin
+
+	for r, n, t, c, *rest in standings[1:4]:
+		if r == '1':
+			draw.text((xPos, yPos), "Champion", fill='black', font=g.headingfont)
+			yPos += g.headingfont.getsize("Champion")[1]
+			draw.text((xPos, yPos), n, fill='black', font=g.headingfont)
+			yPos += g.headingfont.getsize(n)[1]
+		else:
+			draw.text((xPos, yPos), "Runner Up", fill='black', font=g.font)
+			yPos += g.font.getsize("Runner Up")[1]
+			draw.text((xPos, yPos), n, fill='black', font=g.font)
+			yPos += g.font.getsize(n)[1]
+		draw.text((xPos+g.columnMargin, yPos), t, fill='black', font=g.font)
+		yPos += g.font.getsize(t)[1]
+		draw.text((xPos+g.columnMargin, yPos), c, fill='black', font=g.font)
+		yPos += g.font.getsize(c)[1]+g.margin
+
+	return PIL_to_npimage(material)
