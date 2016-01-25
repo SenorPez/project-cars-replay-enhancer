@@ -3,12 +3,11 @@ from natsort import natsorted
 import os.path
 import sys
 
-from get_telemetry import get_telemetry
-
 if len(sys.argv) != 2:
-	print("Usage: 'python'"+sys.argv[0]+" <configfile'")
+	print("Usage: 'python3 "+sys.argv[0]+" <configfile>'")
 
 else:
+	from get_telemetry import get_telemetry
 	paths = os.path.split(os.path.abspath(sys.argv[1]))
 	sys.path.insert(0, paths[0])
 	g = import_module(os.path.splitext(paths[1])[0])
