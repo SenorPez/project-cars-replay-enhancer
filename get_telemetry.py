@@ -5,11 +5,11 @@ import sys
 
 from process_telemetry import process_telemetry
 
-paths = os.path.split(os.path.abspath(sys.argv[1]))
-sys.path.insert(0, paths[0])
-g = import_module(os.path.splitext(paths[1])[0])
-
 def get_telemetry(telemetryDirectory, telemetryFile='tele.csv'):
+	paths = os.path.split(os.path.abspath(sys.argv[1]))
+	sys.path.insert(0, paths[0])
+	g = import_module(os.path.splitext(paths[1])[0])
+
 	try:
 		f = open(telemetryDirectory+telemetryFile, 'r')
 	except FileNotFoundError:

@@ -19,7 +19,7 @@ def black_test(filename):
 			cache = csv.reader(h)
 
 			for row in cache:
-				if row[0] == filename and row[1] == hashfile(open(filename, 'rb'), sha256()):
+				if row[0] == os.path.abspath(filename) and row[1] == hashfile(open(filename, 'rb'), sha256()):
 					videostart, videoend = float(row[2]), float(row[3])
 					return mpy.VideoFileClip(filename).subclip(videostart, videoend)
 			raise FileNotFoundError
@@ -38,5 +38,5 @@ def black_test(filename):
 		finally:
 			with open(g.cachefile, 'a') as h:
 				cache = csv.writer(h)
-				cache.writerow([filename, hashfile(open(filename, 'rb'), sha256()), videostart, videoend])
+				cache.writerow([os.path.abspath(filename), hashfile(open(filename, 'rb'), sha256()), videostart, videoend])
 			return mpy.VideoFileClip(filename).subclip(videostart, videoend)
