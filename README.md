@@ -1,11 +1,11 @@
 # project-cars-replay-enhancer
 Project CARS Replay Enhancer: Combines telemetry data with replay video to improve Project CARS replays.
 
-Current release: 0.2  
+Current release: 0.2.1 
 Current edge state: Rough  
 Current mood: Nervous  
 
-The Project CARS Replay Enhancer (I'd call it PCRE, [but that's taken](http://www.pcre.org/ "PCRE")) is designed to augment Project CARS replays by combined captured telemetry data with replay video. The current state of the project is quite rough, so a bit of programming and troubleshooting knowledge is required.
+The Project CARS Replay Enhancer (I'd call it PCRE, [but that's taken](http://www.pcre.org/ "PCRE")) is designed to augment Project CARS replays by combining captured telemetry data with replay video. The current state of the project is quite rough, so a bit of programming and troubleshooting knowledge is required.
 
 The scripts are currently not fast enough for live broadcasting.
 
@@ -99,8 +99,9 @@ Output selection is currently super-hacky. See the bottom of `replay.py` for a f
 ####Display Modules:
 The various modules add the replay data to the video and are modular in nature. There are a few included right now:
 * `make_results`: Creates a results screen.
-* `make_standings`: Creates a standings tree.
-* `make_timer`: Creates a laptime and lap counter.
+* `make_series_standings`: Creates a series standing screen.
+* `make_standings`: Creates a standings tree during the race.
+* `make_timer`: Creates a laptime and lap counter during the race.
 * `make_title`: Creates a title screen.
         
 Each callable function in the modules can take no arguments; a `t` value, indicating the current video time, is automatically passed by MoviePy. The above modules all include a "base" function (which returns the graphic) and a "mask" version of the function (which returns the alpha values for the graphic).
