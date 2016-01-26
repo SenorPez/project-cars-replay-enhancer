@@ -1,6 +1,8 @@
 import os.path
 import sys
 
+from Timer import Timer
+
 if len(sys.argv) != 2:
 	print ("Usage: 'python "+sys.argv[0]+" <configfile>'")
 elif not os.path.isfile(sys.argv[1]):
@@ -39,11 +41,10 @@ else:
 	standing_mask = mpy.ImageClip(standingWorld.make_mask(), ismask=True, duration=video.duration)
 	standing = standing.set_mask(standing_mask)
 
-	timerWorld = simWorld('make_timer', g.racestart)
-	timer = UpdatedVideoClip(timerWorld)
+	timer = UpdatedVideoClip(Timer(g.racestart))
 	timer_width, timer_height = timer.size
 	timer = timer.set_position((video_width-timer_width-g.margin, g.margin)).set_duration(video.duration)
-	timer_mask = mpy.ImageClip(timerWorld.make_mask(), ismask=True, duration=video.duration)
+	timer_mask = mpy.ImageClip(Timer(g.racestart).make_mask(), ismask=True, duration=video.duration)
 	timer = timer.set_mask(timer_mask)
 
 	result = mpy.ImageClip(make_results()).set_duration(20).set_position(('center', 'center'))
@@ -58,13 +59,13 @@ else:
 	output = mpy.concatenate_videoclips([intro, mainevent, outro])
 
 	#Full video.
-	output.write_videofile(g.outputvideo)
+	#output.write_videofile(g.outputvideo)
 
 	#Full video, low framerate
 	#output.write_videofile(g.outputvideo, fps=10)
 
 	#Subclip video.
-	#output.subclip(0, 10).write_videofile(g.outputvideo, fps=10)
+	output.subclip(30, 40).write_videofile(g.outputvideo, fps=10)
 	#output.subclip(output.duration-60, output.duration).write_videofile(g.outputvideo, fps=10)
 
 	#Single frame.
