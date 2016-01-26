@@ -83,6 +83,30 @@ else:
 		will have a method to set its module-specific variables.
 		'''
 		while True:
+			print("Enter heading color for title, result, and series standings modules.")
+			print("Color should be entered as three integers, separated by commas")
+			print("    representing Red, Green, Blue values.")
+			print("Enter -1 for black.")
+			prompt = "({})".format(d.headingcolor) if prevfile else ""
+			headingcolor = input(prompt+"--> ")
+
+			if len(headingcolor) == 0 and prevfile:
+				headingcolor = d.headingcolor
+				break
+			elif headingcolor == "-1":
+				headingcolor = (0, 0, 0)
+				break
+			else:
+				try:
+					headingcolor = tuple([int(x) for x in headingcolor.split(',')])
+					if all([x >= 0 and x <= 255 for x in headingcolor]):
+						break
+					else:
+						raise ValueError
+				except ValueError:
+					print("Invalid color value.")
+
+		while True:
 			print("Enter backdrop for title, result, series standings modules.")
 			print("Enter -1 for none.")
 			prompt = "({})".format(d.backdrop) if prevfile else ""
@@ -93,6 +117,7 @@ else:
 				break
 			elif backdrop == "-1":
 				backdrop = ""
+				break
 			elif os.path.isfile(os.path.abspath(backdrop)):
 				break
 			else:
@@ -162,17 +187,15 @@ else:
 				except ValueError:
 					print("Not an integer. Please try again.")
 
-		'''
 		while True:
 			print("Show Series Champion?")
-			showChampion = input('[Y/n]--> ')
-			if len(showChampion) == 0 or str.lower(showChampion) == 'y':
-				showChampion = True
-				break;
-			elif str.lower(showChampion) == 'n':
+			showChampion = input('[y/N]--> ')
+			if len(showChampion) == 0 or str.lower(showChampion) == 'n':
 				showChampion = False
 				break;
-		'''
+			elif str.lower(showChampion) == 'y':
+				showChampion = True
+				break;
 
 		while True:
 			print("Enter heading text for title, result, and series standings modules.")
@@ -313,10 +336,13 @@ else:
 				pointStructure = finish_array(pointStructure, d.pointStructure)
 				break;
 			elif len(newPoint) == 0 and prevfile:
-				if d.pointStructure[position] == 0:
-					break;
-				else:
-					pointStructure.insert(position, int(d.pointStructure[position]))
+				try:
+					if d.pointStructure[position] == 0:
+						break;
+					else:
+						pointStructure.insert(position, int(d.pointStructure[position]))
+				except IndexError:
+					print("No previous value for this position. Enter 0 to end points structure.")
 			else:
 				try:
 					pointStructure.insert(position, int(newPoint))
@@ -413,6 +439,14 @@ else:
 		'''
 		More hackiness until module-level prompts are implemented.
 		'''
+		matches = re.findall(r"(^headingcolor.*$)", configData, re.M)
+		if len(matches):
+			configData = configData.replace(matches[0], "headingcolor = "+str(headingcolor))
+			for x in matches[1:]:
+				configData = configData.replace(x, "")
+		else:
+			configData += "\nheadingcolor = "+str(headingcolor)+"\n"
+
 		matches = re.findall(r"(^backdrop.*$)", configData, re.M)
 		if len(matches):
 			configData = configData.replace(matches[0], "backdrop = "+str("\""+backdrop+"\""))
@@ -453,7 +487,6 @@ else:
 		else:
 			configData += "\nlogo_width = "+str(logo_width)+"\n"
 
-		'''
 		matches = re.findall(r"(^showChampion.*$)", configData, re.M)
 		if len(matches):
 			configData = configData.replace(matches[0], "showChampion = "+str(showChampion))
@@ -461,7 +494,6 @@ else:
 				configData = configData.replace(x, "")
 		else:
 			configData += "\nshowChampion = "+str(showChampion)+"\n"
-		'''
 
 		matches = re.findall(r"(^headingtext.*$)", configData, re.M)
 		if len(matches):

@@ -27,9 +27,16 @@ else:
 	video = black_test(g.sourcevideo)
 	video_width, video_height = video.size
 
-	backdrop = Image.open(g.backdrop).resize((video_width, video_height))
-	logo = Image.open(g.logo).resize((g.logo_width, g.logo_height))
-	backdrop.paste(logo, (backdrop.width-logo.width, backdrop.height-logo.height), logo)
+	if g.backdrop != "":
+		backdrop = Image.open(g.backdrop).resize((video_width, video_height))
+		if g.logo != "":
+			logo = Image.open(g.logo).resize((g.logo_width, g.logo_height))
+			backdrop.paste(logo, (backdrop.width-logo.width, backdrop.height-logo.height), logo)
+	else:
+		backdrop = Image.new('RGBA', (video_width, video_height), (0, 0, 0))
+		if g.logo != "":
+			logo = Image.open(g.logo).resize((g.logo_width, g.logo_height))
+			backdrop.paste(logo, (backdrop.width-logo.width, backdrop.height-logo.height), logo)
 	backdrop = mpy.ImageClip(PIL_to_npimage(backdrop))
 	title = mpy.ImageClip(make_title()).set_duration(6).set_position(('center', 'center'))
 
