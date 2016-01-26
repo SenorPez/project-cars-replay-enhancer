@@ -76,7 +76,168 @@ else:
 				showTeam = False
 				writeTeam = False
 				break;
+
+		'''
+		This is temporary right now, but added for the sake of sanity.
+		Once object-based infrastructure is in place, each module
+		will have a method to set its module-specific variables.
+		'''
+		while True:
+			print("Enter backdrop for title, result, series standings modules.")
+			print("Enter -1 for none.")
+			prompt = "({})".format(d.backdrop) if prevfile else ""
+			backdrop = input(prompt+"--> ")
+
+			if len(backdrop) == 0 and prevfile:
+				backdrop = d.backdrop
+				break
+			elif backdrop == "-1":
+				backdrop = ""
+			elif os.path.isfile(os.path.abspath(backdrop)):
+				break
+			else:
+				print("Not a file. Please try again.")
+
+		while True:
+			print("Enter logo for title, result, series standings modules.")
+			print("Enter -1 for none.")
+			prompt = "({})".format(d.logo) if prevfile else ""
+			logo = input(prompt+"--> ")
+
+			if len(logo) == 0 and prevfile:
+				logo = d.logo
+				break
+			elif logo == "-1":
+				logo = ""
+				break
+			elif os.path.isfile(os.path.abspath(logo)):
+				break
+			else:
+				print("Not a file. Please try again.")
 		
+		while True:
+			print("Enter serieslogo for title, result, series standings modules.")
+			print("Enter -1 for none.")
+			prompt = "({})".format(d.serieslogo) if prevfile else ""
+			serieslogo = input(prompt+"--> ")
+
+			if len(serieslogo) == 0 and prevfile:
+				serieslogo = d.serieslogo
+				break
+			elif serieslogo == "-1":
+				serieslogo = ""
+				break
+			elif os.path.isfile(os.path.abspath(serieslogo)):
+				break
+			else:
+				print("Not a file. Please try again.")
+
+		while True:
+			print("Enter logo height for title, result, series standings modules.")
+			prompt = "({})".format(d.logo_height) if prevfile else ""
+			logo_height = input(prompt+"--> ")
+
+			if len(logo_height) == 0 and prevfile:
+				logo_height = d.logo_height
+				break
+			else:
+				try:
+					logo_height = int(logo_height)
+					break
+				except ValueError:
+					print("Not an integer. Please try again.")
+
+		while True:
+			print("Enter logo width for title, result, series standings modules.")
+			prompt = "({})".format(d.logo_width) if prevfile else ""
+			logo_width = input(prompt+"--> ")
+
+			if len(logo_width) == 0 and prevfile:
+				logo_width = d.logo_width
+				break
+			else:
+				try:
+					logo_width = int(logo_width)
+					break
+				except ValueError:
+					print("Not an integer. Please try again.")
+
+		'''
+		while True:
+			print("Show Series Champion?")
+			showChampion = input('[Y/n]--> ')
+			if len(showChampion) == 0 or str.lower(showChampion) == 'y':
+				showChampion = True
+				break;
+			elif str.lower(showChampion) == 'n':
+				showChampion = False
+				break;
+		'''
+
+		while True:
+			print("Enter heading text for title, result, and series standings modules.")
+			print("Enter -1 for none.")
+			prompt = "({})".format(d.headingtext) if prevfile else ""
+			headingtext = input(prompt+"--> ")
+
+			if len(headingtext) == 0 and prevfile:
+				headingtext = d.headingtext
+				break
+			elif headingtext == "-1":
+				headingtext = ""
+				break
+			else:
+				break
+
+		while True:
+			print("Enter subheading text for title, result, and series standings modules.")
+			print("Enter -1 for none.")
+			prompt = "({})".format(d.subheadingtext) if prevfile else ""
+			subheadingtext = input(prompt+"--> ")
+
+			if len(subheadingtext) == 0 and prevfile:
+				subheadingtext = d.subheadingtext
+				break
+			elif subheadingtext == "-1":
+				subheadingtext = ""
+				break
+			else:
+				break
+
+		while True:
+			print("Enter margin width for title, result, series standings modules.")
+			prompt = "({})".format(d.margin) if prevfile else ""
+			margin = input(prompt+"--> ")
+
+			if len(margin) == 0 and prevfile:
+				margin = d.margin
+				break
+			else:
+				try:
+					margin = int(margin)
+					break
+				except ValueError:
+					print("Not an integer. Please try again.")
+
+		while True:
+			print("Enter column margin width for title, result, series standings modules.")
+			prompt = "({})".format(d.columnMargin) if prevfile else ""
+			columnMargin = input(prompt+"--> ")
+
+			if len(columnMargin) == 0 and prevfile:
+				columnMargin = d.columnMargin
+				break
+			else:
+				try:
+					columnMargin = int(columnMargin)
+					break
+				except ValueError:
+					print("Not an integer. Please try again.")
+
+		'''
+		End of hacky bit.
+		'''
+
 		while True:
 			print("Enter source video file name:") 
 			prompt = "({})".format(d.sourcevideo) if prevfile else ""
@@ -248,6 +409,91 @@ else:
 		configData = None
 		with open(os.path.abspath(sys.argv[1]), 'r') as configFile:
 			configData = configFile.read()
+
+		'''
+		More hackiness until module-level prompts are implemented.
+		'''
+		matches = re.findall(r"(^backdrop.*$)", configData, re.M)
+		if len(matches):
+			configData = configData.replace(matches[0], "backdrop = "+str("\""+backdrop+"\""))
+			for x in matches[1:]:
+				configData = configData.replace(x, "")
+		else:
+			configData += "\nbackdrop = "+str("\""+backdrop+"\"")+"\n"
+
+		matches = re.findall(r"(^logo[^_].*$)", configData, re.M)
+		if len(matches):
+			configData = configData.replace(matches[0], "logo = "+str("\""+logo+"\""))
+			for x in matches[1:]:
+				configData = configData.replace(x, "")
+		else:
+			configData += "\nlogo = "+str("\""+logo+"\"")+"\n"
+
+		matches = re.findall(r"(^serieslogo.*$)", configData, re.M)
+		if len(matches):
+			configData = configData.replace(matches[0], "serieslogo = "+str("\""+serieslogo+"\""))
+			for x in matches[1:]:
+				configData = configData.replace(x, "")
+		else:
+			configData += "\nserieslogo = "+str("\""+serieslogo+"\"")+"\n"
+
+		matches = re.findall(r"(^logo_height.*$)", configData, re.M)
+		if len(matches):
+			configData = configData.replace(matches[0], "logo_height = "+str(logo_height))
+			for x in matches[1:]:
+				configData = configData.replace(x, "")
+		else:
+			configData += "\nlogo_height = "+str(logo_height)+"\n"
+
+		matches = re.findall(r"(^logo_width.*$)", configData, re.M)
+		if len(matches):
+			configData = configData.replace(matches[0], "logo_width = "+str(logo_width))
+			for x in matches[1:]:
+				configData = configData.replace(x, "")
+		else:
+			configData += "\nlogo_width = "+str(logo_width)+"\n"
+
+		'''
+		matches = re.findall(r"(^showChampion.*$)", configData, re.M)
+		if len(matches):
+			configData = configData.replace(matches[0], "showChampion = "+str(showChampion))
+			for x in matches[1:]:
+				configData = configData.replace(x, "")
+		else:
+			configData += "\nshowChampion = "+str(showChampion)+"\n"
+		'''
+
+		matches = re.findall(r"(^headingtext.*$)", configData, re.M)
+		if len(matches):
+			configData = configData.replace(matches[0], "headingtext = "+str("\""+headingtext+"\""))
+			for x in matches[1:]:
+				configData = configData.replace(x, "")
+		else:
+			configData += "\nheadingtext = "+str("\""+headingtext+"\"")+"\n"
+
+		matches = re.findall(r"(^subheadingtext.*$)", configData, re.M)
+		if len(matches):
+			configData = configData.replace(matches[0], "subheadingtext = "+str("\""+subheadingtext+"\""))
+			for x in matches[1:]:
+				configData = configData.replace(x, "")
+		else:
+			configData += "\nsubheadingtext = "+str("\""+subheadingtext+"\"")+"\n"
+
+		matches = re.findall(r"(^margin.*$)", configData, re.M)
+		if len(matches):
+			configData = configData.replace(matches[0], "margin = "+str(margin))
+			for x in matches[1:]:
+				configData = configData.replace(x, "")
+		else:
+			configData += "\nmargin = "+str(margin)+"\n"
+
+		matches = re.findall(r"(^columnMargin.*$)", configData, re.M)
+		if len(matches):
+			configData = configData.replace(matches[0], "columnMargin = "+str(columnMargin))
+			for x in matches[1:]:
+				configData = configData.replace(x, "")
+		else:
+			configData += "\ncolumnMargin = "+str("\""+columnMargin+"\"")+"\n"
 
 		#For each type, rewrite the first line found, delete the rest.
 		matches = re.findall(r"(^sourcevideo.*$)", configData, re.M)
