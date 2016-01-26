@@ -87,7 +87,9 @@ def results_data():
 
 	headerHeight = g.headingfont.getsize(g.headingtext)[1]+g.font.getsize(g.subheadingtext)[1]+g.margin*2
 
-	topMaterial = plim.new('RGBA', (text_width+g.margin*2, headerHeight), (255, 0, 0))
+	topMaterial = plim.new('RGBA', (text_width+g.margin*2, headerHeight), g.headingcolor)
+	serieslogo = plim.open(g.serieslogo).resize((topMaterial.height, topMaterial.height))
+	topMaterial.paste(serieslogo, (topMaterial.width-serieslogo.width, 0))
 
 	material = plim.new('RGBA', (text_width+g.margin*2, text_height))
 	material.paste(topMaterial, (0, 0))
