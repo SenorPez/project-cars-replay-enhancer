@@ -41,7 +41,7 @@ else:
 
 		while True:
 			print("Enter blackframe detection threshold.")
-			prompt = "({})".format(str(d.threshold)) if prevfile else str(1)
+			prompt = "({})".format(str(d.threshold)) if prevfile else "("+str(1)+")"
 
 			threshold = input(prompt+"--> ")
 			if len(threshold) == 0:
@@ -63,7 +63,7 @@ else:
 
 		while True:
 			print("Enter time between fades for scene definition.")
-			prompt = "({})".format(str(d.gaptime)) if prevfile else str(1)
+			prompt = "({})".format(str(d.gaptime)) if prevfile else "("+str(1)+")"
 
 			gaptime = input(prompt+"--> ")
 			if len(gaptime) == 0:
@@ -85,7 +85,7 @@ else:
 
 		while True:
 			print("Enter number of scenes to skip at start of video.")
-			prompt = "({})".format(str(d.skipstart)) if prevfile else str(0)
+			prompt = "({})".format(str(d.skipstart)) if prevfile else "("+str(0)+")"
 
 			skipstart = input(prompt+"--> ")
 			if len(skipstart) == 0:
@@ -107,7 +107,7 @@ else:
 
 		while True:
 			print("Enter number of scenes to skip at end of video.")
-			prompt = "({})".format(str(d.skipend)) if prevfile else str(0)
+			prompt = "({})".format(str(d.skipend)) if prevfile else "("+str(0)+")"
 
 			skipend = input(prompt+"--> ")
 			if len(skipend) == 0:
@@ -119,13 +119,13 @@ else:
 					break
 			else:
 				try:
-					if int(skipend) < 1:
+					if int(skipend) < 0:
 						raise ValueError
 					else:
 						skipend = int(skipend)
 						break
 				except ValueError:
-					print("Scenes to skip should be a positive integer.")
+					print("Scenes to skip should be an integer of 0 or more.")
 
 		while True:
 			print("Enter cache file.")
