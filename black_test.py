@@ -33,11 +33,18 @@ def black_test(filename):
 		
 		try:
 			blackframes = [t for (t, f) in video.iter_frames(with_times=True) if f.mean() < g.threshold]
-			videostart = blackframes[where(diff(blackframes)>g.gaptime)[0][0+g.skipstart]]
+
+			videostart = blackframes[where(diff(blackframes)>g.gaptime)[0][0]]
 			videoend = blackframes[::-1][where(diff(blackframes[::-1])<-g.gaptime)[0][0+g.skipend]]
 		except IndexError:
-			videostart = 0
-			videoend = video.duration
+			#Some replays don't use blackframes to separate frames. In this case
+			#the only blackframes are the start and stop of the replay.
+			if len(where(diff(blackframes)>g.gaptime)[0]):
+				videostart = blackframes[where(diff(blackframes)>g.gaptime)[0][0]]
+				videoend = blackframes[::-1][where(diff(blackframes[::-1])<-g.gaptime)[0][0+g.skipend]]
+			else:
+				videostart = 0
+				videoend = video.duration
 		finally:
 			with open(g.cachefile, 'a') as h:
 				cache = csv.writer(h)
