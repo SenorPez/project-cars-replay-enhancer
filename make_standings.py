@@ -197,7 +197,7 @@ def update_data(t):
 					sectorStatus[i][1] = 'invalid'
 					sectorStatus[i][2] = 'invalid'
 					lastLapValid[i] = False
-				else:
+				elif sectorStatus[i][2] != 'invalid':
 					if g.sectorBests[2] == -1 or g.sectorBests[2] >= l:
 						g.sectorBests[2] = l
 						g.personalBests[i][2] = l
@@ -214,7 +214,8 @@ def update_data(t):
 					currentLaps[i] = cl
 
 					#Do we have a valid last lap? If so, compare records.
-					#If not, then do nothing, but reset the flag.
+					#If not, set Sector 3 to invalid (to hold it at red until
+					#we get back there and reset the flag.
 					if lastLapValid[i] and -1 not in lastLapSectors[i]:
 						lastLapTime = float(sum(lastLapSectors[i]))
 						if g.bestLap == -1 or g.bestLap > lastLapTime:
@@ -223,6 +224,7 @@ def update_data(t):
 						elif g.personalBestLaps[i] == -1 or g.personalBestLaps[i] >= lastLapTime:
 							g.personalBestLaps[i] = lastLapTime
 					else:
+						sectorStatus[i][2] = 'invalid'
 						lastLapValid[i] = True
 
 					if p == 1:
@@ -247,7 +249,7 @@ def update_data(t):
 					sectorStatus[i][0] = 'invalid'
 					sectorStatus[i][2] = 'invalid'
 					lastLapValid[i] = False
-				else:
+				elif sectorStatus[i][0] != 'invalid':
 					if g.sectorBests[0] == -1 or g.sectorBests[0] >= l:
 						g.sectorBests[0] = l
 						g.personalBests[i][0] = l
@@ -269,7 +271,7 @@ def update_data(t):
 					sectorStatus[i][0] = 'invalid'
 					sectorStatus[i][1] = 'invalid'
 					lastLapValid[i] = False
-				else:
+				elif sectorStatus[i][1] != 'invalid':
 					if g.sectorBests[1] == -1 or g.sectorBests[1] >= l:
 						g.sectorBests[1] = l
 						g.personalBests[i][1] = l
