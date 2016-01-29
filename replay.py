@@ -1,7 +1,9 @@
 import os.path
 import sys
 
+from Standings import Standings
 from Timer import Timer
+from Title import Title
 
 if len(sys.argv) != 2:
 	print ("Usage: 'python "+sys.argv[0]+" <configfile>'")
@@ -41,18 +43,18 @@ else:
 			backdrop.paste(logo, (backdrop.width-logo.width, backdrop.height-logo.height), logo)
 			
 	backdrop = mpy.ImageClip(PIL_to_npimage(backdrop))
-	title = mpy.ImageClip(make_title()).set_duration(6).set_position(('center', 'center'))
+	#title = mpy.ImageClip(make_title()).set_duration(6).set_position(('center', 'center'))
+	title = mpy.ImageClip(Title().to_frame()).set_duration(6).set_position(('center', 'center'))
 
-	standingWorld = simWorld('make_standings', g.racestart)
-	standing = UpdatedVideoClip(standingWorld)
+	standing = UpdatedVideoClip(Standings(0))
 	standing = standing.set_position((g.margin, g.margin)).set_duration(video.duration)
-	standing_mask = mpy.ImageClip(standingWorld.make_mask(), ismask=True, duration=video.duration)
+	standing_mask = mpy.ImageClip(Standings(0).make_mask(), ismask=True, duration=video.duration)
 	standing = standing.set_mask(standing_mask)
 
-	timer = UpdatedVideoClip(Timer(g.racestart))
+	timer = UpdatedVideoClip(Timer(0))
 	timer_width, timer_height = timer.size
 	timer = timer.set_position((video_width-timer_width-g.margin, g.margin)).set_duration(video.duration)
-	timer_mask = mpy.ImageClip(Timer(g.racestart).make_mask(), ismask=True, duration=video.duration)
+	timer_mask = mpy.ImageClip(Timer(0).make_mask(), ismask=True, duration=video.duration)
 	timer = timer.set_mask(timer_mask)
 
 	result = mpy.ImageClip(make_results()).set_duration(20).set_position(('center', 'center'))
@@ -78,13 +80,13 @@ else:
 	output = mpy.concatenate_videoclips([intro, mainevent, outro])
 
 	#Full video.
-	output.write_videofile(g.outputvideo)
+	#output.write_videofile(g.outputvideo)
 	
 	#Full video, low framerate
 	#output.write_videofile(g.outputvideo, fps=10)
 
 	#Subclip video.
-	#output.subclip(0, 20).write_videofile(g.outputvideo, fps=10)
+	output.subclip(0, 20).write_videofile(g.outputvideo, fps=30)
 	#output.subclip(output.duration-80, output.duration).write_videofile(g.outputvideo, fps=10)
 
 	#Single frame.
