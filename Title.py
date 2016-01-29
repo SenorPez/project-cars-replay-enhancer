@@ -79,7 +79,7 @@ class Title(StaticBase):
 		return super(Title, self).to_frame()
 	
 	def make_mask(self):
-		return super(Timer, self).make_mask()
+		return super(Title, self).make_mask()
 
 if __name__ == '__main__':
 	print('Subclass:', issubclass(Title, StaticBase))
