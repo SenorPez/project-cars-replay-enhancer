@@ -1,6 +1,8 @@
 import os.path
 import sys
 
+from Results import Results
+from SeriesStandings import SeriesStandings
 from Standings import Standings
 from Timer import Timer
 from Title import Title
@@ -44,7 +46,7 @@ else:
 			
 	backdrop = mpy.ImageClip(PIL_to_npimage(backdrop))
 	#title = mpy.ImageClip(make_title()).set_duration(6).set_position(('center', 'center'))
-	title = mpy.ImageClip(Title().to_frame()).set_duration(6).set_position(('center', 'center'))
+	title = mpy.ImageClip(SeriesStandings().to_frame()).set_duration(6).set_position(('center', 'center'))
 
 	standing = UpdatedVideoClip(Standings(0))
 	standing = standing.set_position((g.margin, g.margin)).set_duration(video.duration)
