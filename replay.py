@@ -8,15 +8,15 @@ elif not os.path.isfile(sys.argv[1]):
 else:
 	from importlib import import_module
 	import moviepy.editor as mpy
-	from moviepy.editor import afx, vfx
+	from moviepy.editor import vfx
 	from moviepy.video.io.bindings import PIL_to_npimage
 	from PIL import Image
 
 	from black_test import black_test
 	from get_telemetry import get_telemetry
-	from make_results import make_results, make_results_mask
-	from make_title import make_title, make_title_mask
-	from make_series_standings import make_series_standings, make_series_standings_mask
+	from make_results import make_results
+	from make_title import make_title
+	from make_series_standings import make_series_standings, make_champion
 	from UpdatedVideoClip import UpdatedVideoClip, simWorld
 
 	paths = os.path.split(os.path.abspath(sys.argv[1]))
@@ -27,9 +27,17 @@ else:
 	video = black_test(g.sourcevideo)
 	video_width, video_height = video.size
 
-	backdrop = Image.open(g.backdrop).resize((video_width, video_height))
-	logo = Image.open(g.logo).resize((g.logo_width, g.logo_height))
-	backdrop.paste(logo, (backdrop.width-logo.width, backdrop.height-logo.height), logo)
+	if g.backdrop != "":
+		backdrop = Image.open(g.backdrop).resize((video_width, video_height))
+		if g.logo != "":
+			logo = Image.open(g.logo).resize((g.logo_width, g.logo_height))
+			backdrop.paste(logo, (backdrop.width-logo.width, backdrop.height-logo.height), logo)
+	else:
+		backdrop = Image.new('RGBA', (video_width, video_height), (0, 0, 0))
+		if g.logo != "":
+			logo = Image.open(g.logo).resize((g.logo_width, g.logo_height))
+			backdrop.paste(logo, (backdrop.width-logo.width, backdrop.height-logo.height), logo)
+			
 	backdrop = mpy.ImageClip(PIL_to_npimage(backdrop))
 	title = mpy.ImageClip(make_title()).set_duration(6).set_position(('center', 'center'))
 
@@ -51,21 +59,32 @@ else:
 	series_standings = mpy.ImageClip(make_series_standings()).set_start(20).set_duration(20).set_position(('center', 'center'))
 	series_standings.mask = series_standings.mask.fx(vfx.fadein, 1)
 
+	if g.showChampion:
+		series_standings.mask = series_standings.mask.fx(vfx.fadein, 1).fx(vfx.fadeout, 1)
+		champion = mpy.ImageClip(make_champion()).set_start(40).set_duration(20).set_position(('center', 'center'))
+		champion.mask = champion.mask.fx(vfx.fadein, 1)
+	else:
+		series_standings.mask = series_standings.mask.fx(vfx.fadein, 1)
+
 	intro = mpy.CompositeVideoClip([backdrop, title]).set_duration(6).fx(vfx.fadeout, 1)
 	mainevent = mpy.CompositeVideoClip([video, standing, timer]).set_duration(video.duration)
-	outro = mpy.CompositeVideoClip([backdrop, result, series_standings]).set_duration(sum([x.duration for x in [result, series_standings]])).fx(vfx.fadein, 1)
+
+	if g.showChampion:
+		outro = mpy.CompositeVideoClip([backdrop, result, series_standings, champion]).set_duration(sum([x.duration for x in [result, series_standings, champion]])).fx(vfx.fadein, 1)
+	else:
+		outro = mpy.CompositeVideoClip([backdrop, result, series_standings]).set_duration(sum([x.duration for x in [result, series_standings]])).fx(vfx.fadein, 1)
 
 	output = mpy.concatenate_videoclips([intro, mainevent, outro])
 
 	#Full video.
 	output.write_videofile(g.outputvideo)
-
+	
 	#Full video, low framerate
 	#output.write_videofile(g.outputvideo, fps=10)
 
 	#Subclip video.
-	#output.subclip(0, 10).write_videofile(g.outputvideo, fps=10)
-	#output.subclip(output.duration-60, output.duration).write_videofile(g.outputvideo, fps=10)
+	#output.subclip(0, 20).write_videofile(g.outputvideo, fps=10)
+	#output.subclip(output.duration-80, output.duration).write_videofile(g.outputvideo, fps=10)
 
 	#Single frame.
 	#output.save_frame(g.outputvideo+".jpg", 30)

@@ -1,7 +1,6 @@
 import datetime
 import os
 import socket
-import sys
 
 # Create a new UDP socket.
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)

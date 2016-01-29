@@ -82,13 +82,14 @@ def results_data():
 	heights.append(g.headingfont.getsize(g.headingtext)[1])
 	heights.append(g.font.getsize(g.subheadingtext)[1])
 
-	text_width = widths[-1]+g.columnMargin*(len([x for x in widths[:-1] if x != 0])-1)
+	headerHeight = g.headingfont.getsize(g.headingtext)[1]+g.font.getsize(g.subheadingtext)[1]+g.margin*2
+
+	text_width = max(widths[-1]+g.columnMargin*(len([x for x in widths[:-1] if x != 0])-1), g.headingfont.getsize(g.headingtext)[0]+g.columnMargin+headerHeight, g.font.getsize(g.subheadingtext)[0]+g.columnMargin+headerHeight)
 	text_height = sum(heights)+g.margin*len(heights)-1
 
-	headerHeight = g.headingfont.getsize(g.headingtext)[1]+g.font.getsize(g.subheadingtext)[1]+g.margin*2
-	bodyHeight = text_height-headerHeight
-
-	topMaterial = plim.new('RGBA', (text_width+g.margin*2, headerHeight), (255, 0, 0))
+	topMaterial = plim.new('RGBA', (text_width+g.margin*2, headerHeight), g.headingcolor)
+	serieslogo = plim.open(g.serieslogo).resize((topMaterial.height, topMaterial.height))
+	topMaterial.paste(serieslogo, (topMaterial.width-serieslogo.width, 0))
 
 	material = plim.new('RGBA', (text_width+g.margin*2, text_height))
 	material.paste(topMaterial, (0, 0))

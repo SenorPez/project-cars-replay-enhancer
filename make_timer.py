@@ -21,7 +21,6 @@ def write_data(material, dataHeight, time, lap):
 def make_material(t, bgOnly=False):
 	time, lap = update_data(t)
 
-	text_width = max((g.font.getsize(time)[0], g.font.getsize(lap)[0]))+g.margin
 	dataHeight = max((g.font.getsize(time)[1], g.font.getsize(lap)[1]))
 	text_height = sum((g.font.getsize(time)[1], g.font.getsize(lap)[1], g.margin))
 
