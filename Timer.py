@@ -5,11 +5,11 @@ from PIL import ImageDraw
 import os
 import sys
 
+from ReplayEnhancer import format_time, import_globals
+
 from DynamicBase import DynamicBase
 
-paths = os.path.split(os.path.abspath(sys.argv[1]))
-sys.path.insert(0, paths[0])
-g = import_module(os.path.splitext(paths[1])[0])
+g = import_globals(sys.argv[1])
 
 class Timer(DynamicBase):
 	_clip_t = 0
@@ -32,8 +32,8 @@ class Timer(DynamicBase):
 		self._ups = value
 
 	def __init__(self, clip_t, ups=30):
-		self._clip_t = clip_t
-		self._ups = ups
+		self.clip_t = clip_t
+		self.ups = ups
 
 		self.time = -1
 		self.lap = -1
@@ -41,7 +41,7 @@ class Timer(DynamicBase):
 
 	def _write_data(self):
 		draw = ImageDraw.Draw(self.material)
-		draw.text((g.margin, int(g.margin/2)), self._format_time(self.time), fill='black', font=g.font)
+		draw.text((g.margin, int(g.margin/2)), format_time(self.time), fill='black', font=g.font)
 		draw.text((g.margin, self.dataHeight+int(g.margin*1.5)), self.lap, fill='black', font=g.font)
 
 		return self.material
@@ -88,9 +88,6 @@ class Timer(DynamicBase):
 
 	def make_mask(self):
 		return super(Timer, self).make_mask()
-
-	def _format_time(self, seconds):
-		return super(Timer, self)._format_time(seconds)
 
 if __name__ == '__main__':
 	print('Subclass:', issubclass(Timer, DynamicBase))

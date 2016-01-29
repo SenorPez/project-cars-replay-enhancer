@@ -44,18 +44,3 @@ class DynamicBase(metaclass=abc.ABCMeta):
 	@abc.abstractmethod
 	def _make_material(self, bgOnly):
 		"""Create material used as a canvas."""
-
-	@abc.abstractmethod
-	def _format_time(self, seconds):
-		"""Default time formatter. Override to customize."""
-		minutes, seconds = divmod(float(seconds), 60)
-		hours, minutes = divmod(minutes, 60)
-
-		retVal = (int(hours), int(minutes), float(seconds))
-
-		if hours:
-			return "{0:d}:{1:0>2d}:{2:0>5.2f}".format(*retVal)
-		elif minutes:
-			return "{1:d}:{2:0>5.2f}".format(*retVal)
-		else:
-			return "{2:.2f}".format(*retVal)
