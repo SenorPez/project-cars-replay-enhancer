@@ -20,7 +20,7 @@ def black_test(filename):
 
 			for row in cache:
 				try:
-					if row[0] == os.path.abspath(filename) and row[1] == hashfile(open(filename, 'rb'), sha256()):
+					if row[0] == os.path.realpath(filename) and row[1] == hashfile(open(filename, 'rb'), sha256()):
 						videostart, videoend = float(row[2]), float(row[3])
 						return mpy.VideoFileClip(filename).subclip(videostart, videoend)
 				except IndexError:
@@ -66,5 +66,5 @@ def black_test(filename):
 		finally:
 			with open(g.cachefile, 'a') as h:
 				cache = csv.writer(h)
-				cache.writerow([os.path.abspath(filename), hashfile(open(filename, 'rb'), sha256()), videostart, videoend])
+				cache.writerow([os.path.realpath(filename), hashfile(open(filename, 'rb'), sha256()), videostart, videoend])
 			return mpy.VideoFileClip(filename).subclip(videostart, videoend)
