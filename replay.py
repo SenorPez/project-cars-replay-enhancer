@@ -1,6 +1,8 @@
 import os.path
 import sys
 
+from ReplayEnhancer import ReplayEnhancer, format_time, import_globals
+
 from Results import Results
 from SeriesStandings import SeriesStandings
 from Standings import Standings
@@ -82,13 +84,13 @@ else:
 	output = mpy.concatenate_videoclips([intro, mainevent, outro])
 
 	#Full video.
-	#output.write_videofile(g.outputvideo)
+	output.write_videofile(g.outputvideo)
 	
 	#Full video, low framerate
 	#output.write_videofile(g.outputvideo, fps=10)
 
 	#Subclip video.
-	output.subclip(0, 20).write_videofile(g.outputvideo, fps=30)
+	#output.subclip(0, 20).write_videofile(g.outputvideo, fps=30)
 	#output.subclip(output.duration-80, output.duration).write_videofile(g.outputvideo, fps=10)
 
 	#Single frame.
