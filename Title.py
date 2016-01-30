@@ -49,10 +49,10 @@ class Title(StaticBase):
 		heights.append(g.headingfont.getsize(g.headingtext)[1])
 		heights.append(g.font.getsize(g.subheadingtext)[1])
 
-		text_width = self.widths[-1]+g.columnMargin*(len([x for x in self.widths[:-1] if x != 0])-1)
-		text_height = sum(heights)+g.margin*len(heights)-1
-
 		headerHeight = g.headingfont.getsize(g.headingtext)[1]+g.font.getsize(g.subheadingtext)[1]+g.margin*2
+
+		text_width = max(self.widths[-1]+g.columnMargin*(len([x for x in self.widths[:-1] if x != 0])-1), g.headingfont.getsize(g.headingtext)[0]+g.columnMargin+headerHeight, g.font.getsize(g.subheadingtext)[0]+g.columnMargin+headerHeight)
+		text_height = sum(heights)+g.margin*len(heights)-1
 
 		topMaterial = plim.new('RGBA', (text_width+g.margin*2, headerHeight), g.headingcolor)
 		serieslogo = Image.open(g.serieslogo).resize((topMaterial.height, topMaterial.height))

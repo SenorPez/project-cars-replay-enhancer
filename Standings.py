@@ -213,7 +213,7 @@ class Standings(DynamicBase):
 						self.sectorStatus[i][1] = 'invalid'
 						self.sectorStatus[i][2] = 'invalid'
 						self.lastLapValid[i] = False
-					else:
+					elif self.sectorStatus[i][2] != 'invalid':
 						if g.sectorBests[2] == -1 or g.sectorBests[2] >= l:
 							g.sectorBests[2] = l
 							g.personalBests[i][2] = l
@@ -230,7 +230,8 @@ class Standings(DynamicBase):
 						self.currentLaps[i] = cl
 
 						#Do we have a valid last lap? If so, compare records.
-						#If not, then do nothing, but reset the flag.
+						#If not, set Sector 3 to invalid (to hold it at red until
+						#we get back there and reset the flag.
 						if self.lastLapValid[i] and -1 not in self.lastLapSectors[i]:
 							self.lastLapTime = float(sum(self.lastLapSectors[i]))
 							if g.bestLap == -1 or g.bestLap > self.lastLapTime:
@@ -239,6 +240,7 @@ class Standings(DynamicBase):
 							elif g.personalBestLaps[i] == -1 or g.personalBestLaps[i] >= self.lastLapTime:
 								g.personalBestLaps[i] = self.lastLapTime
 						else:
+							self.sectorStatus[i][2] = 'invalid'
 							self.lastLapValid[i] = True
 
 						if p == 1:
@@ -263,7 +265,7 @@ class Standings(DynamicBase):
 						self.sectorStatus[i][0] = 'invalid'
 						self.sectorStatus[i][2] = 'invalid'
 						self.lastLapValid[i] = False
-					else:
+					elif self.sectorStatus[i][0] != 'invalid':
 						if g.sectorBests[0] == -1 or g.sectorBests[0] >= l:
 							g.sectorBests[0] = l
 							g.personalBests[i][0] = l
@@ -285,7 +287,7 @@ class Standings(DynamicBase):
 						self.sectorStatus[i][0] = 'invalid'
 						self.sectorStatus[i][1] = 'invalid'
 						self.lastLapValid[i] = False
-					else:
+					elif self.sectorStatus[i][1] != 'invalid':
 						if g.sectorBests[1] == -1 or g.sectorBests[1] >= l:
 							g.sectorBests[1] = l
 							g.personalBests[i][1] = l
