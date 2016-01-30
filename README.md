@@ -1,7 +1,7 @@
 # project-cars-replay-enhancer
 Project CARS Replay Enhancer: Combines telemetry data with replay video to improve Project CARS replays.
 
-Current release: 0.2.1 
+Current release: 0.2.1  
 Current edge state: Rough  
 Current mood: Nervous  
 
@@ -99,9 +99,8 @@ Output selection is currently super-hacky. See the bottom of `replay.py` for a f
 ####Display Modules:
 The various modules add the replay data to the video and are modular in nature. There are a few included right now:
 * `make_results`: Creates a results screen.
-* `make_series_standings`: Creates a series standing screen.
-* `make_standings`: Creates a standings tree during the race.
-* `make_timer`: Creates a laptime and lap counter during the race.
+* `make_standings`: Creates a standings tree.
+* `make_timer`: Creates a laptime and lap counter.
 * `make_title`: Creates a title screen.
         
 Each callable function in the modules can take no arguments; a `t` value, indicating the current video time, is automatically passed by MoviePy. The above modules all include a "base" function (which returns the graphic) and a "mask" version of the function (which returns the alpha values for the graphic).
