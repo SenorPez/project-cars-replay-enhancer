@@ -1,8 +1,9 @@
 import abc
 from moviepy.video.io.bindings import PIL_to_npimage
 import PIL.Image as plim
+from ReplayEnhancerBase import ReplayEnhancerBase
 
-class StaticBase(metaclass=abc.ABCMeta):
+class StaticBase(ReplayEnhancerBase, metaclass=abc.ABCMeta):
 	@abc.abstractmethod
 	def to_frame(self):
 		"""Render the card with data. Override to customize."""

@@ -1,8 +1,9 @@
 import abc
 from moviepy.video.io.bindings import PIL_to_npimage
 import PIL.Image as plim
+from ReplayEnhancerBase import ReplayEnhancerBase
 
-class DynamicBase(metaclass=abc.ABCMeta):
+class DynamicBase(ReplayEnhancerBase, metaclass=abc.ABCMeta):
 	@property
 	@abc.abstractmethod
 	def ups(self):
@@ -29,12 +30,12 @@ class DynamicBase(metaclass=abc.ABCMeta):
 
 	@abc.abstractmethod
 	def to_frame(self):
-		"""Render a frame based on the world's state."""
+		"""Render a frame based on the world's state. Override to customize output."""
 		return PIL_to_npimage(self._make_material(False).convert('RGB'))
 
 	@abc.abstractmethod
 	def make_mask(self):
-		"""Default mask creation. Override to customize."""
+		"""Default mask creation. Override to customize. Overrise to customize output."""
 		return PIL_to_npimage(self._make_material(True).split()[-1].convert('RGB'))
 
 	@abc.abstractmethod
