@@ -1,3 +1,6 @@
+from collections import deque
+from os.path import commonprefix
+import traceback
 import csv
 from glob import glob
 from hashlib import sha256
@@ -65,6 +68,8 @@ class ReplayEnhancer():
 		self.sync_racestart = json_data['sync_racestart']
 
 		self.participant_data = list()
+		self.participant_configurations = list()
+		self.participant_lookup = list()
 		self.telemetry_data = list()
 		self.config_version = 4
 
@@ -90,7 +95,12 @@ class ReplayEnhancer():
 			csvdata = csv.reader(f)
 
 		try:
+			i = 0;
 			for row in csvdata:
+				self.telemetry_data.append(row+[i])
+				i += 1
+
+				'''
 				if int(row[1]) & 3 == 0:
 					self.telemetry_data.append(row)
 				elif int(row[1]) & 3 == 1:
@@ -105,25 +115,31 @@ class ReplayEnhancer():
 					raise ValueError("ValueError: Unrecognized packet type ("+str(int(row[1]) & 3)+")")
 
 			self.participant_data = [(i, n, t, c) for (i, n), t, c in zip(list(sorted({x for x in self.participant_data})), self.team_data, self.car_data)]
+			'''
 
 			try:
-				self.race_end = [i for i, data in reversed(list(enumerate(self.telemetry_data))) if int(data[9]) & int('111', 2) == 3][0] + 1
+				self.race_end = [i for i, data in reversed(list(enumerate(self.telemetry_data))) if len(data) == 688 and int(data[9]) & int('111', 2) == 3][0] + 1
 			except IndexError:
 				self.race_end = len(self.telemetry_data)
 
 			try:
-				self.race_finish = [i for i, data in reversed(list(enumerate(self.telemetry_data[:self.race_end]))) if int(data[9]) & int('111', 2) == 2][0] + 1
+				self.race_finish = [i for i, data in reversed(list(enumerate(self.telemetry_data[:self.race_end]))) if len(data) == 688 and int(data[9]) & int('111', 2) == 2][0] + 1
 			except IndexError:
 				self.race_finish = len(self.telemetry_data)
 
 			try:
-				self.race_start = [i for i, data in reversed(list(enumerate(self.telemetry_data[:self.race_finish]))) if int(data[9]) & int('111', 2) == 0][0] + 1
+				self.race_start = [i for i, data in reversed(list(enumerate(self.telemetry_data[:self.race_finish]))) if len(data) == 688 and int(data[9]) & int('111', 2) == 0][0] + 1
 			except IndexError:
 				self.race_start = 0
 
 			#For some reason, the telemetry doesn't immediately load the stadndings before a race. Step through until we do have them.
-			while sum([int(self.telemetry_data[self.race_start][182+i*9]) & int('01111111', 2) for i in range(56)]) == 0:
-				self.race_start += 1
+			while True:
+				if len(self.telemetry_data[self.race_start]) != 688:
+					self.race_start += 1
+				elif sum([int(self.telemetry_data[self.race_start][182+i*9]) & int('01111111', 2) for i in range(56)]) != 0:
+					break;
+				else:
+					self.race_start += 1
 
 			self.telemetry_data = self.telemetry_data[self.race_start:self.race_end]
 
@@ -131,18 +147,75 @@ class ReplayEnhancer():
 			lastTime = 0
 			addTime = 0
 			for i, data in enumerate(self.telemetry_data):
-				if float(data[13]) == -1:
-					self.telemetry_data[i] = data+[-1]
+				if len(data) == 688:
+					if float(data[13]) == -1:
+						self.telemetry_data[i] = data+[-1]
+					else:
+						if float(data[13]) < lastTime:
+							addTime = lastTime + addTime
+						self.telemetry_data[i] = data+[float(data[13])+addTime]
+						lastTime = float(data[13])
+
+			#Extract, process, and de-garbage the participant data.
+			participants = 0
+			new_data = list()
+
+			for data in self.telemetry_data:
+				if len(data) == 689 and int(data[4]) != -1:
+					participants = int(data[4])
+				elif len(data) == 24:
+					new_data += data[6:6+min(16, participants)]
+				elif len(data) == 22:
+					new_data += data[6:6+min(16, participants)]
 				else:
-					if float(data[13]) < lastTime:
-						addTime = lastTime + addTime
-					self.telemetry_data[i] = data+[float(data[13])+addTime]
-					lastTime = float(data[13])
+					raise ValueError("ValueError: Unrecognized or malformed packet.")
+
+				if len(new_data) >= participants:
+					try:
+						if new_data != self.participant_configurations[-1][:-1]:
+							self.participant_configurations.append(new_data+[participants])
+					except IndexError:
+						self.participant_configurations.append(new_data+[participants])
+					finally:
+						new_data = list()
+
+			self.participant_lookup = {x: [x] for x in self.participant_configurations[0][:-1]}
+
+			for participant_row in self.participant_configurations[:-1]:
+				for participant_name in participant_row[:-1]:
+					matches = [(k, participant_name, commonprefix(" ".join((" ".join(self.participant_lookup[k]), participant_name)).split())) for k in self.participant_lookup.keys() if len(commonprefix(" ".join((" ".join(self.participant_lookup[k]), participant_name)).split()))]
+					if len(matches):
+						max_length = max([len(p) for *rest, p in matches])
+						match_row = [(k, n, p) for k, n, p in matches if len(p) == max_length]
+
+						for k, n, p in match_row:
+							if n not in self.participant_lookup[k]:
+								self.participant_lookup[k].append(n)
+								if len(p) < len(k):
+									self.participant_lookup[p] = self.participant_lookup.pop(k)
+					else:
+						self.participant_lookup[participant_name] = [participant_name]
+			self.participant_configurations = deque(self.participant_configurations)
+
+			self.participant_data = self._update_participants()
+
+			self.telemetry_data = [x for x in self.telemetry_data if len(x) == 689]
 			
 		except ValueError as e:
 			print("{}".format(e), file=sys.stderr)
+			traceback.print_exc()
 		finally:
 			f.close()
+
+	def _update_participants(self):	
+		participant_data = list()
+		for name in self.participant_configurations.popleft():
+			#Find the name in the lookup, to use the de-junked version of the name.
+			for clean_name, raw_names in self.participant_lookup.items():
+				for raw_name in raw_names:
+					if name == raw_name:
+						participant_data.append(clean_name)
+		return participant_data
 
 	def process_telemetry(self):
 		with open(self.source_telemetry+self.telemetry_file, 'w') as csvfile:
@@ -251,6 +324,20 @@ class ReplayEnhancer():
 			hasher.update(buf)
 			buf = afile.read(blocksize)
 		return hasher.hexdigest()
+
+	def __lsf(s1, s2):
+		m = [[0] * (1 + len(s2)) for i in range(1 + len(s1))]
+		longest, x_longest = 0, 0
+		for x in range(1, 1+len(s1)):
+			for y in range(1, 1 + len(s2)):
+				if s1[x-1] == s2[y-1]:
+					m[x][y] = m[x-1][y-1]+1
+					if m[x][y] > longest:
+						longest = m[x][y]
+						x_longest = x
+				else:
+					m[x][y] = 0
+		return s1[x_longest-longest:x_longest]
 
 if __name__ == "__main__":
 	try:
