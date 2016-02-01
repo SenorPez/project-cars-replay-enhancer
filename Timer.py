@@ -1,9 +1,4 @@
-import abc
-from importlib import import_module
-import PIL.Image as plim
-from PIL import ImageDraw
-import os
-import sys
+from PIL import Image, ImageDraw
 
 from DynamicBase import DynamicBase
 
@@ -49,12 +44,12 @@ class Timer(DynamicBase):
 		self.data_height = max((self.replay.font.getsize(self.time)[1], self.replay.font.getsize(self.lap)[1]))
 		text_height = sum((self.replay.font.getsize(self.time)[1], self.replay.font.getsize(self.lap)[1], self.replay.margin))
 		
-		self.material = plim.new('RGBA', (100, text_height+self.replay.margin*2))
+		self.material = Image.new('RGBA', (100, text_height+self.replay.margin*2))
 
-		topMaterial = plim.new('RGBA', (100, self.data_height+self.replay.margin), (255, 255, 255, 128))
+		topMaterial = Image.new('RGBA', (100, self.data_height+self.replay.margin), (255, 255, 255, 128))
 		self.material.paste(topMaterial, (0, 0))
 
-		bottomMaterial = plim.new('RGBA', (100, self.data_height+self.replay.margin), (192, 192, 192, 128))
+		bottomMaterial = Image.new('RGBA', (100, self.data_height+self.replay.margin), (192, 192, 192, 128))
 		self.material.paste(bottomMaterial, (0, self.data_height+self.replay.margin))
 
 		return self.material if bgOnly else self._write_data()

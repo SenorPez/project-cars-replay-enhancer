@@ -14,9 +14,3 @@ class ReplayEnhancerBase():
 			return "{1:d}:{2:0>5.2f}".format(*retVal)
 		else:
 			return "{2:.2f}".format(*retVal)
-
-	def import_globals(self, module):
-		"""Imports global variable module."""
-		paths = os.path.split(os.path.abspath(module))
-		sys.path.insert(0, paths[0])
-		return import_module(os.path.splitext(paths[1])[0])

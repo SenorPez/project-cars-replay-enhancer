@@ -1,10 +1,5 @@
-import abc
-from importlib import import_module
 from numpy import where, diff
-import PIL.Image as plim
 from PIL import Image, ImageDraw
-import os
-import sys
 
 from StaticBase import StaticBase
 
@@ -109,11 +104,11 @@ class Results(StaticBase):
 		text_width = max(self.widths[-1]+self.replay.column_margin*(len([x for x in self.widths[:-1] if x != 0])-1), self.replay.heading_font.getsize(self.replay.heading_text)[0]+self.replay.column_margin+header_height, self.replay.font.getsize(self.replay.subheading_text)[0]+self.replay.column_margin+header_height)
 		text_height = sum(heights)+self.replay.margin*len(heights)-1
 
-		heading_material = plim.new('RGBA', (text_width+self.replay.margin*2, header_height), self.replay.heading_color)
-		series_logo = plim.open(self.replay.series_logo).resize((heading_material.height, heading_material.height))
+		heading_material = Image.new('RGBA', (text_width+self.replay.margin*2, header_height), self.replay.heading_color)
+		series_logo = Image.open(self.replay.series_logo).resize((heading_material.height, heading_material.height))
 		heading_material.paste(series_logo, (heading_material.width-series_logo.width, 0))
 
-		self.material = plim.new('RGBA', (text_width+self.replay.margin*2, text_height))
+		self.material = Image.new('RGBA', (text_width+self.replay.margin*2, text_height))
 		self.material.paste(heading_material, (0, 0))
 		
 		yPos = header_height
@@ -123,7 +118,7 @@ class Results(StaticBase):
 			else:
 				self.material_color = (192, 192, 192)
 
-			row_material = plim.new('RGBA', (text_width+self.replay.margin*2, self.data_height+self.replay.margin), self.material_color)
+			row_material = Image.new('RGBA', (text_width+self.replay.margin*2, self.data_height+self.replay.margin), self.material_color)
 			self.material.paste(row_material, (0, yPos))
 			yPos += self.data_height+self.replay.margin
 

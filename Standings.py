@@ -1,11 +1,5 @@
-import abc
-from importlib import import_module
-from moviepy.video.io.bindings import PIL_to_npimage
 from numpy import diff, where
-import os.path
-import PIL.Image as plim
-from PIL import ImageDraw
-import sys
+from PIL import Image, ImageDraw
 
 from DynamicBase import DynamicBase
 
@@ -59,7 +53,7 @@ class Standings(DynamicBase):
 		border_color = (0, 0, 0)
 		xPos = 0
 
-		output = plim.new('RGB', (int(self.replay.margin*1.5)+4, height))
+		output = Image.new('RGB', (int(self.replay.margin*1.5)+4, height))
 		draw = ImageDraw.Draw(output)
 
 		for sector in data:
@@ -151,7 +145,7 @@ class Standings(DynamicBase):
 		text_width = sum(self.columnWidths)+self.replay.column_margin*(len(widths[0])-1)
 		text_height = sum(heights)+self.replay.margin*(len(heights)-1)
 
-		self.material = plim.new('RGBA', (text_width+self.replay.margin*2, text_height+self.replay.margin))
+		self.material = Image.new('RGBA', (text_width+self.replay.margin*2, text_height+self.replay.margin))
 		yPos = 0
 
 		for i, r in enumerate(self.standings[:16]):
@@ -160,7 +154,7 @@ class Standings(DynamicBase):
 			else:
 				materialColor = (192, 192, 192, 128)
 
-			dataMaterial = plim.new('RGBA', (text_width+self.replay.margin*2, self.dataHeight+self.replay.margin), materialColor)
+			dataMaterial = Image.new('RGBA', (text_width+self.replay.margin*2, self.dataHeight+self.replay.margin), materialColor)
 			self.material.paste(dataMaterial, (0, yPos))
 			yPos += self.dataHeight+self.replay.margin
 
@@ -306,5 +300,5 @@ class Standings(DynamicBase):
 		return super(Standings, self).make_mask()
 
 if __name__ == '__main__':
-	print('Subclass:', issubclass(Timer, DynamicBase))
-	print('Instance:', isinstance(Timer(30), DynamicBase))
+	print('Subclass:', issubclass(Standings, DynamicBase))
+	print('Instance:', isinstance(Standings(30), DynamicBase))

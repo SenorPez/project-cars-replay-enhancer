@@ -1,18 +1,17 @@
-from PIL import Image
-from moviepy.video.io.bindings import PIL_to_npimage
-from hashlib import sha256
-import moviepy.editor as mpy
-from moviepy.editor import vfx
-from numpy import diff, nonzero
+import csv
 from glob import glob
+from hashlib import sha256
 from natsort import natsorted
 from struct import unpack
-import csv
-from importlib import import_module
-from PIL import ImageFont
 import json
 import os.path
 import sys
+
+import moviepy.editor as mpy
+from moviepy.editor import vfx
+from moviepy.video.io.bindings import PIL_to_npimage
+from numpy import diff, nonzero, where
+from PIL import Image, ImageFont
 
 from Champion import Champion
 from Results import Results
@@ -25,7 +24,10 @@ from UpdatedVideoClip import UpdatedVideoClip
 class ReplayEnhancer():
 	def __init__(self, configuration):
 		with open(os.path.realpath(configuration), 'r') as f:
-			json_data = json.load(f)
+			try:
+				json_data = json.load(f)
+			except ValueError as e:
+				raise e
 
 		self.font = ImageFont.truetype(json_data['font'], json_data['font_size'])
 		self.heading_font = ImageFont.truetype(json_data['heading_font'], json_data['heading_font_size'])
@@ -142,7 +144,7 @@ class ReplayEnhancer():
 		finally:
 			f.close()
 
-	def process_telemetry():
+	def process_telemetry(self):
 		with open(self.source_telemetry+self.telemetry_file, 'w') as csvfile:
 			for a in natsorted(glob(self.source_telemetry+'pdata*')):
 				with open(a, 'rb') as packFile:
@@ -251,70 +253,74 @@ class ReplayEnhancer():
 		return hasher.hexdigest()
 
 if __name__ == "__main__":
-	replay = ReplayEnhancer(sys.argv[1])
-	video = replay.black_test()
-	video_width, video_height = video.size
-
-	if replay.backdrop != "":
-		backdrop = Image.open(replay.backdrop).resize((video_width, video_height))
-		if replay.logo != "":
-			logo = Image.open(replay.logo).resize((replay.logo_width, replay.logo_height))
-			backdrop.paste(logo, (backdrop.width-logo.width, backdrop.height-logo.height), logo)
+	try:
+		replay = ReplayEnhancer(sys.argv[1])
+	except ValueError as e:
+		print("Invalid JSON in configuration file: {}".format(e))
 	else:
-		backdrop = Image.new('RGBA', (video_width, video_height), (0, 0, 0))
-		if replay.logo != "":
-			logo = Image.open(replay.logo).resize((replay.logo_width, replay.logo_height))
-			backdrop.paste(logo, (backdrop.width-logo.width, backdrop.height-logo.height), logo)
+		video = replay.black_test()
+		video_width, video_height = video.size
 
-	backdrop = mpy.ImageClip(PIL_to_npimage(backdrop))
-	title = mpy.ImageClip(Title(replay).to_frame()).set_duration(6).set_position(('center', 'center'))
+		if replay.backdrop != "":
+			backdrop = Image.open(replay.backdrop).resize((video_width, video_height))
+			if replay.logo != "":
+				logo = Image.open(replay.logo).resize((replay.logo_width, replay.logo_height))
+				backdrop.paste(logo, (backdrop.width-logo.width, backdrop.height-logo.height), logo)
+		else:
+			backdrop = Image.new('RGBA', (video_width, video_height), (0, 0, 0))
+			if replay.logo != "":
+				logo = Image.open(replay.logo).resize((replay.logo_width, replay.logo_height))
+				backdrop.paste(logo, (backdrop.width-logo.width, backdrop.height-logo.height), logo)
 
-	standing = UpdatedVideoClip(Standings(replay))
-	standing = standing.set_position((replay.margin, replay.margin)).set_duration(video.duration)
-	standing_mask = mpy.ImageClip(Standings(replay).make_mask(), ismask=True, duration=video.duration)
-	standing = standing.set_mask(standing_mask)
+		backdrop = mpy.ImageClip(PIL_to_npimage(backdrop))
+		title = mpy.ImageClip(Title(replay).to_frame()).set_duration(6).set_position(('center', 'center'))
 
-	timer = UpdatedVideoClip(Timer(replay))
-	timer_width, timer_height = timer.size
-	timer = timer.set_position((video_width-timer_width-replay.margin, replay.margin)).set_duration(video.duration)
-	timer_mask = mpy.ImageClip(Timer(replay).make_mask(), ismask=True, duration=video.duration)
-	timer = timer.set_mask(timer_mask)
+		standing = UpdatedVideoClip(Standings(replay))
+		standing = standing.set_position((replay.margin, replay.margin)).set_duration(video.duration)
+		standing_mask = mpy.ImageClip(Standings(replay).make_mask(), ismask=True, duration=video.duration)
+		standing = standing.set_mask(standing_mask)
 
-	result = mpy.ImageClip(Results(replay).to_frame()).set_duration(20).set_position(('center', 'center')).add_mask()
-	result.mask = result.mask.fx(vfx.fadeout, 1)
+		timer = UpdatedVideoClip(Timer(replay))
+		timer_width, timer_height = timer.size
+		timer = timer.set_position((video_width-timer_width-replay.margin, replay.margin)).set_duration(video.duration)
+		timer_mask = mpy.ImageClip(Timer(replay).make_mask(), ismask=True, duration=video.duration)
+		timer = timer.set_mask(timer_mask)
 
-	series_standings = mpy.ImageClip(SeriesStandings(replay).to_frame()).set_start(20).set_duration(20).set_position(('center', 'center')).add_mask()
+		result = mpy.ImageClip(Results(replay).to_frame()).set_duration(20).set_position(('center', 'center')).add_mask()
+		result.mask = result.mask.fx(vfx.fadeout, 1)
 
-	if replay.show_champion:
-		series_standings.mask = series_standings.mask.fx(vfx.fadein, 1).fx(vfx.fadeout, 1)
-		champion = mpy.ImageClip(Champion(replay).to_frame()).set_start(40).set_duration(20).set_position(('center', 'center')).add_mask()
-		champion.mask = champion.mask.fx(vfx.fadein, 1)
-	else:
-		series_standings.mask = series_standings.mask.fx(vfx.fadein, 1)
+		series_standings = mpy.ImageClip(SeriesStandings(replay).to_frame()).set_start(20).set_duration(20).set_position(('center', 'center')).add_mask()
 
-	intro = mpy.CompositeVideoClip([backdrop, title]).set_duration(6).fx(vfx.fadeout, 1)
-	mainevent = mpy.CompositeVideoClip([video, standing, timer]).set_duration(video.duration)
+		if replay.show_champion:
+			series_standings.mask = series_standings.mask.fx(vfx.fadein, 1).fx(vfx.fadeout, 1)
+			champion = mpy.ImageClip(Champion(replay).to_frame()).set_start(40).set_duration(20).set_position(('center', 'center')).add_mask()
+			champion.mask = champion.mask.fx(vfx.fadein, 1)
+		else:
+			series_standings.mask = series_standings.mask.fx(vfx.fadein, 1)
 
-	if replay.show_champion:
-		outro = mpy.CompositeVideoClip([backdrop, result, series_standings, champion]).set_duration(sum([x.duration for x in [result, series_standings, champion]])).fx(vfx.fadein, 1)
-	else:
-		outro = mpy.CompositeVideoClip([backdrop, result, series_standings]).set_duration(sum([x.duration for x in [result, series_standings]])).fx(vfx.fadein, 1)
+		intro = mpy.CompositeVideoClip([backdrop, title]).set_duration(6).fx(vfx.fadeout, 1)
+		mainevent = mpy.CompositeVideoClip([video, standing, timer]).set_duration(video.duration)
 
-	output = mpy.concatenate_videoclips([intro, mainevent, outro])
+		if replay.show_champion:
+			outro = mpy.CompositeVideoClip([backdrop, result, series_standings, champion]).set_duration(sum([x.duration for x in [result, series_standings, champion]])).fx(vfx.fadein, 1)
+		else:
+			outro = mpy.CompositeVideoClip([backdrop, result, series_standings]).set_duration(sum([x.duration for x in [result, series_standings]])).fx(vfx.fadein, 1)
 
-	#Full video.
-	#output.write_videofile(replay.output_video)
-	
-	#Full video, low framerate
-	output.write_videofile(replay.output_video, fps=10)
+		output = mpy.concatenate_videoclips([intro, mainevent, outro])
 
-	#Subclip video.
-	#output.subclip(0, 20).write_videofile(replay.output_video, fps=30)
-	#output.subclip(output.duration-80, output.duration).write_videofile(replay.output_video, fps=10)
+		#Full video.
+		#output.write_videofile(replay.output_video)
+		
+		#Full video, low framerate
+		output.write_videofile(replay.output_video, fps=1)
 
-	#Single frame.
-	#output.save_frame(replay.output_video+".jpg", 30)
+		#Subclip video.
+		#output.subclip(0, 20).write_videofile(replay.output_video, fps=30)
+		#output.subclip(output.duration-80, output.duration).write_videofile(replay.output_video, fps=10)
 
-	#Multiple frames.
-	#for frame in range(int(output.duration-45), int(output.duration-25)):
-		#output.save_frame(replay.output_video+"."+str(frame)+".jpg", frame)
+		#Single frame.
+		#output.save_frame(replay.output_video+".jpg", 30)
+
+		#Multiple frames.
+		#for frame in range(int(output.duration-45), int(output.duration-25)):
+			#output.save_frame(replay.output_video+"."+str(frame)+".jpg", frame)

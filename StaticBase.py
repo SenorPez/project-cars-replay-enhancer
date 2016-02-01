@@ -1,6 +1,6 @@
 import abc
 from moviepy.video.io.bindings import PIL_to_npimage
-import PIL.Image as plim
+
 from ReplayEnhancerBase import ReplayEnhancerBase
 
 class StaticBase(ReplayEnhancerBase, metaclass=abc.ABCMeta):

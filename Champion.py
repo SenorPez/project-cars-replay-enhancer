@@ -1,10 +1,5 @@
-import abc
-from importlib import import_module
 from numpy import where, diff
-import PIL.Image as plim
 from PIL import Image, ImageDraw
-import os
-import sys
 
 from StaticBase import StaticBase
 
@@ -76,8 +71,6 @@ class Champion(StaticBase):
 			lap_times[i] = [sum(sector_times[i][x:x+3]) for x in range(0, len(sector_times[i]), 3)]
 			personal_best_laps[i] = min([x for x in lap_times[i]])
 
-		columnHeadings = [("Rank", "Driver", "Team", "Car", "Series Points")]
-		
 		if len(self.replay.point_structure) < 17:
 			self.replay.point_structure += [0] * (17-len(self.replay.point_structure))
 
@@ -102,10 +95,10 @@ class Champion(StaticBase):
 		width = max((heading_width, 300+text_width))
 		height = self.heading_height+text_height
 
-		heading_material = plim.new('RGBA', (width, self.heading_height), self.replay.heading_color)
-		series_logo = plim.open(self.replay.series_logo).resize((300, 300))
+		heading_material = Image.new('RGBA', (width, self.heading_height), self.replay.heading_color)
+		series_logo = Image.open(self.replay.series_logo).resize((300, 300))
 
-		self.material = plim.new('RGBA', (width, height), (255, 255, 255))
+		self.material = Image.new('RGBA', (width, height), (255, 255, 255))
 		self.material.paste(heading_material, (0, 0))
 		self.material.paste(series_logo, (0, self.heading_height))
 
