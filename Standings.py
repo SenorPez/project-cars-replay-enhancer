@@ -28,14 +28,39 @@ class Standings(DynamicBase):
 		self.clip_t = clip_t
 		self.ups = ups
 
+		participants = [n for i, n, *rest in self.replay.participant_data]
+
+		self.sector_status = {n:['current', 'none', 'none'] for n in participants}
+		self.last_lap_valid = {n:True for n in participants}
+		self.last_lap_sectors = {n:[-1, -1, -1] for n in participants}
+
+		self.sector_bests = [-1, -1, -1]
+		self.personal_bests = {n:[-1, -1, -1] for n in participants}
+		self.best_lap = -1
+		self.personal_best_laps = {n:-1 for n in participants}
+		self.elapsed_times = {n:-1 for n in participants}
+
+		self.current_laps = {n:1 for n in participants}
+		self.last_lap_splits = {n:-1 for n in participants}
+		self.leader_elapsed_time = -1
+		self.leader_laps_completed = 0
+
+		'''
 		self.sector_status = [['current', 'none', 'none'] for x in range(64)]
 		self.last_lap_valid = [True for x in range(64)]
 		self.last_lap_sectors = [[-1, -1, -1] for x in range(64)]
+
+		self.sector_bests = [-1, -1, -1]
+		self.personal_bests = [[-1, -1, -1] for x in range(64)]
+		self.best_lap = -1
+		self.personal_best_laps = [-1 for x in range(64)]
+		self.elapsed_times = [-1 for x in range(64)]
 
 		self.current_laps = [1 for x in range(64)]
 		self.last_lap_splits = [-1 for x in range(64)]
 		self.leader_elapsed_time = -1
 		self.leader_laps_completed = 0
+		'''
 
 		self.max_lap_time = -1
 
@@ -90,26 +115,26 @@ class Standings(DynamicBase):
 				draw.text((nn[1], yPos), str(nn[0]), fill='black', font=self.replay.font)
 
 
-				if isinstance(self.last_lap_splits[i], int) and self.last_lap_splits[i] < 0:
-					lastLapTime = "{}".format('')
-				elif isinstance(self.last_lap_splits[i], int):
-					suffix = " laps" if self.last_lap_splits[i] > 1 else " lap"
-					lastLapTime = "{:+d}".format(self.last_lap_splits[i])+suffix
-				elif isinstance(self.last_lap_splits[i], float) and self.last_lap_splits[i] > 0:
-					lastLapTime = self.format_time(self.last_lap_splits[i])
-				elif isinstance(self.last_lap_splits[i], float):
-					lastLapTime = "+"+self.format_time(self.last_lap_splits[i]*-1)
+				if isinstance(self.last_lap_splits[n], int) and self.last_lap_splits[n] < 0:
+					last_lap_time = "{}".format('')
+				elif isinstance(self.last_lap_splits[n], int):
+					suffix = " laps" if self.last_lap_splits[n] > 1 else " lap"
+					last_lap_time = "{:+d}".format(self.last_lap_splits[n])+suffix
+				elif isinstance(self.last_lap_splits[n], float) and self.last_lap_splits[n] > 0:
+					last_lap_time = self.format_time(self.last_lap_splits[n])
+				elif isinstance(self.last_lap_splits[n], float):
+					last_lap_time = "+"+self.format_time(self.last_lap_splits[n]*-1)
 
-				timeWidth = self.replay.font.getsize(lastLapTime)[0]
+				timeWidth = self.replay.font.getsize(last_lap_time)[0]
 
 				tPos = int(materialWidth-self.replay.margin-timeWidth)
 
-				draw.text((tPos, yPos), str(lastLapTime), fill='black', font=self.replay.font)
+				draw.text((tPos, yPos), str(last_lap_time), fill='black', font=self.replay.font)
 
 				draw.line([(self.replay.margin, yPos+self.dataHeight), (self.replay.margin+lineLength*rr[0], yPos+self.dataHeight)], fill=(255, 0, 0), width=2)
 				draw.line([(self.replay.margin+lineLength*rr[0], yPos+self.dataHeight), (materialWidth-self.replay.margin, yPos+self.dataHeight)], fill=(255, 192, 192), width=2)
 
-				self.material.paste(self.__sector_rectangles(self.sector_status[i], self.dataHeight), (ss[1]-2, int(yPos)))
+				self.material.paste(self.__sector_rectangles(self.sector_status[n], self.dataHeight), (ss[1]-2, int(yPos)))
 
 				draw.ellipse([(self.replay.margin+lineLength*rr[0]-2, yPos+self.dataHeight-2), (self.replay.margin+lineLength*rr[0]+2, yPos+self.dataHeight+2)], fill=(255, 0, 0))
 
@@ -194,101 +219,101 @@ class Standings(DynamicBase):
 			if s == 1:
 				#If we're in the first sector, we need to check to see if we've set a record in sector 3.
 				if l != -123:
-					self.sector_status[i][0] = 'current'
+					self.sector_status[n][0] = 'current'
 
-					if self.last_lap_sectors[i][0] != l:
-						self.last_lap_sectors[i][0] = l
+					if self.last_lap_sectors[n][0] != l:
+						self.last_lap_sectors[n][0] = l
 
 					if lx & int('10000000', 2) and r > 0:
-						self.sector_status[i][1] = 'invalid'
-						self.sector_status[i][2] = 'invalid'
-						self.last_lap_valid[i] = False
-					elif self.sector_status[i][2] != 'invalid':
-						if self.replay.sector_bests[2] == -1 or self.replay.sector_bests[2] >= l:
-							self.replay.sector_bests[2] = l
-							self.replay.personal_bests[i][2] = l
-							self.sector_status[i][2] = 'racebest'
-						elif self.replay.personal_bests[i][2] == -1 or self.replay.personal_bests[i][2] >= l:
-							self.replay.personal_bests[i][2] = l
-							self.sector_status[i][2] = 'personalbest'
+						self.sector_status[n][1] = 'invalid'
+						self.sector_status[n][2] = 'invalid'
+						self.last_lap_valid[n] = False
+					elif self.sector_status[n][2] != 'invalid':
+						if self.sector_bests[2] == -1 or self.sector_bests[2] >= l:
+							self.sector_bests[2] = l
+							self.personal_bests[n][2] = l
+							self.sector_status[n][2] = 'racebest'
+						elif self.personal_bests[n][2] == -1 or self.personal_bests[n][2] >= l:
+							self.personal_bests[n][2] = l
+							self.sector_status[n][2] = 'personalbest'
 						else:
-							self.sector_status[i][2] = 'none'
+							self.sector_status[n][2] = 'none'
 
 					#Test to see if we've just started a new lap.
-					if self.current_laps[i] != cl:
-						self.replay.elapsed_times[i] += float(sum(self.last_lap_sectors[i]))
-						self.current_laps[i] = cl
+					if self.current_laps[n] != cl:
+						self.elapsed_times[n] += float(sum(self.last_lap_sectors[n]))
+						self.current_laps[n] = cl
 
 						#Do we have a valid last lap? If so, compare records.
 						#If not, set Sector 3 to invalid (to hold it at red until
 						#we get back there and reset the flag.
-						if self.last_lap_valid[i] and -1 not in self.last_lap_sectors[i]:
-							self.lastLapTime = float(sum(self.last_lap_sectors[i]))
-							if self.replay.best_lap == -1 or self.replay.best_lap > self.lastLapTime:
-								self.replay.best_lap = self.lastLapTime
-								self.replay.personal_best_laps[i] = self.lastLapTime
-							elif self.replay.personal_best_laps[i] == -1 or self.replay.personal_best_laps[i] >= self.lastLapTime:
-								self.replay.personal_best_laps[i] = self.lastLapTime
+						if self.last_lap_valid[n] and -1 not in self.last_lap_sectors[n]:
+							self.last_lap_time = float(sum(self.last_lap_sectors[n]))
+							if self.best_lap == -1 or self.best_lap > self.last_lap_time:
+								self.best_lap = self.last_lap_time
+								self.personal_best_laps[n] = self.last_lap_time
+							elif self.personal_best_laps[n] == -1 or self.personal_best_laps[n] >= self.last_lap_time:
+								self.personal_best_laps[n] = self.last_lap_time
 						else:
-							self.sector_status[i][2] = 'invalid'
-							self.last_lap_valid[i] = True
+							self.sector_status[n][2] = 'invalid'
+							self.last_lap_valid[n] = True
 
 						if p == 1:
 							self.leader_laps_completed = cl
-							self.leader_elapsed_time = self.replay.elapsed_times[i]
-							self.last_lap_splits[i] = float(sum(self.last_lap_sectors[i]))
+							self.leader_elapsed_time = self.elapsed_times[n]
+							self.last_lap_splits[n] = float(sum(self.last_lap_sectors[n]))
 						#Test to see if you're down a lap.
 						elif self.leader_laps_completed > cl:
-							self.last_lap_splits[i] = int(self.leader_laps_completed-cl)
+							self.last_lap_splits[n] = int(self.leader_laps_completed-cl)
 						#Just a laggard.
 						elif lx & int('01111111', 2) != 0:
-							self.last_lap_splits[i] = float(self.leader_elapsed_time-self.replay.elapsed_times[i])
+							self.last_lap_splits[n] = float(self.leader_elapsed_time-self.elapsed_times[n])
 			elif s == 2:
 				#Sector 2 checks sector 1 records
 				if l != -123:
-					self.sector_status[i][1] = 'current'
+					self.sector_status[n][1] = 'current'
 
-					if self.last_lap_sectors[i][1] != l:
-						self.last_lap_sectors[i][1] = l
+					if self.last_lap_sectors[n][1] != l:
+						self.last_lap_sectors[n][1] = l
 
 					if lx & int('10000000', 2) and r > 0:
-						self.sector_status[i][0] = 'invalid'
-						self.sector_status[i][2] = 'invalid'
-						self.last_lap_valid[i] = False
-					elif self.sector_status[i][0] != 'invalid':
-						if self.replay.sector_bests[0] == -1 or self.replay.sector_bests[0] >= l:
-							self.replay.sector_bests[0] = l
-							self.replay.personal_bests[i][0] = l
-							self.sector_status[i][0] = 'racebest'
-						elif self.replay.personal_bests[i][0] == -1 or self.replay.personal_bests[i][0] >= l:
-							self.replay.personal_bests[i][0] = l
-							self.sector_status[i][0] = 'personalbest'
+						self.sector_status[n][0] = 'invalid'
+						self.sector_status[n][2] = 'invalid'
+						self.last_lap_valid[n] = False
+					elif self.sector_status[n][0] != 'invalid':
+						if self.sector_bests[0] == -1 or self.sector_bests[0] >= l:
+							self.sector_bests[0] = l
+							self.personal_bests[n][0] = l
+							self.sector_status[n][0] = 'racebest'
+						elif self.personal_bests[n][0] == -1 or self.personal_bests[n][0] >= l:
+							self.personal_bests[n][0] = l
+							self.sector_status[n][0] = 'personalbest'
 						else:
-							self.sector_status[i][0] = 'none'
+							self.sector_status[n][0] = 'none'
 			elif s == 3:
 				#Sector 3 checks sector 2 records.
 				if l != -123:
-					self.sector_status[i][2] = 'current'
+					self.sector_status[n][2] = 'current'
 
-					if self.last_lap_sectors[i][2] != l:
-						self.last_lap_sectors[i][2] = l
+					if self.last_lap_sectors[n][2] != l:
+						self.last_lap_sectors[n][2] = l
 
 					if lx & int('10000000', 2) and r > 0:
-						self.sector_status[i][0] = 'invalid'
-						self.sector_status[i][1] = 'invalid'
-						self.last_lap_valid[i] = False
-					elif self.sector_status[i][1] != 'invalid':
-						if self.replay.sector_bests[1] == -1 or self.replay.sector_bests[1] >= l:
-							self.replay.sector_bests[1] = l
-							self.replay.personal_bests[i][1] = l
-							self.sector_status[i][1] = 'racebest'
-						elif self.replay.personal_bests[i][1] == -1 or self.replay.personal_bests[i][1] >= l:
-							self.replay.personal_bests[i][1] = l
-							self.sector_status[i][1] = 'personalbest'
+						self.sector_status[n][0] = 'invalid'
+						self.sector_status[n][1] = 'invalid'
+						self.last_lap_valid[n] = False
+					elif self.sector_status[n][1] != 'invalid':
+						if self.sector_bests[1] == -1 or self.sector_bests[1] >= l:
+							self.sector_bests[1] = l
+							self.personal_bests[n][1] = l
+							self.sector_status[n][1] = 'racebest'
+						elif self.personal_bests[n][1] == -1 or self.personal_bests[n][1] >= l:
+							self.personal_bests[n][1] = l
+							self.sector_status[n][1] = 'personalbest'
 						else:
-							self.sector_status[i][1] = 'none'
+							self.sector_status[n][1] = 'none'
 
-			self.lastLapTime = self.last_lap_splits[i]
+			self.last_lap_time = self.last_lap_splits[n]
 		self.clip_t += float(1/self.ups)
 
 		return self.standings

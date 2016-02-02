@@ -1,4 +1,5 @@
 from collections import deque
+from itertools import groupby
 from os.path import commonprefix
 import traceback
 import csv
@@ -13,7 +14,7 @@ import sys
 import moviepy.editor as mpy
 from moviepy.editor import vfx
 from moviepy.video.io.bindings import PIL_to_npimage
-from numpy import diff, nonzero, where
+from numpy import diff, nonzero, where, cumsum
 from PIL import Image, ImageFont
 
 from Champion import Champion
@@ -55,7 +56,9 @@ class ReplayEnhancer():
 		self.telemetry_file = 'tele.csv'
 		self.output_video = json_data['output_video']
 
-		self.car_data, self.team_data, self.points = zip(*[(v['car'], v['team'], v['points']) for v in json_data['participant_data']])
+		self.car_data = {v['participant']:v['car'] for v in json_data['participant_config']}
+		self.team_data = {v['participant']:v['team'] for v in json_data['participant_config']}
+		self.points = {v['participant']:v['points'] for v in json_data['participant_config']}
 
 		self.point_structure = json_data['point_structure']
 
@@ -73,11 +76,13 @@ class ReplayEnhancer():
 		self.telemetry_data = list()
 		self.config_version = 4
 
+		'''
 		self.sector_bests = [-1, -1, -1]
 		self.personal_bests = [[-1, -1, -1] for x in range(64)]
 		self.best_lap = -1
 		self.personal_best_laps = [-1 for x in range(64)]
 		self.elapsed_times = [-1 for x in range(64)]
+		'''
 
 		self.race_start = -1
 		self.race_finish = -1
@@ -117,56 +122,35 @@ class ReplayEnhancer():
 			self.participant_data = [(i, n, t, c) for (i, n), t, c in zip(list(sorted({x for x in self.participant_data})), self.team_data, self.car_data)]
 			'''
 
-			try:
-				self.race_end = [i for i, data in reversed(list(enumerate(self.telemetry_data))) if len(data) == 688 and int(data[9]) & int('111', 2) == 3][0] + 1
-			except IndexError:
-				self.race_end = len(self.telemetry_data)
-
-			try:
-				self.race_finish = [i for i, data in reversed(list(enumerate(self.telemetry_data[:self.race_end]))) if len(data) == 688 and int(data[9]) & int('111', 2) == 2][0] + 1
-			except IndexError:
-				self.race_finish = len(self.telemetry_data)
-
-			try:
-				self.race_start = [i for i, data in reversed(list(enumerate(self.telemetry_data[:self.race_finish]))) if len(data) == 688 and int(data[9]) & int('111', 2) == 0][0] + 1
-			except IndexError:
-				self.race_start = 0
-
-			#For some reason, the telemetry doesn't immediately load the stadndings before a race. Step through until we do have them.
-			while True:
-				if len(self.telemetry_data[self.race_start]) != 688:
-					self.race_start += 1
-				elif sum([int(self.telemetry_data[self.race_start][182+i*9]) & int('01111111', 2) for i in range(56)]) != 0:
-					break;
-				else:
-					self.race_start += 1
-
-			self.telemetry_data = self.telemetry_data[self.race_start:self.race_end]
-
-			#Add cumulative time index to end of data structure.
-			lastTime = 0
-			addTime = 0
-			for i, data in enumerate(self.telemetry_data):
-				if len(data) == 688:
-					if float(data[13]) == -1:
-						self.telemetry_data[i] = data+[-1]
-					else:
-						if float(data[13]) < lastTime:
-							addTime = lastTime + addTime
-						self.telemetry_data[i] = data+[float(data[13])+addTime]
-						lastTime = float(data[13])
-
 			#Extract, process, and de-garbage the participant data.
+			#Also add cumulative time index to end of data structure.
+
+			last_time = 0
+			add_time = 0
 			participants = 0
 			new_data = list()
 
-			for data in self.telemetry_data:
-				if len(data) == 689 and int(data[4]) != -1:
+			for i, data in enumerate(self.telemetry_data):
+				if len(data) == 688 and int(data[4]) != -1:
 					participants = int(data[4])
+
+					if float(data[13]) == -1:
+						self.telemetry_data[i] = data+[-1]
+					else:
+						if float(data[13]) < last_time:
+							add_time = last_time + add_time
+						self.telemetry_data[i] = data+[float(data[13])+add_time]
+						last_time = float(data[13])
+				elif len(data) == 688 and int(data[4]) == -1:
+					pass
 				elif len(data) == 24:
-					new_data += data[6:6+min(16, participants)]
+					for p in enumerate(data[6:6+min(16, participants)]):
+						if len(p[1]):
+							new_data.append(p)
 				elif len(data) == 22:
-					new_data += data[6:6+min(16, participants)]
+					for p in enumerate(data[3:3+min(16, participants)], int(row[2])):
+						if len(p[1]):
+							new_data.append(p)
 				else:
 					raise ValueError("ValueError: Unrecognized or malformed packet.")
 
@@ -179,10 +163,10 @@ class ReplayEnhancer():
 					finally:
 						new_data = list()
 
-			self.participant_lookup = {x: [x] for x in self.participant_configurations[0][:-1]}
+			self.participant_lookup = {x: [x] for i, x in self.participant_configurations[0][:-1]}
 
-			for participant_row in self.participant_configurations[:-1]:
-				for participant_name in participant_row[:-1]:
+			for participant_row in self.participant_configurations[1:]:
+				for i, participant_name in participant_row[:-1]:
 					matches = [(k, participant_name, commonprefix(" ".join((" ".join(self.participant_lookup[k]), participant_name)).split())) for k in self.participant_lookup.keys() if len(commonprefix(" ".join((" ".join(self.participant_lookup[k]), participant_name)).split()))]
 					if len(matches):
 						max_length = max([len(p) for *rest, p in matches])
@@ -195,26 +179,75 @@ class ReplayEnhancer():
 									self.participant_lookup[p] = self.participant_lookup.pop(k)
 					else:
 						self.participant_lookup[participant_name] = [participant_name]
-			self.participant_configurations = deque(self.participant_configurations)
 
-			self.participant_data = self._update_participants()
+			#This is hacky but works. Change maybe?
+			#Reverse keys and values.
+			self.participant_lookup = {v:k for k, l in self.participant_lookup.items() for v in l}
 
 			self.telemetry_data = [x for x in self.telemetry_data if len(x) == 689]
-			
+
+			try:
+				self.race_end = [i for i, data in reversed(list(enumerate(self.telemetry_data))) if int(data[9]) & int('111', 2) == 3][0] + 1
+			except IndexError:
+				self.race_end = len(self.telemetry_data)
+
+			try:
+				self.race_finish = [i for i, data in reversed(list(enumerate(self.telemetry_data[:self.race_end]))) if int(data[9]) & int('111', 2) == 2][0] + 1
+			except IndexError:
+				self.race_finish = len(self.telemetry_data)
+
+			try:
+				self.race_start = [i for i, data in reversed(list(enumerate(self.telemetry_data[:self.race_finish]))) if int(data[9]) & int('111', 2) == 0][0] + 1
+			except IndexError:
+				self.race_start = 0
+
+			#For some reason, the telemetry doesn't immediately load the stadndings before a race. Step through until we do have them.
+			while sum([int(self.telemetry_data[self.race_start][182+i*9]) & int('01111111', 2) for i in range(56)]) == 0:
+				self.race_start += 1
+
+			#Trim and partition the telemetry data.
+			self.telemetry_data = [(list(g), x) for x, g in groupby(self.telemetry_data[self.race_start:self.race_end], key=lambda k: int(k[4]))]
+			self.telemetry_data = [(g, x, y) for (g, x), y in zip(self.telemetry_data, [0]+list(cumsum([len(g) for g, x in self.telemetry_data])))]
+
+			'''
+			data = self.telemetry_data[0][0]
+			self.starting_grid = sorted(((str(int(data[182+i*9]) & int('01111111', 2)), n, t if t is not None else "", c) for i, n, t, c in self.participant_data), key=lambda x: int(x[0]))
+
+			data = self.telemetry_data[self.race_finish]
+			finishers = list()
+			for i, n in self.participant_configurations[-1][:-1]:
+				name = self.participant_lookup[n]
+				finishers.append((i, name, self.team_data[name], self.car_data[name]))
+
+			lead_lap_indexes = [i for i, *rest in finishers if int(data[184+i*9]) >= int(data[10])]
+			lapped_indexes = [i for i, *rest in finishers if int(data[184+i*9]) < int(data[10])]
+
+			data = self.telemetry_data[-1]
+			self.classification = sorted((int(data[182+i*9]) & int('01111111', 2), n, t if t is not None else "", c, i, int(data[10])) for i, n, t, c in finishers if i in lead_lap_indexes)
+			self.classification += sorted((int(data[182+i*9]) & int('01111111', 2), n, t if t is not None else "", c, i, int(data[183+i*9])) for i, n, t, c in finishers if i in lapped_indexes)
+			self.classification = [(p,) + tuple(rest) for p, (i, *rest) in enumerate(self.classification, 1)]
+			import pdb; pdb.set_trace()
+			'''
+
 		except ValueError as e:
 			print("{}".format(e), file=sys.stderr)
 			traceback.print_exc()
 		finally:
 			f.close()
 
-	def _update_participants(self):	
+	def update_participants(self, participant_queue):
 		participant_data = list()
-		for name in self.participant_configurations.popleft():
+		for i, n in participant_queue.popleft()[:-1]:
 			#Find the name in the lookup, to use the de-junked version of the name.
+			name = self.participant_lookup[n]
+			participant_data.append((i, name, self.team_data[name], self.car_data[name]))
+			'''
 			for clean_name, raw_names in self.participant_lookup.items():
 				for raw_name in raw_names:
-					if name == raw_name:
-						participant_data.append(clean_name)
+					if name[1] == raw_name:
+						participant_data.append(name)
+			'''
+		#participant_data = [(i, n, t, c) for (i, n), t, c in zip(list(sorted({x for x in participant_data})), self.team_data, self.car_data)]
 		return participant_data
 
 	def process_telemetry(self):

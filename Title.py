@@ -6,6 +6,12 @@ class Title(StaticBase):
 	def __init__(self, replay):
 		self.replay = replay
 
+		data = self.replay.telemetry_data[0][0]
+		self.participant_queue = deque(self.participant_configurations)
+		self.participant_data = self.replay.update_participants(self.participant_queue)
+
+		self.starting_grid = sorted(((str(int(data[182+i*9]) & int('01111111', 2)), n, t if t is not None else "", c) for i, n, t, c in self.participant_data), key=lambda x: int(x[0]))
+
 	def _write_data(self):
 		draw = ImageDraw.Draw(self.material)
 
@@ -20,7 +26,7 @@ class Title(StaticBase):
 
 		column_positions = [self.replay.margin if i == 0 else self.replay.margin+self.replay.column_margin*i+sum(self.widths[0:i]) if self.widths[i-1] != 0 else self.replay.margin+self.replay.column_margin*(i-1)+sum(self.widths[0:(i-1)]) for i, w in enumerate(self.widths)]
 
-		for i, n, t, c in [list(zip(x, column_positions)) for x in self.starting_grid_data[:16]]:
+		for i, n, t, c in [list(zip(x, column_positions)) for x in self.starting_grid[:16]]:
 			draw.text((i[1], yPos), str(i[0]), fill='black', font=self.replay.font)
 			draw.text((n[1], yPos), str(n[0]), fill='black', font=self.replay.font)
 			draw.text((t[1], yPos), str(t[0]), fill='black', font=self.replay.font)
@@ -30,16 +36,12 @@ class Title(StaticBase):
 		return self.material
 
 	def _make_material(self, bgOnly):
-		data = self.replay.telemetry_data[0]
-
-		self.starting_grid_data = sorted(((str(int(data[182+i*9]) & int('01111111', 2)), n, t if t is not None else "", c) for i, n, t, c in self.replay.participant_data), key=lambda x: int(x[0]))
-
-		self.widths = [max([self.replay.font.getsize(x[i])[0] for x in self.starting_grid_data[:16]]) for i in range(len(self.starting_grid_data[0]))]
+		self.widths = [max([self.replay.font.getsize(x[i])[0] for x in self.starting_grid[:16]]) for i in range(len(self.starting_grid[0]))]
 		self.widths.append(sum(self.widths))
 
-		heights = [max([self.replay.font.getsize(x[i])[1] for x in self.starting_grid_data[:16]]) for i in range(len(self.starting_grid_data[0]))]
+		heights = [max([self.replay.font.getsize(x[i])[1] for x in self.starting_grid[:16]]) for i in range(len(self.starting_grid[0]))]
 		self.data_height = max(heights)
-		heights = [self.data_height for x in self.starting_grid_data[:16]]
+		heights = [self.data_height for x in self.starting_grid[:16]]
 		heights.append(self.replay.heading_font.getsize(self.replay.heading_text)[1])
 		heights.append(self.replay.font.getsize(self.replay.subheading_text)[1])
 
@@ -56,7 +58,7 @@ class Title(StaticBase):
 		self.material.paste(heading_material, (0, 0))
 		
 		yPos = header_height
-		for i, r in enumerate(self.starting_grid_data[:16]):
+		for i, r in enumerate(self.starting_grid[:16]):
 			if i % 2:
 				self.material_color = (255, 255, 255)
 			else:
@@ -66,7 +68,6 @@ class Title(StaticBase):
 			self.material.paste(row_material, (0, yPos))
 			yPos += self.data_height+self.replay.margin
 
-		#return self.material, self.starting_grid_data, self.data_height, self.widths
 		return self.material if bgOnly else self._write_data()
 
 	def to_frame(self):
