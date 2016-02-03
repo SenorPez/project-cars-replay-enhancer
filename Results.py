@@ -1,6 +1,6 @@
 from collections import deque
 from itertools import groupby
-from numpy import where, diff
+from numpy import diff, nonzero
 from PIL import Image, ImageDraw
 
 from StaticBase import StaticBase
@@ -8,6 +8,9 @@ from StaticBase import StaticBase
 class Results(StaticBase):
 	def __init__(self, replay):
 		self.replay = replay
+
+		participants = {x for x in self.replay.participant_lookup.values()}
+		self.lap_finish = {n:-1 for n in participants}
 
 	def _write_data(self):
 		draw = ImageDraw.Draw(self.material)
@@ -41,7 +44,7 @@ class Results(StaticBase):
 		return self.material
 
 	def _make_material(self, bgOnly):
-		participants = [n for i, n, *rest in self.replay.participant_data]
+		participants = {x for x in self.replay.participant_lookup.values()}
 		sector_bests = {n:[-1, -1, -1] for n in participants}
 		sector_times = {n:[] for n in participants}
 		lap_times = {n:[] for n in participants}
@@ -54,41 +57,76 @@ class Results(StaticBase):
 		personal_best_laps = ['' for x in range(len(self.replay.classification))]
 		'''
 
-		import pdb; pdb.set_trace();
-		self.replay.participant_queue = deque(self.replay.participant_configurations)
+		telemetry_data, participant_data, offset = zip(*[(x[0], x[-1], x[2]) for x in self.replay.telemetry_data if x[2] < self.replay.race_finish])
+		participant_data = participant_data[-1]
+		offset = offset[-1]
+		telemetry_data = telemetry_data[-1][self.replay.race_finish-offset]
+		#telemetry_data = telemetry_data[0][self.replay.race_finish-telemetry_data[2]]
 
-		for participant_count in [x for x, g in groupby(self.replay.telemetry_data, key=lambda k: int(k[4]))]:
-			pass
+		lead_lap_indexes = [i for i, *rest in participant_data if int(telemetry_data[184+i*9]) >= int(telemetry_data[10])]
+		lapped_indexes = [i for i, *rest in participant_data if int(telemetry_data[184+i*9]) < int(telemetry_data[10])]
 
+		telemetry_data = self.replay.telemetry_data[0][0][-1]
+		self.classification = sorted((int(telemetry_data[182+i*9]) & int('01111111', 2), n, t if t is not None else "", c, i, int(telemetry_data[10])) for i, n, t, c in participant_data if i in lead_lap_indexes)
+		self.classification += sorted((int(telemetry_data[182+i*9]) & int('01111111', 2), n, t if t is not None else "", c, i, int(telemetry_data[183+i*9])) for i, n, t, c in participant_data if i in lapped_indexes)
+		self.classification = [(p,) + tuple(rest) for p, (i, *rest) in enumerate(self.classification, 1)]
 
+		telemetry_data = [x for x in zip(*self.replay.telemetry_data)][0]
+		telemetry_data = [item for chunk in telemetry_data for item in chunk]
 
-
-		self.replay.participant_queue = deque(self.replay.particiant_configurations)
-		for data in self.telemetry_data:
-			
-			while len(self.replay.participant_data) != int(data[4]):
-				self.replay.participant_data = self.replay.update_participants()
-
-		for p, n, t, c, i, l in self.replay.classification[:16]:
-			lap_finish = self.replay.race_finish
+		for p, n, t, c, i, l in self.classification[:16]:
+			lap_finish_number = self.replay.race_finish
 			if p != 1:
 				try:
-					while (self.replay.telemetry_data[self.replay.race_finish][183+i*9] == self.replay.telemetry_data[lap_finish][183+i*9]):
-						lap_finish += 1
+					while (telemetry_data[self.replay.race_finish][183+i*9] == telemetry_data[lap_finish_number][183+i*9]):
+						lap_finish_number += 1
 				except IndexError:
-					lap_finish = len(self.replay.telemetry_data)-1
+					lap_finish_number = len(telemetry_data)-1
+				self.lap_finish[n] = lap_finish_number
+			sector_times[n] += [float(telemetry_data[lap_finish_number][186+i*9])]
 
-			sector_times[n] = [float(self.replay.telemetry_data[x][186+i*9]) for x in where(diff([int(y[185+i*9]) & int('111', 2) for y in self.replay.telemetry_data[:lap_finish+1]]) != 0)[0].tolist() if float(self.replay.telemetry_data[x][186+i*9]) != -123.0]+[float(self.replay.telemetry_data[lap_finish][186+i*9])]
+		for telemetry_data, participant_number, index_offset, participant_data in self.replay.telemetry_data:
+			for i, n, *rest in participant_data:
+				lap_finish = self.lap_finish[n] if self.lap_finish[n] != -1 else self.replay.race_end
+				sector_times[n] += [float(telemetry_data[x][186+i*9]) for x in nonzero(diff([int(y[185+i*9]) & int('111', 2) for data_index, y in enumerate(telemetry_data, index_offset) if data_index < lap_finish]))[0].tolist() if float(telemetry_data[x][186+i*9]) != -123.0]
+
+		for n, v in sector_times.items():
+			sector_times[n] += [sector_times[n].pop(0)]
+
+			try:
+				sector_bests[n][0] = min([x for x in sector_times[n][::3]])
+			except ValueError:
+				sector_bests[n][0] = -1
+
+			try:
+				sector_bests[n][1] = min([x for x in sector_times[n][1::3]])
+			except ValueError:
+				sector_bests[n][1] = -1
+
+			try:
+				sector_bests[n][2] = min([x for x in sector_times[n][2::3]])
+			except ValueError:
+				sector_bests[n][2] = -1
 
 			sector_times[n] = sector_times[n][:divmod(len(sector_times[n]), 3)[0]*3]
-
 			lap_times[n] = [sum(sector_times[n][x:x+3]) for x in range(0, len(sector_times[n]), 3)]
-			personal_best_laps[n] = min([x for x in lap_times[n]])
+			try:
+				personal_best_laps[n] = min([x for x in lap_times[n]])
+			except ValueError:
+				personal_best_laps[n] = -1
 
-			sector_bests[n][0] = min([float(x[186+i*9]) for x in self.replay.telemetry_data if int(x[185+i*9]) & int('111', 2) == 2 and float(x[186+i*9]) != -123.0 and int(x[183+i*9]) & int('10000000', 2) == 0])
-			sector_bests[n][1] = min([float(x[186+i*9]) for x in self.replay.telemetry_data if int(x[185+i*9]) & int('111', 2) == 3 and float(x[186+i*9]) != -123.0 and int(x[183+i*9]) & int('10000000', 2) == 0])
-			sector_bests[n][2] = min([float(x[186+i*9]) for x in self.replay.telemetry_data if int(x[185+i*9]) & int('111', 2) == 1 and float(x[186+i*9]) != -123.0 and int(x[183+i*9]) & int('10000000', 2) == 0])
+			#sector_times[n] = [float(self.replay.telemetry_data[x][186+i*9]) for x in where(diff([int(y[185+i*9]) & int('111', 2) for y in self.replay.telemetry_data[:lap_finish+1]]) != 0)[0].tolist() if float(self.replay.telemetry_data[x][186+i*9]) != -123.0]+[float(self.replay.telemetry_data[lap_finish][186+i*9])]
 
+			#sector_times[n] = sector_times[n][:divmod(len(sector_times[n]), 3)[0]*3]
+
+			#lap_times[n] = [sum(sector_times[n][x:x+3]) for x in range(0, len(sector_times[n]), 3)]
+			#personal_best_laps[n] = min([x for x in lap_times[n]])
+
+			#sector_bests[n][0] = min([float(x[186+i*9]) for x in self.replay.telemetry_data if int(x[185+i*9]) & int('111', 2) == 2 and float(x[186+i*9]) != -123.0 and int(x[183+i*9]) & int('10000000', 2) == 0])
+			#sector_bests[n][1] = min([float(x[186+i*9]) for x in self.replay.telemetry_data if int(x[185+i*9]) & int('111', 2) == 3 and float(x[186+i*9]) != -123.0 and int(x[183+i*9]) & int('10000000', 2) == 0])
+			#sector_bests[n][2] = min([float(x[186+i*9]) for x in self.replay.telemetry_data if int(x[185+i*9]) & int('111', 2) == 1 and float(x[186+i*9]) != -123.0 and int(x[183+i*9]) & int('10000000', 2) == 0])
+
+		import pdb; pdb.set_trace()
 		columnHeadings = [("Pos.", "Driver", "Team", "Car", "Laps", "Time", "Best Lap", "Best S1", "Best S2", "Best S3", "Points")]
 		
 		if len(self.replay.point_structure) < 17:

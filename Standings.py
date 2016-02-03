@@ -28,7 +28,8 @@ class Standings(DynamicBase):
 		self.clip_t = clip_t
 		self.ups = ups
 
-		participants = [n for i, n, *rest in self.replay.participant_data]
+		#participants = [n for i, n, *rest in self.replay.participant_data]
+		participants = {x for x in self.replay.participant_lookup.values()}
 
 		self.sector_status = {n:['current', 'none', 'none'] for n in participants}
 		self.last_lap_valid = {n:True for n in participants}
@@ -62,12 +63,17 @@ class Standings(DynamicBase):
 		self.leader_laps_completed = 0
 		'''
 
-		self.max_lap_time = -1
-
 		self.standings = list()
 
-		self.next_change_time = -1
 		self.current_group = 10
+		self.next_change_time = self.clip_t+5
+
+		#What's the slowest lap time in the entire race.
+		#Used for spacing.
+		telemetry_data = [x for x in zip(*self.replay.telemetry_data)][0]
+		telemetry_data = [item for chunk in telemetry_data for item in chunk]
+		split_data = [[float(telemetry_data[y+1][186+i*9]) for y in where(diff([float(x[186+i*9]) for x in telemetry_data]) != 0)[0].tolist()] for i in range(56)]
+		self.max_lap_time = max([sum(x[i:i+3]) for x in split_data for i in range(0, len(x), 3)])
 
 	def __sector_rectangles(self, data, height):
 		invalid_color = (255, 0, 0)
@@ -145,11 +151,6 @@ class Standings(DynamicBase):
 	def _make_material(self, bgOnly):
 		self.standings = self.update()
 
-		if self.max_lap_time == -1:
-			#Who has the slowest lap?
-			splitData = [[float(self.replay.telemetry_data[y+1][186+i*9]) for y in where(diff([float(x[186+i*9]) for x in self.replay.telemetry_data]) != 0)[0].tolist()] for i in range(56)]
-			self.max_lap_time = max([sum(x[i:i+3]) for x in splitData for i in range(0, len(x), 3)])
-
 		maxMinutes, maxSeconds = divmod(self.max_lap_time, 60)
 		maxHours, maxMinutes = divmod(maxMinutes, 60)
 
@@ -187,13 +188,23 @@ class Standings(DynamicBase):
 
 	def update(self):
 		if self.clip_t > self.replay.sync_racestart:
+			telemetry_data, participant_data = [(x[-1][0], x[-1][-1]) for x in self.replay.telemetry_data if x[0][-1][-1] < self.clip_t-self.replay.sync_racestart]
 			try:
-				data = [x for x in self.replay.telemetry_data if x[-1] > self.clip_t-self.replay.sync_racestart][0]
+				#data = [x for x in self.replay.telemetry_data if x[-1] > self.clip_t-self.replay.sync_racestart][0]
+				telemetry_data = [x for x in telemetry_data if x[-1] > self.clip_t-self.replay.sync_racestart][0]
 			except IndexError:
-				raceFinish = [i for i, data in reversed(list(enumerate(self.replay.telemetry_data))) if int(data[9]) & int('111', 2) == 2][0] + 1
-				data = self.replay.telemetry_data[raceFinish]
+				#raceFinish = [i for i, data in reversed(list(enumerate(self.replay.telemetry_data))) if int(data[9]) & int('111', 2) == 2][0] + 1
+				#telemetry_data = [x for x in self.replay.telemetry_data if x[2] < self.replay.race_finish][-1]
+				telemetry_data, participant_data = [(x[-1], x[-1][-1]) for x in self.replay.telemetry_data if x[2] < self.replay.race_finish]
+				telemetry_data = telemetry_data[0][self.replay.race_finish-telemetry_data[2]]
+
+				#telemetry_data = telemetry_data[0][self.replay.race_finish-telemetry_data[2]]
+				#participant_data = [x for x in self.replay.telemetry_data if x[2] < self.replay.race_finish][-1][0]
+				#data = self.replay.telemetry_data[raceFinish]
 		else:
-			data = self.replay.telemetry_data[0]
+			#data = self.replay.telemetry_data[0]
+			telemetry_data = self.replay.telemetry_data[0][0][0]
+			participant_data = self.replay.telemetry_data[0][-1]
 		'''
 		Standings Data Structure
 			p 0: int Race Position (sorted)
@@ -207,11 +218,9 @@ class Standings(DynamicBase):
 		   cl 8: int Current lap
 		'''
 		
-		self.standings = sorted({(int(data[182+i*9]) & int('01111111', 2), n.split(" ")[0][0]+". "+n.split(" ")[-1] if len(n.split(" ")) > 1 else n, float(data[181+i*9])/float(data[682]), int(i), int(data[185+i*9]) & int('111', 2), float(data[186+i*9]), float(data[-1]), int(data[183+i*9]), int(data[184+i*9])) for i, n, *rest in self.replay.participant_data})
+		self.standings = sorted({(int(telemetry_data[182+i*9]) & int('01111111', 2), n.split(" ")[0][0]+". "+n.split(" ")[-1] if len(n.split(" ")) > 1 else n, float(telemetry_data[181+i*9])/float(telemetry_data[682]), int(i), int(telemetry_data[185+i*9]) & int('111', 2), float(telemetry_data[186+i*9]), float(telemetry_data[-1]), int(telemetry_data[183+i*9]), int(telemetry_data[184+i*9])) for i, n, *rest in participant_data})
 
-		if self.next_change_time == -1:
-			self.next_change_time = self.clip_t+5
-		elif self.clip_t > self.next_change_time:
+		if self.clip_t > self.next_change_time:
 			self.current_group = self.current_group+6 if self.current_group+6 < len(self.standings) else 10
 			self.next_change_time = self.clip_t+5
 

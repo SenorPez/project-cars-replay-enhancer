@@ -205,9 +205,12 @@ class ReplayEnhancer():
 			while sum([int(self.telemetry_data[self.race_start][182+i*9]) & int('01111111', 2) for i in range(56)]) == 0:
 				self.race_start += 1
 
-			#Trim and partition the telemetry data.
+			participant_queue = deque(self.participant_configurations)
+			participant_groups = [self.update_participants(participant_queue) for x in range(len(self.participant_configurations))]
+
+			#Trim and partition the telemetry data, and attach participants.
 			self.telemetry_data = [(list(g), x) for x, g in groupby(self.telemetry_data[self.race_start:self.race_end], key=lambda k: int(k[4]))]
-			self.telemetry_data = [(g, x, y) for (g, x), y in zip(self.telemetry_data, [0]+list(cumsum([len(g) for g, x in self.telemetry_data])))]
+			self.telemetry_data = [(g, x, y, p) for (g, x), y, p in zip(self.telemetry_data, [0]+list(cumsum([len(g) for g, x in self.telemetry_data])), participant_groups)]
 
 			'''
 			data = self.telemetry_data[0][0]
@@ -242,7 +245,7 @@ class ReplayEnhancer():
 			name = self.participant_lookup[n]
 			participant_data.append((i, name, self.team_data[name], self.car_data[name]))
 			'''
-			for clean_name, raw_names in self.participant_lookup.items():
+			for clean__name, raw_names in self.participant_lookup.items():
 				for raw_name in raw_names:
 					if name[1] == raw_name:
 						participant_data.append(name)
