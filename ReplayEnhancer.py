@@ -197,7 +197,8 @@ class ReplayEnhancer():
 				self.race_finish = len(self.telemetry_data)
 
 			try:
-				self.race_start = [i for i, data in reversed(list(enumerate(self.telemetry_data[:self.race_finish]))) if int(data[9]) & int('111', 2) == 0][0] + 1
+				self.race_start = [i for i, data in reversed(list(enumerate(self.telemetry_data[:self.race_finish]))) if(int(data[2]) & int('11110000', 2)) >> 4 != 5 or int(data[2]) & int('00001111', 2) != 2][0] + 1
+				#self.race_start = [i for i, data in reversed(list(enumerate(self.telemetry_data[:self.race_finish]))) if int(data[9]) & int('111', 2) == 0 or (int(data[2]) & int('11110000', 2)) >> 4 != 5][0] + 1
 			except IndexError:
 				self.race_start = 0
 
@@ -211,6 +212,9 @@ class ReplayEnhancer():
 			#Trim and partition the telemetry data, and attach participants.
 			self.telemetry_data = [(list(g), x) for x, g in groupby(self.telemetry_data[self.race_start:self.race_end], key=lambda k: int(k[4]))]
 			self.telemetry_data = [(g, x, y, p) for (g, x), y, p in zip(self.telemetry_data, [0]+list(cumsum([len(g) for g, x in self.telemetry_data])), participant_groups)]
+			self.race_end = self.race_end-self.race_start
+			self.race_finish = self.race_finish-self.race_start
+			self.race_start = self.race_start-self.race_start
 
 			'''
 			data = self.telemetry_data[0][0]
