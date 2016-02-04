@@ -118,8 +118,7 @@ class Standings(DynamicBase):
 		for p, n, r, i, s, l, et, lx, cl in self.standings[:10]+self.standings[self.current_group:self.current_group+6]:
 			for pp, nn, ss, ll, rr in [list(zip((p, n, s, l, r), columnPositions+[0]))]:
 				draw.text((pp[1], yPos), str(pp[0]), fill='black', font=self.replay.font)
-				draw.text((nn[1], yPos), str(nn[0]), fill='black', font=self.replay.font)
-
+				draw.text((nn[1], yPos), str(nn[0].split(" ")[0][0]+". "+nn[0].split(" ")[-1] if len(nn[0].split(" ")) > 1 else nn[0]), fill='black', font=self.replay.font)
 
 				if isinstance(self.last_lap_splits[n], int) and self.last_lap_splits[n] < 0:
 					last_lap_time = "{}".format('')
@@ -217,8 +216,8 @@ class Standings(DynamicBase):
 		   lx 7: int Laps completed and valid lap
 		   cl 8: int Current lap
 		'''
-		
-		self.standings = sorted({(int(telemetry_data[182+i*9]) & int('01111111', 2), n.split(" ")[0][0]+". "+n.split(" ")[-1] if len(n.split(" ")) > 1 else n, float(telemetry_data[181+i*9])/float(telemetry_data[682]), int(i), int(telemetry_data[185+i*9]) & int('111', 2), float(telemetry_data[186+i*9]), float(telemetry_data[-1]), int(telemetry_data[183+i*9]), int(telemetry_data[184+i*9])) for i, n, *rest in participant_data})
+		#n.split(" ")[0][0]+". "+n.split(" ")[-1] if len(n.split(" ")) > 1 else n
+		self.standings = sorted({(int(telemetry_data[182+i*9]) & int('01111111', 2), n, float(telemetry_data[181+i*9])/float(telemetry_data[682]) if telemetry_data[181+i*9] <= telemetry_data[682] else float(0), int(i), int(telemetry_data[185+i*9]) & int('111', 2), float(telemetry_data[186+i*9]), float(telemetry_data[-1]), int(telemetry_data[183+i*9]), int(telemetry_data[184+i*9])) for i, n, *rest in participant_data})
 
 		if self.clip_t > self.next_change_time:
 			self.current_group = self.current_group+6 if self.current_group+6 < len(self.standings) else 10

@@ -1,5 +1,6 @@
-from numpy import where, diff, nonzero
 from collections import deque
+from numpy import diff, nonzero
+
 from PIL import Image, ImageDraw
 
 from StaticBase import StaticBase
@@ -175,7 +176,6 @@ class Champion(StaticBase):
 		'''
 
 		self.classification = [(i,) + tuple(rest) if i == "DNF" else (p,) + tuple(rest) for p, (i, *rest) in enumerate(self.classification, 1)]
-		columnHeadings = [("Rank", "Driver", "Team", "Car", "Series Points")]
 		
 		if len(self.replay.point_structure) < 17:
 			self.replay.point_structure += [0] * (17-len(self.replay.point_structure))

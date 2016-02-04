@@ -51,13 +51,13 @@ class ReplayEnhancer():
 		self.margin = json_data['margin']
 		self.column_margin = json_data['column_margin']
 
-		self.source_video = json_data['source_video']
+		self.source_video = json_data['source_video'] if len(json_data['source_video']) else None
 		self.source_telemetry = json_data['source_telemetry']
 		self.telemetry_file = 'tele.csv'
 		self.output_video = json_data['output_video']
 
 		self.car_data = {v['participant']:v['car'] for v in json_data['participant_config']}
-		self.team_data = {v['participant']:v['team'] for v in json_data['participant_config']}
+		self.team_data = {v['participant']:v['team'] if len(v['team']) else None for v in json_data['participant_config']}
 		self.points = {v['participant']:v['points'] for v in json_data['participant_config']}
 
 		self.point_structure = json_data['point_structure']
@@ -320,7 +320,7 @@ class ReplayEnhancer():
 			#Nothing found in the cache, so detect and add to cache.
 			video = mpy.VideoFileClip(self.source_video)
 			
-			blackframes = [t for (t, f) in video.iter_frames(with_times=True, progress_bar=1) if f.mean() < self.video_threshold]
+			blackframes = [0] + [t for (t, f) in video.iter_frames(with_times=True, progress_bar=1) if f.mean() < self.video_threshold] + [video.duration]
 
 			try:
 				videostart = blackframes[where(diff(blackframes)>self.video_gaptime)[0][0+self.video_skipstart]]
@@ -385,7 +385,10 @@ if __name__ == "__main__":
 	except ValueError as e:
 		print("Invalid JSON in configuration file: {}".format(e))
 	else:
-		video = replay.black_test()
+		if replay.source_video is None:
+			video = mpy.ColorClip((1280, 720), duration=replay.telemetry_data[-1][0][-1][-1])
+		else:
+			video = replay.black_test()
 		video_width, video_height = video.size
 
 		if replay.backdrop != "":
@@ -436,17 +439,17 @@ if __name__ == "__main__":
 		output = mpy.concatenate_videoclips([intro, mainevent, outro])
 
 		#Full video.
-		output.write_videofile(replay.output_video)
+		output.write_videofile(replay.output_video, fps=30)
 		
 		#Full video, low framerate
-		#output.write_videofile(replay.output_video, fps=1)
+		#output.write_videofile(replay.output_video, fps=10)
 
 		#Subclip video.
-		#output.subclip(0, 20).write_videofile(replay.output_video, fps=30)
+		#output.subclip(1*60+50, 2*60).write_videofile(replay.output_video, fps=10, preset='superfast')
 		#output.subclip(output.duration-80, output.duration).write_videofile(replay.output_video, fps=10)
 
 		#Single frame.
-		#output.save_frame(replay.output_video+".jpg", 30)
+		#output.save_frame(replay.output_video+".jpg", 400)
 
 		#Multiple frames.
 		#for frame in range(int(output.duration-45), int(output.duration-25)):

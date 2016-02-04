@@ -1,4 +1,3 @@
-from collections import deque
 from PIL import Image, ImageDraw
 
 from StaticBase import StaticBase

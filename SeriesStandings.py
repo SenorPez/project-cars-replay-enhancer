@@ -1,5 +1,6 @@
-from numpy import where, diff, nonzero
 from collections import deque
+from numpy import diff, nonzero
+
 from PIL import Image, ImageDraw
 
 from StaticBase import StaticBase

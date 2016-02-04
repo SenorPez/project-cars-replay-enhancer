@@ -1,6 +1,6 @@
 from collections import deque
-from itertools import groupby
 from numpy import diff, nonzero
+
 from PIL import Image, ImageDraw
 
 from StaticBase import StaticBase
