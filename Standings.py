@@ -188,7 +188,7 @@ class Standings(DynamicBase):
 
 	def update(self):
 		if self.clip_t > self.replay.sync_racestart:
-			telemetry_data, participant_data = [(x[-1][0], x[-1][-1]) for x in self.replay.telemetry_data if x[0][-1][-1] < self.clip_t-self.replay.sync_racestart]
+			telemetry_data, participant_data = [(x[0], x[-1]) for x in self.replay.telemetry_data if x[0][-1][-1] > self.clip_t-self.replay.sync_racestart][0]
 			try:
 				#data = [x for x in self.replay.telemetry_data if x[-1] > self.clip_t-self.replay.sync_racestart][0]
 				telemetry_data = [x for x in telemetry_data if x[-1] > self.clip_t-self.replay.sync_racestart][0]

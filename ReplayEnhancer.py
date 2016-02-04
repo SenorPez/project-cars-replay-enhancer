@@ -436,10 +436,10 @@ if __name__ == "__main__":
 		output = mpy.concatenate_videoclips([intro, mainevent, outro])
 
 		#Full video.
-		#output.write_videofile(replay.output_video)
+		output.write_videofile(replay.output_video)
 		
 		#Full video, low framerate
-		output.write_videofile(replay.output_video, fps=1)
+		#output.write_videofile(replay.output_video, fps=1)
 
 		#Subclip video.
 		#output.subclip(0, 20).write_videofile(replay.output_video, fps=30)

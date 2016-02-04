@@ -67,7 +67,7 @@ class Timer(DynamicBase):
 
 	def update(self):
 		if self.clip_t > self.replay.sync_racestart:
-			telemetry_data, participant_data = [(x[-1][0], x[-1][-1]) for x in self.replay.telemetry_data if x[0][-1][-1] < self.clip_t-self.replay.sync_racestart]
+			telemetry_data, participant_data = [(x[0], x[-1]) for x in self.replay.telemetry_data if x[0][-1][-1] > self.clip_t-self.replay.sync_racestart][0]
 			try:
 				telemetry_data = [x for x in telemetry_data if x[-1] > self.clip_t-self.replay.sync_racestart][0]
 				#self.time = "{:.2f}".format(float([x for x in self.replay.telemetry_data if x[-1] > self.clip_t-self.replay.sync_racestart][0][13]))
@@ -79,7 +79,8 @@ class Timer(DynamicBase):
 				#self.time = "{:.2f}".format(float(self.replay.telemetry_data[raceFinish][13]))
 				#data = self.replay.telemetry_data[raceFinish]
 
-			self.time = "{:.2f}".format(float([x for x in telemetry_data if x[-1] > self.clip_t-self.replay.sync_racestart][0][13]))
+			#self.time = "{:.2f}".format(float([x for x in telemetry_data if x[-1] > self.clip_t-self.replay.sync_racestart][0][13]))
+			self.time = "{:.2f}".format(float(telemetry_data[13]))
 			currentLap = min((int(telemetry_data[10]), int(telemetry_data[184+int(telemetry_data[3])*9])))
 			self.lap = "{}/{}".format(currentLap, telemetry_data[10])
 		else:
