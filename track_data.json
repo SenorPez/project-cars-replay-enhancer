@@ -1,6 +1,21 @@
 {
     "tracks": [
         {
+            "Glencairn:East": {
+                "display_name": "Glencairn East",
+                "length": 510.172,
+                "pit_entry": [
+                    -10000.00,
+                    -10000.00
+                ],
+                "pit_exit": [
+                    -10000.00,
+                    -10000.00
+                ],
+                "pit_radius": 0
+            }
+        },
+        {
             "Mazda Raceway:Laguna Seca": {
                 "display_name": "Mazda Raceway at Laguna Seca",
                 "length": 3593.582,

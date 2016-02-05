@@ -23,6 +23,7 @@ from SeriesStandings import SeriesStandings
 from Standings import Standings
 from Timer import Timer
 from Title import Title
+from Track import Track
 from UpdatedVideoClip import UpdatedVideoClip
 
 class ReplayEnhancer():
@@ -89,6 +90,8 @@ class ReplayEnhancer():
         self.race_end = -1
 
         self.get_telemetry()
+
+        self.track = Track(self.telemetry_data[0][0][0][-7])
 
     def get_telemetry(self):
         try:
@@ -416,12 +419,12 @@ if __name__ == "__main__":
         backdrop = mpy.ImageClip(PIL_to_npimage(backdrop))
         title = mpy.ImageClip(Title(replay).to_frame()).set_duration(6).set_position(('center', 'center'))
 
-        standing = UpdatedVideoClip(Standings(replay))
+        standing = UpdatedVideoClip(Standings(replay, process_data=True))
         standing = standing.set_position((replay.margin, replay.margin)).set_duration(video.duration)
         standing_mask = mpy.ImageClip(Standings(replay).make_mask(), ismask=True, duration=video.duration)
         standing = standing.set_mask(standing_mask)
 
-        timer = UpdatedVideoClip(Timer(replay))
+        timer = UpdatedVideoClip(Timer(replay, process_data=True))
         timer_width, timer_height = timer.size
         timer = timer.set_position((video_width-timer_width-replay.margin, replay.margin)).set_duration(video.duration)
         timer_mask = mpy.ImageClip(Timer(replay).make_mask(), ismask=True, duration=video.duration)
@@ -459,7 +462,7 @@ if __name__ == "__main__":
 
         #Subclip video.
         #output.subclip(1*60+50, 2*60).write_videofile(replay.output_video, fps=10, preset='superfast')
-        #output.subclip(20, 80).write_videofile(replay.output_video, fps=10, preset='superfast')
+        #output.subclip(1020, 1260).write_videofile(replay.output_video, fps=10, preset='superfast')
         #output.subclip(output.duration-80, output.duration).write_videofile(replay.output_video, fps=10)
 
         #Single frame.

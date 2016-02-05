@@ -1,47 +1,48 @@
+"""
+Provides base class for dynamic objects. Dynamic objects are those
+objects that update continuously based on the telemetry feed.
+"""
+
 import abc
-from moviepy.video.io.bindings import PIL_to_npimage
 
-from ReplayEnhancerBase import ReplayEnhancerBase
+from StaticBase import StaticBase
 
-class DynamicBase(ReplayEnhancerBase, metaclass=abc.ABCMeta):
-	@property
-	@abc.abstractmethod
-	def ups(self):
-		"""Updates per second of the simulation."""
+class DynamicBase(StaticBase, metaclass=abc.ABCMeta):
+    """
+    Defines base class for dynamic objects, including default object
+    return methods. Methods are named to be compatible with MoviePy's
+    UpdatedVideoClip object. Typically, they will be called from
+    that object.
 
-	@ups.setter
-	@abc.abstractmethod
-	def ups(self, value):
-		return
+    To update the object state, `update` is called.
 
-	@property
-	@abc.abstractmethod
-	def clip_t(self):
-		"""Current time in simulation."""
+    To get the representation of the dynamic object at the current
+    world state, `to_frame` is called. Execution chain is `to_frame` ->
+    `update` -> `_make_material` -> `_write_data`.
 
-	@clip_t.setter
-	@abc.abstractmethod
-	def clip_t(self, value):
-		return
+    To get the mask of the dynamic oject, `make_mask` is called.
+    Exectuion chain is `make_mask` -> `update` -> `_make_material`.
+    """
+    @property
+    @abc.abstractmethod
+    def ups(self):
+        """Updates per second of the simulation."""
 
-	@abc.abstractmethod
-	def update(self):
-		"""Update the simulation including updating clip_t"""
+    @ups.setter
+    @abc.abstractmethod
+    def ups(self, value):
+        return
 
-	@abc.abstractmethod
-	def to_frame(self):
-		"""Render a frame based on the world's state. Override to customize output."""
-		return PIL_to_npimage(self._make_material(False).convert('RGB'))
+    @property
+    @abc.abstractmethod
+    def clip_t(self):
+        """Current time in simulation."""
 
-	@abc.abstractmethod
-	def make_mask(self):
-		"""Default mask creation. Override to customize. Overrise to customize output."""
-		return PIL_to_npimage(self._make_material(True).split()[-1].convert('RGB'))
+    @clip_t.setter
+    @abc.abstractmethod
+    def clip_t(self, value):
+        return
 
-	@abc.abstractmethod
-	def _write_data(self):
-		"""Write data to the canvas."""
-
-	@abc.abstractmethod
-	def _make_material(self, bgOnly):
-		"""Create material used as a canvas."""
+    @abc.abstractmethod
+    def update(self):
+        """Update the simulation including updating clip_t"""
