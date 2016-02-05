@@ -7,7 +7,7 @@ from StaticBase import StaticBase
 
 class Title(StaticBase):
     """
-    Creates a static Title card, consisting of the following columns:
+    Defines a static Title card, consisting of the following columns:
 
     - Starting Position
     - Driver Name

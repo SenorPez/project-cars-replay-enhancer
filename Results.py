@@ -82,7 +82,7 @@ class Results(StaticBase):
             lap_finish_number = self.replay.race_finish
             if p != 1:
                 try:
-                    while (telemetry_data[self.replay.race_finish][183+i*9] == telemetry_data[lap_finish_number][183+i*9]):
+                    while telemetry_data[self.replay.race_finish][183+i*9] == telemetry_data[lap_finish_number][183+i*9]:
                         lap_finish_number += 1
                 except IndexError:
                     lap_finish_number = len(telemetry_data)-1

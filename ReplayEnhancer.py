@@ -459,7 +459,7 @@ if __name__ == "__main__":
 
         #Subclip video.
         #output.subclip(1*60+50, 2*60).write_videofile(replay.output_video, fps=10, preset='superfast')
-        #output.subclip(5, 25).write_videofile(replay.output_video, fps=10, preset='superfast')
+        #output.subclip(20, 80).write_videofile(replay.output_video, fps=10, preset='superfast')
         #output.subclip(output.duration-80, output.duration).write_videofile(replay.output_video, fps=10)
 
         #Single frame.
