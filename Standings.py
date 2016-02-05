@@ -217,7 +217,7 @@ class Standings(DynamicBase):
            cl 8: int Current lap
         '''
         #n.split(" ")[0][0]+". "+n.split(" ")[-1] if len(n.split(" ")) > 1 else n
-        self.standings = sorted({(int(telemetry_data[182+i*9]) & int('01111111', 2), n, float(telemetry_data[181+i*9])/float(telemetry_data[682]) if telemetry_data[181+i*9] <= telemetry_data[682] else float(0), int(i), int(telemetry_data[185+i*9]) & int('111', 2), float(telemetry_data[186+i*9]), float(telemetry_data[-1]), int(telemetry_data[183+i*9]), int(telemetry_data[184+i*9])) for i, n, *rest in participant_data})
+        self.standings = sorted({(int(telemetry_data[182+i*9]) & int('01111111', 2), n, float(telemetry_data[181+i*9])/float(telemetry_data[682]) if float(telemetry_data[181+i*9]) <= float(telemetry_data[682]) else float(0), int(i), int(telemetry_data[185+i*9]) & int('111', 2), float(telemetry_data[186+i*9]), float(telemetry_data[-1]), int(telemetry_data[183+i*9]), int(telemetry_data[184+i*9])) for i, n, *rest in participant_data})
 
         if self.clip_t > self.next_change_time:
             self.current_group = self.current_group+6 if self.current_group+6 < len(self.standings) else 10
