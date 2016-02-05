@@ -1,0 +1,34 @@
+{
+    "tracks": [
+        {
+            "Mazda Raceway:Laguna Seca": {
+                "display_name": "Mazda Raceway at Laguna Seca",
+                "length": 3593.582,
+                "pit_entry": [
+                    -70.22401,
+                    432.3777
+                ],
+                "pit_exit": [
+                    -279.2681,
+                    228.165
+                ],
+                "pit_radius": 2
+            }
+        },
+        {
+            "Zolder:Grand Prix": {
+                "display_name": "Zolder",
+                "length": 4146.733,
+                "pit_entry": [
+                    138.3811,
+                    132.7747
+                ],
+                "pit_exit": [
+                    682.2009,
+                    179.8147
+                ],
+                "pit_radius": 4
+            }
+        }
+    ]
+}

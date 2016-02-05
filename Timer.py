@@ -23,10 +23,11 @@ class Timer(DynamicBase):
     def ups(self, value):
         self._ups = value
 
-    def __init__(self, replay, clip_t=0, ups=30):
+    def __init__(self, replay, clip_t=0, ups=30, process_data=True):
         self.replay = replay
         self.clip_t = clip_t
         self.ups = ups
+        self.process_data = process_data
 
         self.time = -1
         self.lap = -1
@@ -48,7 +49,7 @@ class Timer(DynamicBase):
         return self.material
 
     def _make_material(self, bgOnly):
-        self.time, self.lap = self.update()
+        self.time, self.lap = self.update(force_process=True)
 
         self.data_height = max((self.replay.font.getsize(self.time)[1], self.replay.font.getsize(self.lap)[1]))
         text_height = sum((self.replay.font.getsize(self.time)[1], self.replay.font.getsize(self.lap)[1], self.replay.margin))
@@ -65,30 +66,31 @@ class Timer(DynamicBase):
 
         return self.material if bgOnly else self._write_data()
 
-    def update(self):
-        if self.clip_t > self.replay.sync_racestart:
-            try:
-                telemetry_data, participant_data = [(x[0], x[-1]) for x in self.replay.telemetry_data if x[0][-1][-1] > self.clip_t-self.replay.sync_racestart][0]
-                telemetry_data = [x for x in telemetry_data if x[-1] > self.clip_t-self.replay.sync_racestart][0]
-                #self.time = "{:.2f}".format(float([x for x in self.replay.telemetry_data if x[-1] > self.clip_t-self.replay.sync_racestart][0][13]))
-                #data = [x for x in self.replay.telemetry_data if x[-1] > self.clip_t-self.replay.sync_racestart][0]
-            except IndexError:
-                telemetry_data, participant_data, index_offset = [(x[0], x[-1], x[2]) for x in self.replay.telemetry_data if x[2] < self.replay.race_finish][-1]
-                telemetry_data = telemetry_data[self.replay.race_finish-index_offset]
-                #raceFinish = [i for i, data in reversed(list(enumerate(self.replay.telemetry_data))) if int(data[9]) & int('111', 2)  == 2][0] + 1
-                #self.time = "{:.2f}".format(float(self.replay.telemetry_data[raceFinish][13]))
-                #data = self.replay.telemetry_data[raceFinish]
+    def update(self, force_process=False):
+        if self.process_data or force_process:
+            if self.clip_t > self.replay.sync_racestart:
+                try:
+                    telemetry_data, participant_data = [(x[0], x[-1]) for x in self.replay.telemetry_data if x[0][-1][-1] > self.clip_t-self.replay.sync_racestart][0]
+                    telemetry_data = [x for x in telemetry_data if x[-1] > self.clip_t-self.replay.sync_racestart][0]
+                    #self.time = "{:.2f}".format(float([x for x in self.replay.telemetry_data if x[-1] > self.clip_t-self.replay.sync_racestart][0][13]))
+                    #data = [x for x in self.replay.telemetry_data if x[-1] > self.clip_t-self.replay.sync_racestart][0]
+                except IndexError:
+                    telemetry_data, participant_data, index_offset = [(x[0], x[-1], x[2]) for x in self.replay.telemetry_data if x[2] < self.replay.race_finish][-1]
+                    telemetry_data = telemetry_data[self.replay.race_finish-index_offset]
+                    #raceFinish = [i for i, data in reversed(list(enumerate(self.replay.telemetry_data))) if int(data[9]) & int('111', 2)  == 2][0] + 1
+                    #self.time = "{:.2f}".format(float(self.replay.telemetry_data[raceFinish][13]))
+                    #data = self.replay.telemetry_data[raceFinish]
 
-            #self.time = "{:.2f}".format(float([x for x in telemetry_data if x[-1] > self.clip_t-self.replay.sync_racestart][0][13]))
-            self.time = "{:.2f}".format(float(telemetry_data[13]))
-            currentLap = min((int(telemetry_data[10]), int(telemetry_data[184+int(telemetry_data[3])*9])))
-            self.lap = "{}/{}".format(currentLap, telemetry_data[10])
-        else:
-            telemetry_data = self.replay.telemetry_data[0][0][0]
-            self.time = "0.00"
-            self.lap = "{}/{}".format(1, telemetry_data[10])
+                #self.time = "{:.2f}".format(float([x for x in telemetry_data if x[-1] > self.clip_t-self.replay.sync_racestart][0][13]))
+                self.time = "{:.2f}".format(float(telemetry_data[13]))
+                currentLap = min((int(telemetry_data[10]), int(telemetry_data[184+int(telemetry_data[3])*9])))
+                self.lap = "{}/{}".format(currentLap, telemetry_data[10])
+            else:
+                telemetry_data = self.replay.telemetry_data[0][0][0]
+                self.time = "0.00"
+                self.lap = "{}/{}".format(1, telemetry_data[10])
 
-        #self.time = "{:.2f}".format(self.clip_t)
+            #self.time = "{:.2f}".format(self.clip_t)
         self.clip_t += float(1/self.ups)
 
         return self.time, self.lap
