@@ -75,7 +75,7 @@ class Champion(StaticBase):
 		for telemetry_data, participant_number, index_offset, participant_data in self.replay.telemetry_data:
 			for i, n, *rest in participant_data:
 				lap_finish = self.lap_finish[n] if self.lap_finish[n] != -1 else self.replay.race_end
-				new_sector_times = [float(telemetry_data[x][186+i*9]) for x in nonzero(diff([int(y[185+i*9]) & int('111', 2) for data_index, y in enumerate(telemetry_data, index_offset) if data_index < lap_finish]))[0].tolist() if float(telemetry_data[x][186+i*9]) != -123.0]
+				new_sector_times = [float(telemetry_data[x][186+i*9]) for x in nonzero(diff([int(y[185+i*9]) & int('111', 2) for data_index, y in enumerate(telemetry_data, index_offset) if data_index <= lap_finish]))[0].tolist() if float(telemetry_data[x][186+i*9]) != -123.0]
 				if float(telemetry_data[-1][186+i*9]) != -123.0:
 					new_sector_times += [float(telemetry_data[-1][186+i*9])]
 				
