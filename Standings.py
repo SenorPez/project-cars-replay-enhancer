@@ -98,7 +98,9 @@ class Standings(DynamicBase):
                     font.getsize("PIT")[1] > height_target:
                 font_size -= 1
                 font = ImageFont.truetype("/usr/share/fonts/truetype/Roboto/Roboto-Regular.ttf", font_size)
-            draw.text((int(output.size[0]*0.10), int(output.size[1]*0.10)), "PIT", fill='white', font=font)
+            position_x = int((output.size[0]-font.getsize("PIT")[0])/2)
+            position_y = int((output.size[1]-font.getsize("PIT")[1])/2)
+            draw.text((position_x, position_y), "PIT", fill='white', font=font)
         else:
             for sector in data:
                 if sector == 'invalid':
