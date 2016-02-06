@@ -186,8 +186,10 @@ class Results(StaticBase):
         text_height = sum(heights)+self.replay.margin*len(heights)-1
 
         heading_material = Image.new('RGBA', (text_width+self.replay.margin*2, header_height), self.replay.heading_color)
-        series_logo = Image.open(self.replay.series_logo).resize((heading_material.height, heading_material.height))
-        heading_material.paste(series_logo, (heading_material.width-series_logo.width, 0))
+
+        if len(self.replay.series_logo):
+            series_logo = Image.open(self.replay.series_logo).resize((heading_material.height, heading_material.height))
+            heading_material.paste(series_logo, (heading_material.width-series_logo.width, 0))
 
         self.material = Image.new('RGBA', (text_width+self.replay.margin*2, text_height))
         self.material.paste(heading_material, (0, 0))
