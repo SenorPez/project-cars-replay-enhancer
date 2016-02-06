@@ -36,10 +36,12 @@ class Track():
 
         if len(track) == 0:
             raise ValueError("ValueError: No matching track found \
-                in data.")
+                in data. Supplied track length was {}".format(
+                    track_length))
         if len(track) > 1:
             raise ValueError("ValueError: Multiple matching tracks \
-                found in data.")
+                found in data. Supplied track length was {}".format(
+                    track_length))
         else:
             track = track[0]
             self.name = str(track['display_name'])
