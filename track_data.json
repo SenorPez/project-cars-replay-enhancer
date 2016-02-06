@@ -1,18 +1,54 @@
 {
     "tracks": [
         {
-            "Glencairn:East": {
-                "display_name": "Glencairn East",
-                "length": 510.172,
+            "Brands Hatch:Grand Prix": {
+                "display_name": "Brands Hatch",
+                "length": 3890.407,
                 "pit_entry": [
-                    -10000.00,
-                    -10000.00
+                    -329.1295,
+                    165.8752
                 ],
                 "pit_exit": [
-                    -10000.00,
-                    -10000.00
+                    -36.68332,
+                    355.611
                 ],
-                "pit_radius": 0
+                "pit_radius": 2.5
+            }
+        },
+        {
+            "Chesterfield:Grand Prix": {
+                "display_name": "Chesterfield",
+                "length": 871.259
+            }
+        },
+        {
+            "Dubai Autodrome:Kartdrome": {
+                "display_name": "Dubai Kartdrome",
+                "length": 1165.729
+            }
+        },
+        {
+            "Glencairn:East": {
+                "display_name": "Glencairn East",
+                "length": 510.172
+            }
+        },
+        {
+            "Glencairn:Grand Prix": {
+                "display_name": "Glencairn",
+                "length": 921.800
+            }
+        },
+        {
+            "Glencairn:West": {
+                "display_name": "Glencairn West",
+                "length": 451.737
+            }
+        },
+        {
+            "Greenwood:Karting Circuit": {
+                "display_name": "Greenwood Karting Circuit",
+                "length": 1073.663
             }
         },
         {
@@ -28,6 +64,33 @@
                     228.165
                 ],
                 "pit_radius": 2
+            }
+        },
+        {
+            "Ruapuna Park:Club": {
+                "display_name": "Ruapuna Park Club",
+                "length": 2261.983
+            }
+        },
+        {
+            "Sonoma Raceway:Grand Prix": {
+                "display_name": "Sonoma Raceway",
+                "length": 4025.978,
+                "pit_entry": [
+                    -592.7792,
+                    87.43731
+                ],
+                "pit_exit": [
+                    -152.6224,
+                    -30.71386
+                ],
+                "pit_radius": 2
+            }
+        },
+        {
+            "Summerton:International": {
+                "display_name": "Summerton",
+                "length": 996.807
             }
         },
         {
