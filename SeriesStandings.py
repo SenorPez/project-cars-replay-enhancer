@@ -185,8 +185,8 @@ class SeriesStandings(StaticBase):
 
         for i, x in enumerate(sorted(self.classification, key=lambda x: (-int(x[3]), str(x[0]).split(" ")[-1]))):
             if i == 0:
-                self.classification[i] = (str(1),)+x
-            elif self.classification[i][-1] == self.classification[i-1][-1]:
+                self.classification[i] = (str(i+1),)+x
+            elif self.classification[i-1][-1] == x[-1]:
                 self.classification[i] = (str(self.classification[i-1][0]),)+x
             else:
                 self.classification[i] = (str(i+1),)+x
