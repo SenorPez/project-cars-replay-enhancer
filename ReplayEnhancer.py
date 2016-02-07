@@ -153,14 +153,14 @@ class ReplayEnhancer():
                     for p in enumerate(data[6:6+min(16, participants)]):
                         if len(p[1]):
                             new_data.append(p)
-                elif len(data) == 22:
-                    for p in enumerate(data[3:3+min(16, participants)], int(row[2])):
+                elif len(data) == 21:
+                    for p in enumerate(data[3:3+min(16, participants)], int(data[2])):
                         if len(p[1]):
                             new_data.append(p)
                 else:
                     raise ValueError("ValueError: Unrecognized or malformed packet.")
 
-                if len(new_data) >= participants:
+                if len(new_data) >= participants and participants > 0:
                     try:
                         if new_data != self.participant_configurations[-1][:-1]:
                             self.participant_configurations.append(new_data+[participants])
@@ -208,9 +208,17 @@ class ReplayEnhancer():
             except IndexError:
                 self.race_start = 0
 
-            #For some reason, the telemetry doesn't immediately load the stadndings before a race. Step through until we do have them.
-            while sum([int(self.telemetry_data[self.race_start][182+i*9]) & int('01111111', 2) for i in range(56)]) == 0:
-                self.race_start += 1
+            #For some reason (probably loading lag?) the telemetry
+            #doesn't immediately load standings or reset lap distance
+            #to zero right away. Step through until we're in that
+            #state.
+            old_race_start = self.race_start
+            number_participants = max([x[-1] for x in self.participant_configurations])
+            try:
+                while sum([int(self.telemetry_data[self.race_start][182+i*9]) & int('01111111', 2) for i in range(number_participants)]) == 0 or sum([int(self.telemetry_data[self.race_start][181+i*9]) for i in range(number_participants)]) != 0:
+                    self.race_start += 1
+            except IndexError:
+                self.race_start = old_race_start
 
             participant_queue = deque(self.participant_configurations)
             participant_groups = [self.update_participants(participant_queue) for x in range(len(self.participant_configurations))]
@@ -252,7 +260,6 @@ class ReplayEnhancer():
 
         except ValueError as e:
             print("{}".format(e), file=sys.stderr)
-            traceback.print_exc()
         finally:
             f.close()
 
@@ -453,6 +460,7 @@ if __name__ == "__main__":
         output = mpy.concatenate_videoclips([intro, mainevent, outro])
 
         #title.save_frame("outputs/title.jpg", 0)
+        #series_standings.save_frame("outputs/series_standings.jpg", 0)
 
         #Full video.
         output.write_videofile(replay.output_video, fps=30)
@@ -462,6 +470,7 @@ if __name__ == "__main__":
 
         #Subclip video.
         #output.subclip(1*60+50, 2*60).write_videofile(replay.output_video, fps=10, preset='superfast')
+        #output.subclip(0, 240).write_videofile(replay.output_video, fps=10, preset='superfast')
         #output.subclip(1020, 1260).write_videofile(replay.output_video, fps=10, preset='superfast')
         #output.subclip(output.duration-80, output.duration).write_videofile(replay.output_video, fps=10)
 
