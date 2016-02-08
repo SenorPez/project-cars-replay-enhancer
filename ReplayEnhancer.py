@@ -18,6 +18,7 @@ from numpy import diff, nonzero, where, cumsum
 from PIL import Image, ImageFont
 
 from Champion import Champion
+from Configuration import Configuration
 from Results import Results
 from SeriesStandings import SeriesStandings
 from Standings import Standings
@@ -401,6 +402,23 @@ class ReplayEnhancer():
         return s1[x_longest-longest:x_longest]
 
 if __name__ == "__main__":
+    if len(sys.argv) == 1:
+        print("No configuration file provided.")
+        print("Do you want to create a new configuration file?")
+
+        while True:
+            create_config = input("[Y/n]-->> ")
+            if len(create_config) == 0 or 
+                    str.lower(create_config) == "y":
+                config = Configuration()
+                break;
+            elif str.lower(create_config) == "n":
+                print ("Usage: python ReplayEnhancer.py",
+                    "<configuration_file")
+                break
+
+
+
     try:
         replay = ReplayEnhancer(sys.argv[1])
     except ValueError as e:
@@ -463,14 +481,14 @@ if __name__ == "__main__":
         #series_standings.save_frame("outputs/series_standings.jpg", 0)
 
         #Full video.
-        output.write_videofile(replay.output_video, fps=30)
+        #output.write_videofile(replay.output_video, fps=30)
         
         #Full video, low framerate
         #output.write_videofile(replay.output_video, fps=10)
 
         #Subclip video.
         #output.subclip(1*60+50, 2*60).write_videofile(replay.output_video, fps=10, preset='superfast')
-        #output.subclip(0, 240).write_videofile(replay.output_video, fps=10, preset='superfast')
+        output.subclip(0, 8).write_videofile(replay.output_video, fps=10, preset='superfast')
         #output.subclip(1020, 1260).write_videofile(replay.output_video, fps=10, preset='superfast')
         #output.subclip(output.duration-80, output.duration).write_videofile(replay.output_video, fps=10)
 
