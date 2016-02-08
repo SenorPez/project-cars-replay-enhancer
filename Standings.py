@@ -175,7 +175,7 @@ class Standings(DynamicBase):
         else:
             sizeString = "+00.00"
 
-        widths = [(self.replay.font.getsize(str(p))[0], self.replay.font.getsize(str(n))[0], int(self.replay.margin*1.5), max([self.replay.font.getsize(str(sizeString))[0], self.replay.font.getsize("+00 laps")[0]])) for p, n, *rest in self.standings]
+        widths = [(self.replay.font.getsize(str(p))[0], self.replay.font.getsize(str(n.split(" ")[0][0]+". "+n.split(" ")[-1] if len(n.split(" ")) > 1 else n))[0], int(self.replay.margin*1.5), max([self.replay.font.getsize(str(sizeString))[0], self.replay.font.getsize("+00 laps")[0]])) for p, n, *rest in self.standings]
 
         heights = [max(self.replay.font.getsize(str(p))[1], self.replay.font.getsize(str(n))[1], self.replay.font.getsize(str("{:.2f}".format(0.00)))[1]) for p, n, *rest in self.standings]
         self.dataHeight = max(heights)
