@@ -3,10 +3,14 @@ Provides the Configuration object for creating and modifying
 configuration files for the Project CARS Replay Enhancer.
 """
 
+import csv
 import os
 import json
+from os.path import commonprefix
 
+import moviepy.editor as mpy
 from PIL import ImageFont
+from tqdm import tqdm
 
 class Configuration:
     """
@@ -52,6 +56,8 @@ class Configuration:
 
         self.sync_racestart = None
 
+        self.participant_config = None
+
         if previous_file:
             self.config_file = os.path.realpath(previous_file)
             self.__load_configuration(previous_file)
@@ -60,6 +66,8 @@ class Configuration:
             "abort.")
 
         try:
+            self.sync_racestart = 0.0
+
             while True:
                 print("Enter destination file for configuration.")
                 print(".json file extension will be added ",
@@ -148,17 +156,21 @@ class Configuration:
             while True:
                 print("Enter size of font.")
                 prompt = "({})".format(self.font_size) \
-                    if previous_file else ""
+                    if previous_file else "15"
                 font_size = input(prompt+"--> ")
 
                 if len(font_size) == 0 and previous_file:
                     break
-                elif len(font_size) != 0 and 
-                        isinstance(font_size, int):
-                    self.font_size = font_size
+                elif len(font_size) == 0:
+                    self.font_size = 15
                     break
-                else
-                    print("Font size should be an integer value.")
+                elif len(font_size) != 0:
+                    try:
+                        self.font_size = int(font_size)
+                    except ValueError:
+                        print("Font size should be an integer value.")
+                    else:
+                        break
 
             while True:
                 print("Enter path to heading font.")
@@ -169,7 +181,7 @@ class Configuration:
                 if len(heading_font) == 0 and previous_file:
                     break
                 elif os.path.isfile(os.path.realpath(heading_font)):
-                    self.heading_font = heading+font
+                    self.heading_font = heading_font
                     break
                 else:
                     print("Not a file. Please try again.")
@@ -177,18 +189,222 @@ class Configuration:
             while True:
                 print("Enter size of heading font.")
                 prompt = "({})".format(self.heading_font_size) \
-                    if previous_file else ""
+                    if previous_file else str(int(self.font_size/0.75))
                 heading_font_size = input(prompt+"--> ")
 
                 if len(heading_font_size) == 0 and previous_file:
                     break
-                elif len(heading_font_size) != 0 and 
-                        isinstance(heading_font_size, int):
-                    self.heading_font_size = heading_font_size
+                elif len(heading_font_size) == 0:
+                    self.heading_font_size = int(self.font_size/0.75)
                     break
-                else
-                    print("Heading font size should be an integer ",
-                        "value.")
+                elif len(heading_font_size) != 0:
+                    try:
+                        self.heading_font_size = int(heading_font_size)
+                    except ValueError:
+                        print("Heading font size should be an integer ",
+                            "value.")
+                    else:
+                        break
+
+            while True:
+                print("Enter margin width.")
+                prompt = "({})".format(self.margin) \
+                    if previous_file else str(self.heading_font_size)
+                margin = input(prompt+"--> ")
+
+                if len(margin) == 0 and previous_file:
+                    break
+                elif len(margin) == 0:
+                    self.margin = self.heading_font_size
+                    break
+                elif len(margin) != 0:
+                    try:
+                        self.margin = int(margin)
+                    except ValueError:
+                        print("Margin width should be an integer value")
+                    else:
+                        break
+
+            while True:
+                print("Enter column margin width.")
+                prompt = "({})".format(self.column_margin) \
+                    if previous_file else str(int(self.margin/2))
+                column_margin = input(prompt+"--> ")
+
+                if len(column_margin) == 0 and previous_file:
+                    break
+                elif len(column_margin) == 0:
+                    self.column_margin = int(self.margin)
+                    break
+                elif len(column_margin) != 0:
+                    try:
+                        self.column_margin = int(column_margin)
+                    except ValueError:
+                        print("Column margin width should be an integer ",
+                            "value.")
+                    else:
+                        break
+
+            while True:
+                print("Use blackframe detection to crop video?")
+                print("Choose YES (default) to trim video based on ",
+                    "fade-through-blacks present in most Project ",
+                    "CARS replays.")
+                print("Choose NO to manually enter, in seconds, the ",
+                    "start and stop time of the video.")
+                use_blackframe = input("[Y/n]--> ")
+                if len(use_blackframe) == 0 or \
+                        str.lower(use_blackframe) == 'y':
+                    use_blackframe = True
+                    break
+                elif str.lower(use_blackframe) == 'n':
+                    use_blackframe = False
+                    break
+
+            if use_blackframe:
+                while True:
+                    print("Enter blackframe detection threshold.")
+                    print("This sets how dark the screen must be to ",
+                        "be recognized as a fade.")
+                    prompt = "({})".format(self.video_threshold) \
+                        if previous_file else "1"
+                    video_threshold = input(prompt+"--> ")
+
+                    if len(video_threshold) == 0 and previous_file:
+                        break;
+                    elif len(video_threshold) == 0:
+                        self.video_threshold = 1
+                        break
+                    elif len(video_threshold) != 0:
+                        try:
+                            self.video_threshold = int(video_threshold)
+                        except ValueError:
+                            print("Blackframe detection threshold should ",
+                                "be an integer value.")
+                        else:
+                            break
+                
+                while True:
+                    print("Enter blackframe gap time.")
+                    print("This sets the minimum time between ",
+                        "blackframes to be considered separate events")
+                    prompt = "({})".format(self.video_gaptime) \
+                        if previous_file else "1"
+                    video_gaptime = input(prompt+"--> ")
+
+                    if len(video_gaptime) == 0 and previous_file:
+                        break;
+                    elif len(video_gaptime) == 0:
+                        self.video_gaptime = 1
+                        break
+                    elif len(video_gaptime):
+                        try:
+                            self.video_gaptime = int(video_gaptime)
+                        except ValueError:
+                            print("Blackframe gap time should be an ",
+                                "integer value.")
+                        else:
+                            break
+
+            while True:
+                if use_blackframe:
+                    print("Enter number of scenes to skip at the ",
+                        "start of the video.")
+                else:
+                    print("Enter the start time of the video.")
+
+                prompt = "({})".format(self.video_skipstart \
+                    if previous_file else "1" if use_blackframe \
+                                     else "0.0" )
+                video_skipstart = input(prompt+"--> ")
+
+                if len(video_skipstart) == 0 and previous_file:
+                    break
+                elif len(video_skipstart) == 0:
+                    self.video_skipstart = 1 if use_blackframe else 0.0
+                    break
+                elif len(video_skipstart) != 0 and use_blackframe:
+                    try:
+                        self.video_skipstart = int(video_skipstart)
+                        break
+                    except ValueError:
+                        print("Number of scenes to skip should be an ",
+                            "integer value.")
+                elif len(video_skipstart) != 0 and not use_blackframe:
+                    try:
+                        video_skipstart = float(video_skipstart)
+                        if video_skipstart >= 0.0:
+                            self.video_skipstart = float(video_skipstart)
+                            break
+                        else:
+                            raise ValueError
+                    except ValueError:
+                        print("Start time should be greater than ",
+                            "zero.")
+
+            while True:
+                if use_blackframe:
+                    print("Enter number of scenes to skip at the ",
+                        "end of the video.")
+                else:
+                    print("Enter the ending time of the video.")
+
+                duration = mpy.VideoFileClip(self.source_video).duration
+                prompt = "({})".format(self.video_skipend \
+                    if previous_file else "1" if use_blackframe \
+                                     else str(duration))
+                video_skipend = input(prompt+"--> ")
+
+                if len(video_skipend) == 0 and previous_file:
+                    break
+                elif len(video_skipend) == 0:
+                    self.video_skipend = 1 if use_blackframe \
+                        else duration
+                    break
+                elif len(video_skipend) != 0 and use_blackframe:
+                    try:
+                        self.video_skipend = int(video_skipend)
+                        break
+                    except ValueError:
+                        print("Number of scenes to skip should be an ",
+                            "integer value.")
+                elif len(video_skipend) != 0 and not use_blackframe:
+                    try:
+                        video_skipend = float(video_skipend)
+                        if video_skipend <= duration:
+                            self.video_skipend = float(video_skipend)
+                            break
+                        else:
+                            raise ValueError
+                    except ValueError:
+                        print("Start time should be less than the ",
+                            "video duration of {}.".format(duration))
+
+            while True:
+                print("Enter file to use as a cache for video data.")
+                prompt = "({})".format(self.video_cache \
+                    if previous_file else "file.cache")
+                video_cache = input(prompt+"--> ")
+
+                if len(video_cache) == 0 and previous_file:
+                    break
+                elif os.path.isdir(os.path.realpath(video_cache)):
+                    try:
+                        if video_cache[-1] != os.sep:
+                            video_cache += os.sep
+                    except IndexError:
+                        video_cache = os.path.realpath(os.curdir)+os.sep
+                    video_cache += "file.cache"
+                    self.video_cache = video_cache
+                    break
+                elif os.path.isdir(os.path.split(os.path.realpath(
+                        video_cache))[0]):
+                    self.video_cache = video_cache
+                    break
+                else:
+                    print("Location invalid. Please try again.")
+                    print("Directories must be created before ",
+                        "running script.")
 
             #TODO: Move to module-specific configuration
             while True:
@@ -215,29 +431,515 @@ class Configuration:
                     except ValueError:
                         print("Invalid color value.")
 
+            while True:
+                print("Enter background for title and results ",
+                    "screens.")
+                print("Enter -1 for none.")
+                prompt = "({})".format(self.backdrop) \
+                    if previous_file else ""
+                backdrop = input(prompt+"--> ")
 
+                if len(backdrop) == 0 and previous_file:
+                    break;
+                elif backdrop == "-1":
+                    self.backdrop = ""
+                    break
+                elif os.path.isfile(os.path.realpath(backdrop)):
+                    self.backdrop = backdrop
+                    break
+                else:
+                    print("Not a file. Please try again.")
 
+            while True:
+                print("Enter logo for title and results ",
+                    "screens.")
+                print("Enter -1 for none.")
+                prompt = "({})".format(self.logo) \
+                    if previous_file else ""
+                logo = input(prompt+"--> ")
 
+                if len(logo) == 0 and previous_file:
+                    break
+                elif logo == "-1":
+                    self.logo = ""
+                    break
+                elif os.path.isfile(os.path.realpath(logo)):
+                    self.logo = logo
+                    break
+                else:
+                    print("Not a file. Please try again.")
 
+            if len(self.logo):
+                while True:
+                    print("Enter height for logo.")
+                    prompt = "({})".format(self.logo_height \
+                        if previous_file else "150")
+                    logo_height = input(prompt+"--> ")
 
+                    if len(logo_height) == 0 and previous_file:
+                        break
+                    elif len(logo_height) == 0:
+                        self.logo_height = 150
+                        break
+                    elif len(logo_height) != 0:
+                        try:
+                            self.logo_height = int(logo_height)
+                        except ValueError:
+                            print("Logo height should be an integer ",
+                                "value.")
+                        else:
+                            break
 
+                while True:
+                    print("Enter width for logo.")
+                    prompt = "({})".format(self.logo_width \
+                        if previous_file else str(self.logo_height))
+                    logo_width = input(prompt+"--> ")
 
+                    if len(logo_width) == 0 and previous_file:
+                        break
+                    elif len(logo_width) == 0:
+                        self.logo_width = self.logo_height
+                        break
+                    elif len(logo_width) != 0:
+                        try:
+                            self.logo_width = int(logo_width)
+                        except ValueError:
+                            print("Logo width should be an integer ",
+                                "value.")
+                        else:
+                            break
+            else:
+                self.logo_height = 0
+                self.logo_width = 0
 
+            while True:
+                print("Enter a series logo for title and results ",
+                    "screens.")
+                print("Enter -1 for none.")
+                prompt = "({})".format(self.series_logo) \
+                    if previous_file else ""
+                series_logo = input(prompt+"--> ")
 
+                if len(series_logo) == 0 and previous_file:
+                    break
+                elif series_logo == "-1":
+                    self.series_logo = ""
+                    break
+                elif os.path.isfile(os.path.realpath(series_logo)):
+                    self.series_logo = series_logo
+                    break
+                else:
+                    print("Not a file. Please try again.")
 
+            while True:
+                print("Show series champion screen?")
+                prompt = "[y/N]"
+                show_champion = input(prompt+"--> ")
 
+                if len(show_champion) == 0 or \
+                     str.lower(show_champion) == 'n':
+                    self.show_champion = False
+                    break
+                elif str.lower(show_champion) == 'y':
+                    self.show_champion = True
+                    break
 
+            while True:
+                print("Enter main heading text.")
+                print("Enter -1 for none.")
+                prompt = "({})".format(self.heading_text) \
+                    if previous_file else ""
+                heading_text = input(prompt+"--> ")
 
-                    
+                if len(heading_text) == 0 and previous_file:
+                    break
+                elif heading_text == "-1":
+                    self.heading_text = ""
+                    break
+                elif len(heading_text):
+                    self.heading_text = heading_text
+                    break
+
+            while True:
+                print("Enter subheading text.")
+                print("Enter -1 for none.")
+                prompt = "({})".format(self.subheading_text) \
+                    if previous_file else ""
+                subheading_text = input(prompt+"--> ")
+
+                if len(subheading_text) == 0 and previous_file:
+                    break
+                elif subheading_text == "-1":
+                    self.subheading_text = ""
+                    break
+                elif len(subheading_text):
+                    self.subheading_text = subheading_text
+                    break
+
+            point_structure = list()
+            while True:
+                print("Enter bonus points for lastest lap.")
+                prompt = "({})".format(str(self.point_structure[0]) \
+                    if previous_file else "0")
+                bonus_point = input(prompt+"--> ")
+
+                if len(bonus_point) == 0 and previous_file:
+                    point_structure.insert(0, 
+                        int(self.point_structure[0]))
+                    break
+                else:
+                    try:
+                        point_structure.insert(0, int(bonus_point))
+                        break
+                    except ValueError:
+                        print("Points should be integer values.")
+
+            while True:
+                position = len(point_structure)
+                print("Enter 0 to finish points structure.")
+                if previous_file:
+                    print("Enter -1 to use previous values for ",
+                        "remianing positions.")
+                print("Enter points scored for finish poisition ",
+                    "{}".format(position))
+                try:
+                    prompt = "({})".format(str(
+                        self.point_structure[position])) \
+                        if previous_file else ""
+                except IndexError:
+                    prompt = ""
+
+                new_point = input(prompt+"--> ")
+                if new_point == "0":
+                    break
+                elif new_point == "-1" and previous_file:
+                    point_structure = self.__finish_array(point_structure, self.point_structure)
+                    break
+                elif len(new_point) == 0 and previous_file:
+                    try:
+                        if self.point_structure[position] == 0:
+                            break
+                        else:
+                            point_structure.insert(position,
+                                int(self.point_structure[position]))
+                    except IndexError:
+                        print("No previous value for this position. ",
+                            "Enter 0 to end points structure.")
+                else:
+                    try:
+                        point_structure.insert(position, int(new_point))
+                    except ValueError:
+                        print("Points should be integer values.")
+
+            print("Parsing telemetry data for driver information.")
+            print("Please wait...")
+
+            self.__get_participants(self.source_telemetry, "tele.csv")
+
+            last_car = None
+            last_team = None
+            last_points = None
+            use_last_car = False
+            use_last_team = False
+            use_last_points = False
+
+            while True:
+                print("Include team data for drivers?")
+                prompt = "[Y/n]"
+                show_team = input(prompt+"--> ")
+
+                if len(show_team) == 0 or \
+                        str.lower(show_team) == 'y':
+                    break
+                elif str.lower(show_team) == 'n':
+                    last_team = ""
+                    use_last_team = True
+                    break
+            
+            self.participant_config = dict()
+            for participant in self.participants:
+                print("Entering data for {}.".format(participant))
+                if previous_file:
+                    previous_car = self.participant_config[participant]['car']
+                    previous_team = self.participant_config[participant]['team']
+                    previous_points = self.participant_config[participant]['points']
+                else:
+                    self.participant_config[participant] = {'display': None, 'car': None, 'team': None, 'points': None}
+
+                while True:
+                    print("Enter display name override for {}.".format(participant))
+                    prompt = "({})".format(self.participant_config[participant]['display'] \
+                        if previous_file else participant)
+                    display_name = input(prompt+"--> ")
+
+                    if len(display_name) == 0 and previous_file:
+                        break
+                    elif len(display_name) == 0:
+                        self.participant_config[participant]['display'] = participant
+                        break
+                    else:
+                        self.participant_config[participant]['display'] = display_name
+                        break
+
+                if use_last_car:
+                    self.participant_config[participant]['car'] = last_car
+                else:
+                    while True:
+                        print("Enter car for {}.".format(participant))
+                        if last_car:
+                            print("Enter -1 to use {} for remaining drivers.".format(last_car))
+                        prompt = "({})".format(self.participant_config[participant]['car'] \
+                            if previous_file else last_car if last_car else "")
+                        car = input(prompt+"--> ")
+
+                        if len(car) == 0 and previous_file:
+                            break
+                        elif len(car) == 0 and last_car:
+                            self.participant_config[participant]['car'] = last_car
+                            break
+                        elif car == "-1":
+                            self.participant_config[participant]['car'] = last_car
+                            use_last_car = True
+                            break
+                        elif len(car) != 0:
+                            last_car = car
+                            self.participant_config[participant]['car'] = last_car
+                            break
+
+                if use_last_team:
+                    self.participant_config[participant]['team'] = last_team
+                else:
+                    while True:
+                        print("Enter team for {}.".format(participant))
+                        if last_team:
+                            print("Enter -1 to use {} for remaining drivers.".format(last_team))
+                        prompt = "({})".format(self.participant_config[participant]['team'] \
+                            if previous_file else last_team if last_team else "")
+                        team = input(prompt+"--> ")
+
+                        if len(team) == 0 and previous_file:
+                            break
+                        elif len(team) == 0 and last_team:
+                            self.participant_config[participant]['team'] = last_team
+                            break
+                        elif team == "-1":
+                            self.participant_config[participant]['team'] = last_team
+                            use_last_team = True
+                            break
+                        elif len(team) != 0:
+                            last_team = team
+                            self.participant_config[participant]['team'] = last_team
+                            break
+
+                if use_last_points:
+                    self.participant_config[participant]['points'] = last_points
+                else:
+                    while True:
+                        print("Enter previous series points for {}.".format(participant))
+                        if last_points is not None:
+                            print("Enter -1 to use {} for remaining drivers.".format(last_points))
+                        prompt = "({})".format(self.participant_config[participant]['points'] \
+                            if previous_file else last_points if last_points is not None else "")
+                        points = input(prompt+"--> ")
+
+                        if len(points) == 0 and previous_file:
+                            break
+                        elif len(points) == 0 and last_points is not None:
+                            self.participant_config[participant]['points'] = last_points
+                            break
+                        elif points == "-1":
+                            self.participant_config[participant]['points'] = last_points
+                            use_last_points = True
+                            break
+                        elif len(points) != 0:
+                            try:
+                                last_points = int(points)
+                                self.participant_config[participant]['points'] = last_points
+                                break
+                            except ValueError:
+                                print("Point values should be integers.")
         except KeyboardInterrupt:
             print("\n\nExiting. No configuration data written.")
         else:
             with open(os.path.realpath(self.config_file), 'w') as f:
-                json.dump(self, f)
+                json.dump(self.__get_values(), f, indent=4)
             print("\n\nConfiguration data written to {}".format(
                 self.config_file))
 
-            
+    def __get_values(self):
+        output = {'font': self.font,
+                  'font_size': self.font_size,
+                  'heading_font': self.heading_font,
+                  'heading_font_size': self.heading_font_size,
+                  'heading_color': self.heading_color,
+                  'backdrop': self.backdrop,
+                  'logo': self.logo,
+                  'logo_height': self.logo_height,
+                  'logo_width': self.logo_width,
+                  'series_logo': self.series_logo,
+                  'show_champion': self.show_champion,
+                  'heading_text': self.heading_text,
+                  'subheading_text': self.subheading_text,
+                  'margin': self.margin,
+                  'column_margin': self.column_margin,
+                  'source_video': self.source_video,
+                  'source_telemetry': self.source_telemetry,
+                  'output_video': self.output_video,
+                  'participant_config': self.participant_config,
+                  'point_structure': self.point_structure,
+                  'video_threshold': self.video_threshold,
+                  'video_gaptime': self.video_gaptime,
+                  'video_skipstart': self.video_skipstart,
+                  'video_skipend': self.video_skipend,
+                  'video_cache': self.video_cache,
+                  'sync_racestart': self.sync_racestart}
+        return output
+
+    def __process_telemetry(self, source_telemetry, telemetry_file):
+        with open(source_telemetry+telemetry_file, 'w') as csvfile:
+            with tqdm(desc="Processing:", total=len(glob(source_telementry+'pdata*'))) as progress_bar:
+                for a in natsorted(glob(source_telemetry+'pdata*')):
+                    with open(a, 'rb') as packFile:
+                        packData = packFile.read()
+                        if len(packData) == 1367:
+                            packString  = "HB"
+                            packString += "B"
+                            packString += "bb"
+                            packString += "BBbBB"
+                            packString += "B"
+                            packString += "21f"
+                            packString += "H"
+                            packString += "B"
+                            packString += "B"
+                            packString += "hHhHHBBBBBbffHHBBbB"
+                            packString += "22f"
+                            packString += "8B12f8B8f12B4h20H16f4H"
+                            packString += "2f"
+                            packString += "2B"
+                            packString += "bbBbbb"
+
+                            for participant in range(56):
+                                packString += "hhhHBBBBf"
+                            
+                            packString += "fBBB"
+
+                        elif len(packData) == 1028:
+                            packString  = "HBB"
+
+                            for participant in range(16):
+                                packString += "64s"
+
+                        elif len(packData) == 1347:
+                            packString  = "HB64s64s64s64s"
+
+                            for participant in range(16):
+                                packString += "64s"
+
+                            packString += "64x"
+
+                        csvfile.write(",".join(str(x, encoding='utf-8', errors='ignore').replace('\x00', '') if isinstance(x, bytes) else str(x).replace('\x00', '') for x in unpack(packString, packData)+(a,))+"\n")
+                        progress_bar.update()
+
+    def __get_participants(self, source_telemetry, telemetry_file):
+        with open(source_telemetry+telemetry_file) as f:
+            for i, l in enumerate(f):
+                pass
+        number_lines = i+1
+
+        try:
+            f = open(source_telemetry+telemetry_file, 'r')
+        except FileNotFoundError:
+            self.__process_telemetry(source_telementry, telemetry_file)
+            f = open(source_telemetry+telemetry_file, 'r')
+        finally:
+            csvdata = csv.reader(f)
+
+        new_data = list()
+        participants = None
+        self.participant_configurations = list()
+
+        with tqdm(desc="Analyzing telemetry:", total=number_lines) \
+                as progress_bar:
+            for row in csvdata:
+                if len(row) == 687 and int(row[4]) != -1:
+                    participants = int(row[4])
+                if len(row) == 687:
+                    pass
+                elif len(row) == 23:
+                    for index, participant_name in enumerate(
+                            row[6:6+min(16, participants)]):
+                        if len(participant_name):
+                            new_data.append(participant_name)
+                elif len(row) == 20:
+                    for index, participant_name in enumerate(
+                            row[3:3+min(16, participants)],
+                            int(row[2])):
+                        if len(participant_name):
+                            new_data.append(participant_name)
+                else:
+                    raise ValueError("ValueError: Unrecognized or ",
+                        "malformed packet.")
+
+                if len(new_data) >= participants and participants > 0:
+                    try:
+                        if new_data != \
+                                self.participant_configurations[-1][:-1]:
+                            self.participant_configurations.append(
+                                new_data+[participants])
+                    except IndexError:
+                        self.participant_configurations.append(
+                            new_data+[participants])
+                    finally:
+                        new_data = list()
+                progress_bar.update()
+
+        self.participant_lookup = {x: [x] for x
+            in self.participant_configurations[0][:-1]}
+
+        for participant_row in self.participant_configurations[1:]:
+            for participant_name in participant_row[:-1]:
+                matches = [(
+                    k,
+                    participant_name,
+                    commonprefix(" ".join(
+                        (" ".join(
+                            self.participant_lookup[k]),
+                        participant_name)).split()))
+                    for k in self.participant_lookup.keys()
+                        if len(commonprefix(" ".join(
+                            (" ".join(
+                                self.participant_lookup[k]),
+                            participant_name)).split()))]
+                if len(matches):
+                    max_length = max([len(prefix) \
+                        for *rest, prefix in matches])
+                    match_row = [(k, n, p) \
+                        for k, n, p in matches \
+                        if len(p) == max_length]
+
+                    for k, n, p in match_row:
+                        if n not in self.participant_lookup[k]:
+                            self.participant_lookup[k].append(n)
+                            if len(p) < len(k):
+                                self.participant_lookup[p] = \
+                                    self.participant_lookup.pop(k)
+                else:
+                    self.participant_lookup[participant_name] = \
+                        [participant_name]
+
+        self.participant_lookup = {v:k for k, l 
+            in self.participant_lookup.items() for v in l}
+        self.participants = {v for v in self.participant_lookup.values()}
+
+    def __finish_array(array, previous_array=None, length=0):
+        if previous_array:
+            array = array+previous_array[len(array):]
+        else:
+            try:
+                array += [array[-1]]*(length-len(array))
+            except IndexError:
+                array = [None for x in range(length)]
 
     def __load_configuration(self, configuration):
         with open(os.path.realpath(configuration), 'r') as f:
@@ -271,7 +973,7 @@ class Configuration:
         self.telemetry_file = 'tele.csv'
         self.output_video = json_data['output_video']
 
-        self.participant_config = [dict(participant=v['participant'], car=v['car'], team=v['team'], points=v['pints']) for v in json_data['participant_config']]
+        self.participant_config = {k:v for k, v in json_data['participant_config']}
 
         self.point_structure = json_data['point_structure']
 
@@ -282,3 +984,6 @@ class Configuration:
         self.video_cache = json_data['video_cache']
 
         self.sync_racestart = json_data['sync_racestart']
+
+if __name__ == "__main__":
+    config = Configuration()
