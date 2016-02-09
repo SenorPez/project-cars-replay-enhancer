@@ -1,7 +1,6 @@
 from collections import deque
 from itertools import groupby
 from os.path import commonprefix
-import traceback
 import csv
 import argparse
 from glob import glob
@@ -17,7 +16,6 @@ from moviepy.editor import vfx
 from moviepy.video.io.bindings import PIL_to_npimage
 from numpy import diff, nonzero, where, cumsum
 from PIL import Image, ImageFont
-from tqdm import tqdm
 
 from Champion import Champion
 from Configuration import Configuration
@@ -288,6 +286,8 @@ class ReplayEnhancer():
         return participant_data
 
     def process_telemetry(self):
+        source_telemetry = self.source_telemetry
+        telemetry_file = "tele.csv"
         with open(source_telemetry+telemetry_file, 'w') as csvfile:
             for a in natsorted(glob(source_telemetry+'pdata*')):
                 with open(a, 'rb') as packFile:

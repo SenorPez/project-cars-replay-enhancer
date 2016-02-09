@@ -9,9 +9,11 @@ import re
 import os
 import json
 from os.path import commonprefix
+from glob import glob
+from natsort import natsorted
+from struct import unpack
 
 import moviepy.editor as mpy
-from PIL import ImageFont
 from tqdm import tqdm
 
 class Configuration:
@@ -682,11 +684,7 @@ class Configuration:
 
             for participant in self.participants:
                 print("Entering data for {}.".format(participant))
-                if previous_file:
-                    previous_car = self.participant_config[participant]['car']
-                    previous_team = self.participant_config[participant]['team']
-                    previous_points = self.participant_config[participant]['points']
-                else:
+                if not previous_file:
                     self.participant_config[participant] = {'display': None, 'car': None, 'team': None, 'points': None}
 
                 while True:
@@ -1108,7 +1106,7 @@ class Configuration:
 
     def __process_telemetry(self, source_telemetry, telemetry_file):
         with open(source_telemetry+telemetry_file, 'w') as csvfile:
-            with tqdm(desc="Processing:", total=len(glob(source_telementry+'pdata*'))) as progress_bar:
+            with tqdm(desc="Processing:", total=len(glob(source_telemetry+'pdata*'))) as progress_bar:
                 for a in natsorted(glob(source_telemetry+'pdata*')):
                     with open(a, 'rb') as packFile:
                         packData = packFile.read()
@@ -1160,7 +1158,7 @@ class Configuration:
         try:
             f = open(source_telemetry+telemetry_file, 'r')
         except FileNotFoundError:
-            self.__process_telemetry(source_telementry, telemetry_file)
+            self.__process_telemetry(source_telemetry, telemetry_file)
             f = open(source_telemetry+telemetry_file, 'r')
         finally:
             csvdata = csv.reader(f)
