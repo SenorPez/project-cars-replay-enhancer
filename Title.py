@@ -22,7 +22,7 @@ class Title(StaticBase):
 
         self.starting_grid = sorted(
             ((str(int(telemetry_data[182+i*9]) & int('01111111', 2)),
-              n,
+              str(self.replay.name_display[n]),
               t if t is not None else "",
               c) for i, n, t, c in participant_data),
             key=lambda x: int(x[0]))
@@ -73,7 +73,7 @@ class Title(StaticBase):
                       fill='black',
                       font=self.replay.font)
             draw.text((name[1], y_pos),
-                      str(self.replay.name_display[name[0]]),
+                      str(name[0]),
                       fill='black',
                       font=self.replay.font)
             draw.text((team[1], y_pos),

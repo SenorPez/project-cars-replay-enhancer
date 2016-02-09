@@ -28,11 +28,7 @@ class Results(StaticBase):
 
         for p, n, t, c, l, et, bl, bs1, bs2, bs3, pts in [list(zip(x, column_positions)) for x in self.classification]:
             draw.text((p[1], yPos), str(p[0]), fill='black', font=self.replay.font)
-            try:
-                display_name = str(self.replay.name_display[n[0]])
-            except KeyError:
-                display_name = str(n[0])
-            draw.text((n[1], yPos), display_name, fill='black', font=self.replay.font)
+            draw.text((n[1], yPos), n[0], fill='black', font=self.replay.font)
             if t != "":
                 draw.text((t[1], yPos), str(t[0]), fill='black', font=self.replay.font)
             draw.text((c[1], yPos), str(c[0]), fill='black', font=self.replay.font)
@@ -172,6 +168,10 @@ class Results(StaticBase):
 
         #self.classification = [(str(p), n, t, c, str(l), self.format_time(sum(lap_times[n])), "{:.2f}".format(float(min(lap_times[n]))), "{:.2f}".format(float(sector_bests[n][0])), "{:.2f}".format(float(sector_bests[n][1])), "{:.2f}".format(float(sector_bests[n][2])), str(self.replay.point_structure[p]+self.replay.point_structure[0] if min([x for x in personal_best_laps if isinstance(x, float)]) == personal_best_laps[n] else self.replay.point_structure[p])) for p, n, t, c, i, l in self.classification[:16]]
         self.classification = [(str(p), n, t, c, str(l), self.format_time(sum(lap_times[n])), self.format_time(float(min(valid_lap_times[n]))) if len(valid_lap_times[n]) else "", self.format_time(float(sector_bests[n][0])) if sector_bests[n][0] != -1 else "", self.format_time(float(sector_bests[n][1])) if sector_bests[n][1] != -1 else "", self.format_time(float(sector_bests[n][2])) if sector_bests[n][2] != -1 else "", "0" if p == "DNF" else "0" if l < 1 else str(self.replay.point_structure[p]+self.replay.point_structure[0] if min([x for x in personal_best_laps.values() if isinstance(x, float)]) == personal_best_laps[n] else self.replay.point_structure[p])) for p, n, t, c, i, l in self.classification[:16]]
+
+        #Remap to display names
+        self.classification = [(p, self.replay.name_display[n]) + tuple(rest) for p, n, *rest in self.classification]
+
         columnHeadings = [tuple([x if len([y[i] for y in self.classification if len(y[i])]) else "" for i, x in enumerate(*columnHeadings)])]
         self.classification = columnHeadings+self.classification
 

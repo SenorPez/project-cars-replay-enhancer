@@ -61,6 +61,7 @@ class ReplayEnhancer():
         self.output_video = json_data['output_video']
 
         self.name_display = {k:v['display'] for k, v in json_data['participant_config'].items()}
+        self.short_name_display = {k:v['short_display'] for k, v in json_data['participant_config'].items()}
         self.car_data = {k:v['car'] for k, v in json_data['participant_config'].items()}
         self.team_data = {k:v['team'] for k, v in json_data['participant_config'].items()}
         self.points = {k:v['points'] for k, v in json_data['participant_config'].items()}
@@ -415,12 +416,14 @@ class ReplayEnhancer():
             print("Creating new configuration file.")
 
             config = Configuration()
+            config.new_configuration()
 
             print("Creating low-quality video as {}".format(config.output_video))
             print("If video trimming needs to be adjusted, run the Project CARS Replay Enhancer with the `-t` option.")
             print("\n")
             print("To synchronize telemetry with video, run the Project CARS Replay Enhancer with the `-r` option.")
             print("Set the synchronization offset to the value shown on the Timer when the viewed car crosses the start finish line to begin lap 2.")
+            print("Please wait. Telemetry being processed and rendered. If this is the first time this data has been used, it make take longer.")
 
             try:
                 replay = cls(config.config_file)
@@ -446,6 +449,7 @@ class ReplayEnhancer():
             print("Editing configuration file {}".format(previous_file))
 
             config = Configuration(previous_file)
+            config.new_configuration()
 
             print("Creating low-quality video as {}".format(config.output_video))
             print("If video trimming needs to be adjusted, run the Project CARS Replay Enhancer with the `-t` option.")
@@ -469,7 +473,87 @@ class ReplayEnhancer():
                 output = mpy.concatenate_videoclips([start_video, end_video])
                 output.write_videofile(replay.output_video, fps=10, preset='superfast')
 
+        except KeyboardInterrupt:
+            print("Aborting...")
 
+    @classmethod
+    def edit_trim(cls, previous_file):
+        try:
+            print("Editing configuration file {}".format(previous_file))
+
+            config = Configuration(previous_file)
+            config.modify_trim()
+
+            print("Creating low-quality video as {}".format(config.output_video))
+            print("If video trimming needs to be adjusted, run the Project CARS Replay Enhancer with the `-t` option.")
+            print("\n")
+            print("To synchronize telemetry with video, run the Project CARS Replay Enhancer with the `-r` option.")
+            print("Set the synchronization offset to the value shown on the Timer when the viewed car crosses the start finish lin to begin lap 2.")
+
+            try:
+                replay = cls(config.config_file)
+            except ValueError as e:
+                print("Invalid JSON in configuration file: {}".format(e))
+            else:
+                start_video = replay.__build_default_video(False)
+                end_video = replay.__build_default_video(False)
+
+                start_video = start_video.subclip(5, 185)
+                if replay.show_champion:
+                    end_video = end_video.subclip(end_video.duration-120, end_video.duration-60)
+                else:
+                    end_video = end_video.subclip(end_video.duration-100, end_video.duration-40)
+                output = mpy.concatenate_videoclips([start_video, end_video])
+                output.write_videofile(replay.output_video, fps=10, preset='superfast')
+
+        except KeyboardInterrupt:
+            print("Aborting...")
+            
+    @classmethod
+    def edit_racestart(cls, previous_file):
+        try:
+            print("Editing configuration file {}".format(previous_file))
+
+            config = Configuration(previous_file)
+            config.modify_racestart()
+
+            print("Creating low-quality video as {}".format(config.output_video))
+            print("If video trimming needs to be adjusted, run the Project CARS Replay Enhancer with the `-t` option.")
+            print("\n")
+            print("To synchronize telemetry with video, run the Project CARS Replay Enhancer with the `-r` option.")
+            print("Set the synchronization offset to the value shown on the Timer when the viewed car crosses the start finish lin to begin lap 2.")
+
+            try:
+                replay = cls(config.config_file)
+            except ValueError as e:
+                print("Invalid JSON in configuration file: {}".format(e))
+            else:
+                start_video = replay.__build_default_video(False)
+                end_video = replay.__build_default_video(False)
+
+                start_video = start_video.subclip(5, 185)
+                if replay.show_champion:
+                    end_video = end_video.subclip(end_video.duration-120, end_video.duration-60)
+                else:
+                    end_video = end_video.subclip(end_video.duration-100, end_video.duration-40)
+                output = mpy.concatenate_videoclips([start_video, end_video])
+                output.write_videofile(replay.output_video, fps=10, preset='superfast')
+
+        except KeyboardInterrupt:
+            print("Aborting...")
+
+    @classmethod
+    def create_custom(cls, config_file):
+        try:
+            print("Creating video with custom settings.")
+
+            try:
+                replay = cls(config_file)
+            except ValueError as e:
+                print("Invalid JSON in configuration file: {}".format(e))
+            else:
+                output = replay.__build_default_video(True)
+                output.save_frame("outputs/frame.png", output.duration-50)
         except KeyboardInterrupt:
             print("Aborting...")
 
@@ -491,6 +575,8 @@ class ReplayEnhancer():
     def __build_default_video(self, process_data):
         if self.source_video is None:
             video = mpy.ColorClip((1280, 720), duration=self.telemetry_data[-1][0][-1][-1])
+        elif isinstance(self.video_skipstart, float) or isinstance(self.video_skipend, float):
+            video = mpy.VideoFileClip(self.source_video).subclip(self.video_skipstart, self.video_skipend)
         else:
             video = self.black_test()
         video_width, video_height = video.size
@@ -551,6 +637,8 @@ if __name__ == "__main__":
     parser.add_argument('configuration', nargs='?')
     parser.add_argument('-c', '--configure', action='store_true',
         help='create or edit configuration file')
+    parser.add_argument('-u', '--custom', action='store_true',
+        help=argparse.SUPPRESS)
     parser.add_argument('-r', '--racestart', action='store_true',
         help='modify race start for telemetry sync')
     parser.add_argument('-t', '--trim', action='store_true',
@@ -567,17 +655,37 @@ if __name__ == "__main__":
     if len(error_message):
         parser.error(error_message)
 
-    if arguments.configure is True:
+    if arguments.custom is True:
+        try:
+            ReplayEnhancer.create_custom(arguments.configuration)
+        except FileNotFoundError:
+            parser.error("\n{} not found. Aborting.".format(arguments.configuration))
+    elif arguments.configure is True:
         if arguments.configuration is None:
             ReplayEnhancer.new_configuration()
         else:
-            ReplayEnhancer.edit_configuration(arguments.configuration)
-        
-    if arguments.configure is False:
+            try:
+                ReplayEnhancer.edit_configuration(arguments.configuration)
+            except FileNotFoundError:
+                parser.error("\n{} not found. Aborting.".format(arguments.configuration))
+    elif arguments.trim is True:
+        try:
+            ReplayEnhancer.edit_trim(arguments.configuration)
+        except FileNotFoundError:
+            parser.error("\n{} not found. Aborting.".format(arguments.configuration))
+    elif arguments.racestart is True:
+        try:
+            ReplayEnhancer.edit_racestart(arguments.configuration)
+        except FileNotFoundError:
+            parser.error("\n{} not found. Aborting.".format(arguments.configuration))
+    else:
         if arguments.configuration is None:
             ReplayEnhancer.new_configuration()
         else:
-            ReplayEnhancer.create_video(arguments.configuration)
+            try:
+                ReplayEnhancer.create_video(arguments.configuration)
+            except FileNotFoundError:
+                parser.error("\n{} not found. Aborting.".format(arguments.configuration))
 
     '''
     if len(sys.argv) == 1:

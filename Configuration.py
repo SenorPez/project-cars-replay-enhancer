@@ -3,7 +3,9 @@ Provides the Configuration object for creating and modifying
 configuration files for the Project CARS Replay Enhancer.
 """
 
+from collections import OrderedDict
 import csv
+import re
 import os
 import json
 from os.path import commonprefix
@@ -58,9 +60,13 @@ class Configuration:
 
         self.participant_config = None
 
+        self.previous_file = previous_file
         if previous_file:
             self.config_file = os.path.realpath(previous_file)
             self.__load_configuration(previous_file)
+
+    def new_configuration(self):
+        previous_file = self.previous_file
 
         print("Beginning configuration. Press CTRL+C at any time to",
             "abort.")
@@ -245,6 +251,7 @@ class Configuration:
                     else:
                         break
 
+            purge_cache = False
             while True:
                 print("Use blackframe detection to crop video?")
                 print("Choose YES (default) to trim video based on ",
@@ -274,10 +281,12 @@ class Configuration:
                         break;
                     elif len(video_threshold) == 0:
                         self.video_threshold = 1
+                        purge_cache = True
                         break
                     elif len(video_threshold) != 0:
                         try:
                             self.video_threshold = int(video_threshold)
+                            purge_cache = True
                         except ValueError:
                             print("Blackframe detection threshold should ",
                                 "be an integer value.")
@@ -296,10 +305,12 @@ class Configuration:
                         break;
                     elif len(video_gaptime) == 0:
                         self.video_gaptime = 1
+                        purge_cache = True
                         break
                     elif len(video_gaptime):
                         try:
                             self.video_gaptime = int(video_gaptime)
+                            purge_cache = True
                         except ValueError:
                             print("Blackframe gap time should be an ",
                                 "integer value.")
@@ -322,10 +333,12 @@ class Configuration:
                     break
                 elif len(video_skipstart) == 0:
                     self.video_skipstart = 1 if use_blackframe else 0.0
+                    purge_cache = True
                     break
                 elif len(video_skipstart) != 0 and use_blackframe:
                     try:
                         self.video_skipstart = int(video_skipstart)
+                        purge_cache = True
                         break
                     except ValueError:
                         print("Number of scenes to skip should be an ",
@@ -335,6 +348,7 @@ class Configuration:
                         video_skipstart = float(video_skipstart)
                         if video_skipstart >= 0.0:
                             self.video_skipstart = float(video_skipstart)
+                            purge_cache = True
                             break
                         else:
                             raise ValueError
@@ -360,10 +374,12 @@ class Configuration:
                 elif len(video_skipend) == 0:
                     self.video_skipend = 1 if use_blackframe \
                         else duration
+                    purge_cache = True
                     break
                 elif len(video_skipend) != 0 and use_blackframe:
                     try:
                         self.video_skipend = int(video_skipend)
+                        purge_cache = True
                         break
                     except ValueError:
                         print("Number of scenes to skip should be an ",
@@ -373,6 +389,7 @@ class Configuration:
                         video_skipend = float(video_skipend)
                         if video_skipend <= duration:
                             self.video_skipend = float(video_skipend)
+                            purge_cache = True
                             break
                         else:
                             raise ValueError
@@ -396,10 +413,12 @@ class Configuration:
                         video_cache = os.path.realpath(os.curdir)+os.sep
                     video_cache += "file.cache"
                     self.video_cache = video_cache
+                    purge_cache = True
                     break
                 elif os.path.isdir(os.path.split(os.path.realpath(
                         video_cache))[0]):
                     self.video_cache = video_cache
+                    purge_cache = True
                     break
                 else:
                     print("Location invalid. Please try again.")
@@ -685,6 +704,22 @@ class Configuration:
                         self.participant_config[participant]['display'] = display_name
                         break
 
+                while True:
+                    print("Enter abbreviated name override for {}.".format(participant))
+                    print("(Used by some modules for space saving.)")
+                    prompt = "({})".format(self.participant_config[participant]['short_display'] \
+                        if previous_file else participant.split(" ")[0][0]+". "+participant.split(" ")[-1] if len(participant.split(" ")) > 1 else participant)
+                    short_display_name = input(prompt+"--> ")
+
+                    if len(short_display_name) == 0 and previous_file:
+                        break
+                    elif len(short_display_name) == 0:
+                        self.participant_config[participant]['short_display'] = participant.split(" ")[0][0]+". "+participant.split(" ")[-1]
+                        break
+                    else:
+                        self.participant_config[participant]['short_display'] = short_display_name
+                        break
+
                 if use_last_car:
                     self.participant_config[participant]['car'] = last_car
                 else:
@@ -771,6 +806,277 @@ class Configuration:
             print("\n\nConfiguration data written to {}".format(
                 self.config_file))
 
+            if purge_cache:
+                try:
+                    with open(os.path.realpath(self.video_cache), 'r') as cache_file:
+                        cache_data = cache_file.read()
+
+                    matches = re.findall(r"(^"+re.escape(os.path.realpath(self.source_video))+".*$)", cache_data, re.M)
+                    if len(matches):
+                        for x in matches:
+                            cache_data = cache_data.replace(x, "")
+
+                    with open(os.path.realpath(self.video_cache), 'w') as cache_file:
+                        cache_file.write(cache_data)
+                except FileNotFoundError:
+                    pass
+
+                print("\n\nFile cache modified at {}".format(self.video_cache))
+
+    def modify_racestart(self):
+        try:
+            if self.previous_file is None:
+                raise ValueError
+            else:
+                previous_file = self.previous_file
+
+            print("Modifying synchonization offset value.")
+            print("Press CTRL+C at any time to abort.")
+
+            while True:
+                print("Enter new synchronization offset value.")
+                prompt = "({})".format(str(self.sync_racestart) \
+                    if previous_file else "0.0")
+                sync_racestart = input(prompt+"--> ")
+
+                if len(sync_racestart) == 0 and previous_file:
+                    break;
+                elif len(sync_racestart) == 0:
+                    self.sync_racestart = 0.0
+                    break
+                elif len(sync_racestart):
+                    try:
+                        self.sync_racestart = float(sync_racestart)
+                    except ValueError:
+                        print("Race start should be a number.")
+                    else:
+                        break
+
+        except KeyboardInterrupt:
+            print("\n\nExiting. No configuration data written.")
+            raise KeyboardInterrupt
+        except ValueError:
+            print("\n\nMust provide existing configuration file.")
+        else:
+            with open(os.path.realpath(self.config_file), 'w') as f:
+                json.dump(self.__get_values(), f, indent=4)
+            print("\n\nConfiguration data written to {}".format(
+                self.config_file))
+
+    def modify_trim(self):
+        try:
+            if self.previous_file is None:
+                raise ValueError
+            else:
+                previous_file = self.previous_file
+
+            print("Modifying video trim files.")
+            print("Telemetry synchronization value will be cleared and must be reset.")
+            print("Press CTRL+C at any time to abort.")
+            self.sync_racestart = 0.0
+
+            purge_cache = False
+            while True:
+                print("Use blackframe detection to crop video?")
+                print("Choose YES (default) to trim video based on ",
+                    "fade-through-blacks present in most Project ",
+                    "CARS replays.")
+                print("Choose NO to manually enter, in seconds, the ",
+                    "start and stop time of the video.")
+                use_blackframe = input("[Y/n]--> ")
+                if len(use_blackframe) == 0 or \
+                        str.lower(use_blackframe) == 'y':
+                    use_blackframe = True
+                    break
+                elif str.lower(use_blackframe) == 'n':
+                    use_blackframe = False
+                    break
+
+            if use_blackframe:
+                while True:
+                    print("Enter blackframe detection threshold.")
+                    print("This sets how dark the screen must be to ",
+                        "be recognized as a fade.")
+                    prompt = "({})".format(self.video_threshold) \
+                        if previous_file else "1"
+                    video_threshold = input(prompt+"--> ")
+
+                    if len(video_threshold) == 0 and previous_file:
+                        break;
+                    elif len(video_threshold) == 0:
+                        self.video_threshold = 1
+                        purge_cache = True
+                        break
+                    elif len(video_threshold) != 0:
+                        try:
+                            self.video_threshold = int(video_threshold)
+                            purge_cache = True
+                        except ValueError:
+                            print("Blackframe detection threshold should ",
+                                "be an integer value.")
+                        else:
+                            break
+                
+                while True:
+                    print("Enter blackframe gap time.")
+                    print("This sets the minimum time between ",
+                        "blackframes to be considered separate events")
+                    prompt = "({})".format(self.video_gaptime) \
+                        if previous_file else "1"
+                    video_gaptime = input(prompt+"--> ")
+
+                    if len(video_gaptime) == 0 and previous_file:
+                        break;
+                    elif len(video_gaptime) == 0:
+                        self.video_gaptime = 1
+                        purge_cache = True
+                        break
+                    elif len(video_gaptime):
+                        try:
+                            self.video_gaptime = int(video_gaptime)
+                            purge_cache = True
+                        except ValueError:
+                            print("Blackframe gap time should be an ",
+                                "integer value.")
+                        else:
+                            break
+
+            while True:
+                if use_blackframe:
+                    print("Enter number of scenes to skip at the ",
+                        "start of the video.")
+                else:
+                    print("Enter the start time of the video.")
+
+                prompt = "({})".format(self.video_skipstart \
+                    if previous_file else "1" if use_blackframe \
+                                     else "0.0" )
+                video_skipstart = input(prompt+"--> ")
+
+                if len(video_skipstart) == 0 and previous_file:
+                    break
+                elif len(video_skipstart) == 0:
+                    self.video_skipstart = 1 if use_blackframe else 0.0
+                    purge_cache = True
+                    break
+                elif len(video_skipstart) != 0 and use_blackframe:
+                    try:
+                        self.video_skipstart = int(video_skipstart)
+                        purge_cache = True
+                        break
+                    except ValueError:
+                        print("Number of scenes to skip should be an ",
+                            "integer value.")
+                elif len(video_skipstart) != 0 and not use_blackframe:
+                    try:
+                        video_skipstart = float(video_skipstart)
+                        if video_skipstart >= 0.0:
+                            self.video_skipstart = float(video_skipstart)
+                            purge_cache = True
+                            break
+                        else:
+                            raise ValueError
+                    except ValueError:
+                        print("Start time should be greater than ",
+                            "zero.")
+
+            while True:
+                if use_blackframe:
+                    print("Enter number of scenes to skip at the ",
+                        "end of the video.")
+                else:
+                    print("Enter the ending time of the video.")
+
+                duration = mpy.VideoFileClip(self.source_video).duration
+                prompt = "({})".format(self.video_skipend \
+                    if previous_file else "1" if use_blackframe \
+                                     else str(duration))
+                video_skipend = input(prompt+"--> ")
+
+                if len(video_skipend) == 0 and previous_file:
+                    break
+                elif len(video_skipend) == 0:
+                    self.video_skipend = 1 if use_blackframe \
+                        else duration
+                    purge_cache = True
+                    break
+                elif len(video_skipend) != 0 and use_blackframe:
+                    try:
+                        self.video_skipend = int(video_skipend)
+                        purge_cache = True
+                        break
+                    except ValueError:
+                        print("Number of scenes to skip should be an ",
+                            "integer value.")
+                elif len(video_skipend) != 0 and not use_blackframe:
+                    try:
+                        video_skipend = float(video_skipend)
+                        if video_skipend <= duration:
+                            self.video_skipend = float(video_skipend)
+                            purge_cache = True
+                            break
+                        else:
+                            raise ValueError
+                    except ValueError:
+                        print("Start time should be less than the ",
+                            "video duration of {}.".format(duration))
+
+            while True:
+                print("Enter file to use as a cache for video data.")
+                prompt = "({})".format(self.video_cache \
+                    if previous_file else "file.cache")
+                video_cache = input(prompt+"--> ")
+
+                if len(video_cache) == 0 and previous_file:
+                    break
+                elif os.path.isdir(os.path.realpath(video_cache)):
+                    try:
+                        if video_cache[-1] != os.sep:
+                            video_cache += os.sep
+                    except IndexError:
+                        video_cache = os.path.realpath(os.curdir)+os.sep
+                    video_cache += "file.cache"
+                    self.video_cache = video_cache
+                    purge_cache = True
+                    break
+                elif os.path.isdir(os.path.split(os.path.realpath(
+                        video_cache))[0]):
+                    self.video_cache = video_cache
+                    purge_cache = True
+                    break
+                else:
+                    print("Location invalid. Please try again.")
+                    print("Directories must be created before ",
+                        "running script.")
+        
+        except KeyboardInterrupt:
+            print("\n\nExiting. No configuration data written.")
+            raise KeyboardInterrupt
+        except ValueError:
+            print("\n\nMust provide existing configuration file.")
+        else:
+            with open(os.path.realpath(self.config_file), 'w') as f:
+                json.dump(self.__get_values(), f, indent=4)
+            print("\n\nConfiguration data written to {}".format(
+                self.config_file))
+
+            if purge_cache:
+                try:
+                    with open(os.path.realpath(self.video_cache), 'r') as cache_file:
+                        cache_data = cache_file.read()
+
+                    matches = re.findall(r"(^"+re.escape(os.path.realpath(self.source_video))+".*$)", cache_data, re.M)
+                    if len(matches):
+                        for x in matches:
+                            cache_data = cache_data.replace(x, "")
+
+                    with open(os.path.realpath(self.video_cache), 'w') as cache_file:
+                        cache_file.write(cache_data)
+                except FileNotFoundError:
+                    pass
+
+                print("\n\nFile cache modified at {}".format(self.video_cache))
+
     def __get_values(self):
         output = {'font': self.font,
                   'font_size': self.font_size,
@@ -798,7 +1104,7 @@ class Configuration:
                   'video_skipend': self.video_skipend,
                   'video_cache': self.video_cache,
                   'sync_racestart': self.sync_racestart}
-        return output
+        return OrderedDict(sorted(output.items(), key=lambda x: x[0]))
 
     def __process_telemetry(self, source_telemetry, telemetry_file):
         with open(source_telemetry+telemetry_file, 'w') as csvfile:

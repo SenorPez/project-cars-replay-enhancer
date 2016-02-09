@@ -26,11 +26,7 @@ class SeriesStandings(StaticBase):
 
         for r, n, t, c, pts in [list(zip(x, columnPositions)) for x in self.classification]:
             draw.text((r[1], yPos), str(r[0]), fill='black', font=self.replay.font)
-            try:
-                display_name = str(self.replay.name_display[n[0]])
-            except KeyError:
-                display_name = str(n[0])
-            draw.text((n[1], yPos), display_name, fill='black', font=self.replay.font)
+            draw.text((n[1], yPos), str(n[0]), fill='black', font=self.replay.font)
             draw.text((t[1], yPos), str(t[0]), fill='black', font=self.replay.font)
             draw.text((c[1], yPos), str(c[0]), fill='black', font=self.replay.font)
             draw.text((pts[1]+(self.widths[4]-self.replay.font.getsize(str(pts[0]))[0])/2, yPos), str(pts[0]), fill='black', font=self.replay.font)
@@ -194,6 +190,9 @@ class SeriesStandings(StaticBase):
                 self.classification[i] = (str(self.classification[i-1][0]),)+x
             else:
                 self.classification[i] = (str(i+1),)+x
+
+        #Remap to display names
+        self.classification = [(p, self.replay.name_display[n]) + tuple(rest) for p, n, *rest in self.classification]
 
         columnHeadings = [tuple([x if len([y[i] for y in self.classification if len(y[i])]) else "" for i, x in enumerate(*columnHeadings)])]
         self.classification = columnHeadings + self.classification

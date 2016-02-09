@@ -130,20 +130,20 @@ class Standings(DynamicBase):
         columnPositions = [self.replay.margin*(i+1)+sum(self.columnWidths[0:i]) if i == 0 else self.replay.margin+self.replay.column_margin*(i)+sum(self.columnWidths[0:i]) for i, w in enumerate(self.columnWidths)]
         yPos = self.replay.margin/2
 
-        for p, n, r, i, s, l, et, lx, cl, loc in self.standings[:10]+self.standings[self.current_group:self.current_group+6]:
+        for p, n, r, i, s, l, et, lx, cl, loc, orig_name in self.standings[:10]+self.standings[self.current_group:self.current_group+6]:
             for pp, nn, ss, ll, rr in [list(zip((p, n, s, l, r), columnPositions+[0]))]:
                 draw.text((pp[1], yPos), str(pp[0]), fill='black', font=self.replay.font)
-                draw.text((nn[1], yPos), str(self.replay.name_display[nn[0]].split(" ")[0][0]+". "+self.replay.name_display[nn[0]].split(" ")[-1] if len(self.replay.name_display[nn[0]].split(" ")) > 1 else self.replay.name_display[nn[0]]), fill='black', font=self.replay.font)
+                draw.text((nn[1], yPos), str(nn[0]), fill='black', font=self.replay.font)
 
-                if isinstance(self.last_lap_splits[n], int) and self.last_lap_splits[n] < 0:
+                if isinstance(self.last_lap_splits[orig_name], int) and self.last_lap_splits[orig_name] < 0:
                     last_lap_time = "{}".format('')
-                elif isinstance(self.last_lap_splits[n], int):
-                    suffix = " laps" if self.last_lap_splits[n] > 1 else " lap"
-                    last_lap_time = "{:+d}".format(self.last_lap_splits[n])+suffix
-                elif isinstance(self.last_lap_splits[n], float) and self.last_lap_splits[n] > 0:
-                    last_lap_time = self.format_time(self.last_lap_splits[n])
-                elif isinstance(self.last_lap_splits[n], float):
-                    last_lap_time = "+"+self.format_time(self.last_lap_splits[n]*-1)
+                elif isinstance(self.last_lap_splits[orig_name], int):
+                    suffix = " laps" if self.last_lap_splits[orig_name] > 1 else " lap"
+                    last_lap_time = "{:+d}".format(self.last_lap_splits[orig_name])+suffix
+                elif isinstance(self.last_lap_splits[orig_name], float) and self.last_lap_splits[orig_name] > 0:
+                    last_lap_time = self.format_time(self.last_lap_splits[orig_name])
+                elif isinstance(self.last_lap_splits[orig_name], float):
+                    last_lap_time = "+"+self.format_time(self.last_lap_splits[orig_name]*-1)
 
                 timeWidth = self.replay.font.getsize(last_lap_time)[0]
 
@@ -154,7 +154,7 @@ class Standings(DynamicBase):
                 draw.line([(self.replay.margin, yPos+self.dataHeight), (self.replay.margin+lineLength*rr[0], yPos+self.dataHeight)], fill=(255, 0, 0), width=2)
                 draw.line([(self.replay.margin+lineLength*rr[0], yPos+self.dataHeight), (materialWidth-self.replay.margin, yPos+self.dataHeight)], fill=(255, 192, 192), width=2)
 
-                self.material.paste(self.__sector_rectangles(self.sector_status[n], self.pit_status[n], self.dataHeight), (ss[1]-2, int(yPos)))
+                self.material.paste(self.__sector_rectangles(self.sector_status[orig_name], self.pit_status[orig_name], self.dataHeight), (ss[1]-2, int(yPos)))
 
                 draw.ellipse([(self.replay.margin+lineLength*rr[0]-2, yPos+self.dataHeight-2), (self.replay.margin+lineLength*rr[0]+2, yPos+self.dataHeight+2)], fill=(255, 0, 0))
 
@@ -174,6 +174,9 @@ class Standings(DynamicBase):
             sizeString = "+60:00.00"
         else:
             sizeString = "+00.00"
+
+        #Remap to display names
+        self.standings = [(p, self.replay.short_name_display[n]) + tuple(rest) + (n,) for p, n, *rest in self.standings]
 
         widths = [(self.replay.font.getsize(str(p))[0], self.replay.font.getsize(str(n.split(" ")[0][0]+". "+n.split(" ")[-1] if len(n.split(" ")) > 1 else n))[0], int(self.replay.margin*1.5), max([self.replay.font.getsize(str(sizeString))[0], self.replay.font.getsize("+00 laps")[0]])) for p, n, *rest in self.standings]
 

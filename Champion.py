@@ -24,12 +24,12 @@ class Champion(StaticBase):
             if r == '1':
                 draw.text((xPos, yPos), "Champion", fill='black', font=self.replay.heading_font)
                 yPos += self.replay.heading_font.getsize("Champion")[1]
-                draw.text((xPos, yPos), self.replay.name_display[n], fill='black', font=self.replay.heading_font)
+                draw.text((xPos, yPos), str(n), fill='black', font=self.replay.heading_font)
                 yPos += self.replay.heading_font.getsize(n)[1]
             else:
                 draw.text((xPos, yPos), "Runner Up", fill='black', font=self.replay.font)
                 yPos += self.replay.font.getsize("Runner Up")[1]
-                draw.text((xPos, yPos), self.replay.name_display[n], fill='black', font=self.replay.font)
+                draw.text((xPos, yPos), str(n), fill='black', font=self.replay.font)
                 yPos += self.replay.font.getsize(n)[1]
             draw.text((xPos+self.replay.column_margin, yPos), t, fill='black', font=self.replay.font)
             yPos += self.replay.font.getsize(t)[1]
@@ -194,6 +194,9 @@ class Champion(StaticBase):
                 self.classification[i] = (str(self.classification[i-1][0]),)+x
             else:
                 self.classification[i] = (str(i+1),)+x
+
+        #Remap to display names
+        self.classification = [(p, self.replay.name_display[n]) + tuple(rest) for p, n, *rest in self.classification]
 
         heading_width = self.replay.heading_font.getsize(self.replay.heading_text)[0]+self.replay.margin*2
         text_width = max([max([self.replay.heading_font.getsize(n)[0] if r == '1' else self.replay.font.getsize(n)[0], self.replay.font.getsize(t)[0]+self.replay.column_margin, self.replay.font.getsize(c)[0]+self.replay.column_margin]) for r, n, t, c, *rest in self.classification[0:3]]+[self.replay.heading_font.getsize("Champion")[0]]+[self.replay.font.getsize("Runner Up")[0]])+self.replay.margin*2
