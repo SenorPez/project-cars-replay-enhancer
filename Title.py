@@ -73,7 +73,7 @@ class Title(StaticBase):
                       fill='black',
                       font=self.replay.font)
             draw.text((name[1], y_pos),
-                      str(name[0]),
+                      str(self.replay.name_display[name[0]]),
                       fill='black',
                       font=self.replay.font)
             draw.text((team[1], y_pos),

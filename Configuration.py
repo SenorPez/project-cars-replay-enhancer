@@ -234,7 +234,7 @@ class Configuration:
                 if len(column_margin) == 0 and previous_file:
                     break
                 elif len(column_margin) == 0:
-                    self.column_margin = int(self.margin)
+                    self.column_margin = int(self.margin/2)
                     break
                 elif len(column_margin) != 0:
                     try:
@@ -631,6 +631,7 @@ class Configuration:
                         point_structure.insert(position, int(new_point))
                     except ValueError:
                         print("Points should be integer values.")
+            self.point_structure = point_structure
 
             print("Parsing telemetry data for driver information.")
             print("Please wait...")
@@ -657,7 +658,9 @@ class Configuration:
                     use_last_team = True
                     break
             
-            self.participant_config = dict()
+            if not previous_file:
+                self.participant_config = dict()
+
             for participant in self.participants:
                 print("Entering data for {}.".format(participant))
                 if previous_file:
@@ -761,6 +764,7 @@ class Configuration:
                                 print("Point values should be integers.")
         except KeyboardInterrupt:
             print("\n\nExiting. No configuration data written.")
+            raise KeyboardInterrupt
         else:
             with open(os.path.realpath(self.config_file), 'w') as f:
                 json.dump(self.__get_values(), f, indent=4)
@@ -973,7 +977,7 @@ class Configuration:
         self.telemetry_file = 'tele.csv'
         self.output_video = json_data['output_video']
 
-        self.participant_config = {k:v for k, v in json_data['participant_config']}
+        self.participant_config = {k:v for k, v in json_data['participant_config'].items()}
 
         self.point_structure = json_data['point_structure']
 

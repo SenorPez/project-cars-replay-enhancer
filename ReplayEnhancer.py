@@ -3,6 +3,7 @@ from itertools import groupby
 from os.path import commonprefix
 import traceback
 import csv
+import argparse
 from glob import glob
 from hashlib import sha256
 from natsort import natsorted
@@ -16,6 +17,7 @@ from moviepy.editor import vfx
 from moviepy.video.io.bindings import PIL_to_npimage
 from numpy import diff, nonzero, where, cumsum
 from PIL import Image, ImageFont
+from tqdm import tqdm
 
 from Champion import Champion
 from Configuration import Configuration
@@ -28,7 +30,7 @@ from Track import Track
 from UpdatedVideoClip import UpdatedVideoClip
 
 class ReplayEnhancer():
-    def __init__(self, configuration):
+    def __init__(self, configuration=None):
         with open(os.path.realpath(configuration), 'r') as f:
             try:
                 json_data = json.load(f)
@@ -58,9 +60,14 @@ class ReplayEnhancer():
         self.telemetry_file = 'tele.csv'
         self.output_video = json_data['output_video']
 
-        self.car_data = {v['participant']:v['car'] for v in json_data['participant_config']}
-        self.team_data = {v['participant']:v['team'] if len(v['team']) else None for v in json_data['participant_config']}
-        self.points = {v['participant']:v['points'] for v in json_data['participant_config']}
+        self.name_display = {k:v['display'] for k, v in json_data['participant_config'].items()}
+        self.car_data = {k:v['car'] for k, v in json_data['participant_config'].items()}
+        self.team_data = {k:v['team'] for k, v in json_data['participant_config'].items()}
+        self.points = {k:v['points'] for k, v in json_data['participant_config'].items()}
+
+        #self.car_data = {v['participant']:v['car'] for v in json_data['participant_config']}
+        #self.team_data = {v['participant']:v['team'] if len(v['team']) else None for v in json_data['participant_config']}
+        #self.points = {v['participant']:v['points'] for v in json_data['participant_config']}
 
         self.point_structure = json_data['point_structure']
 
@@ -280,8 +287,8 @@ class ReplayEnhancer():
         return participant_data
 
     def process_telemetry(self):
-        with open(self.source_telemetry+self.telemetry_file, 'w') as csvfile:
-            for a in natsorted(glob(self.source_telemetry+'pdata*')):
+        with open(source_telemetry+telemetry_file, 'w') as csvfile:
+            for a in natsorted(glob(source_telemetry+'pdata*')):
                 with open(a, 'rb') as packFile:
                     packData = packFile.read()
                     if len(packData) == 1367:
@@ -401,14 +408,185 @@ class ReplayEnhancer():
                     m[x][y] = 0
         return s1[x_longest-longest:x_longest]
 
+    @classmethod
+    def new_configuration(cls):
+        try:
+            print("No configuration file provided.")
+            print("Creating new configuration file.")
+
+            config = Configuration()
+
+            print("Creating low-quality video as {}".format(config.output_video))
+            print("If video trimming needs to be adjusted, run the Project CARS Replay Enhancer with the `-t` option.")
+            print("\n")
+            print("To synchronize telemetry with video, run the Project CARS Replay Enhancer with the `-r` option.")
+            print("Set the synchronization offset to the value shown on the Timer when the viewed car crosses the start finish line to begin lap 2.")
+
+            try:
+                replay = cls(config.config_file)
+            except ValueError as e:
+                print("Invalid JSON in configuration file: {}".format(e))
+            else:
+                start_video = replay.__build_default_video(False)
+                end_video = replay.__build_default_video(False)
+
+                start_video = start_video.subclip(5, 185)
+                if replay.show_champion:
+                    end_video = end_video.subclip(end_video.duration-120, end_video.duration-60)
+                else:
+                    end_video = end_video.subclip(end_video.duration-100, end_video.duration-40)
+                output = mpy.concatenate_videoclips([start_video, end_video])
+                output.write_videofile(replay.output_video, fps=10, preset='superfast')
+        except KeyboardInterrupt:
+            print("Aborting...")
+
+    @classmethod
+    def edit_configuration(cls, previous_file):
+        try:
+            print("Editing configuration file {}".format(previous_file))
+
+            config = Configuration(previous_file)
+
+            print("Creating low-quality video as {}".format(config.output_video))
+            print("If video trimming needs to be adjusted, run the Project CARS Replay Enhancer with the `-t` option.")
+            print("\n")
+            print("To synchronize telemetry with video, run the Project CARS Replay Enhancer with the `-r` option.")
+            print("Set the synchronization offset to the value shown on the Timer when the viewed car crosses the start finish lin to begin lap 2.")
+
+            try:
+                replay = cls(config.config_file)
+            except ValueError as e:
+                print("Invalid JSON in configuration file: {}".format(e))
+            else:
+                start_video = replay.__build_default_video(False)
+                end_video = replay.__build_default_video(False)
+
+                start_video = start_video.subclip(5, 185)
+                if replay.show_champion:
+                    end_video = end_video.subclip(end_video.duration-120, end_video.duration-60)
+                else:
+                    end_video = end_video.subclip(end_video.duration-100, end_video.duration-40)
+                output = mpy.concatenate_videoclips([start_video, end_video])
+                output.write_videofile(replay.output_video, fps=10, preset='superfast')
+
+
+        except KeyboardInterrupt:
+            print("Aborting...")
+
+    @classmethod
+    def create_video(cls, config_file):
+        try:
+            print("Creating video.")
+
+            try:
+                replay = cls(config_file)
+            except ValueError as e:
+                print("Invalid JSON in configuration file: {}".format(e))
+            else:
+                output = replay.__build_default_video(True)
+                output.write_videofile(replay.output_video, fps=30)
+        except KeyboardInterrupt:
+            print("Aborting...")
+
+    def __build_default_video(self, process_data):
+        if self.source_video is None:
+            video = mpy.ColorClip((1280, 720), duration=self.telemetry_data[-1][0][-1][-1])
+        else:
+            video = self.black_test()
+        video_width, video_height = video.size
+
+        if self.backdrop != "":
+            backdrop = Image.open(self.backdrop).resize((video_width, video_height))
+            if self.logo != "":
+                logo = Image.open(self.logo).resize((self.logo_width, self.logo_height))
+                backdrop.paste(logo, (backdrop.width-logo.width, backdrop.height-logo.height), logo)
+        else:
+            backdrop = Image.new('RGBA', (video_width, video_height), (0, 0, 0))
+            if self.logo != "":
+                logo = Image.open(self.logo).resize((self.logo_width, self.logo_height))
+                backdrop.paste(logo, (backdrop.width-logo.width, backdrop.height-logo.height), logo)
+
+        backdrop = mpy.ImageClip(PIL_to_npimage(backdrop))
+        title = mpy.ImageClip(Title(self).to_frame()).set_duration(5).set_position(('center', 'center'))
+
+        standing = UpdatedVideoClip(Standings(self, process_data=process_data))
+        standing = standing.set_position((self.margin, self.margin)).set_duration(video.duration)
+        standing_mask = mpy.ImageClip(Standings(self, process_data=process_data).make_mask(), ismask=True, duration=video.duration)
+        standing = standing.set_mask(standing_mask)
+
+        timer = UpdatedVideoClip(Timer(self, process_data=process_data))
+        timer_width, timer_height = timer.size
+        timer = timer.set_position((video_width-timer_width-self.margin, self.margin)).set_duration(video.duration)
+        timer_mask = mpy.ImageClip(Timer(self, process_data=process_data).make_mask(), ismask=True, duration=video.duration)
+        timer = timer.set_mask(timer_mask)
+
+        result = mpy.ImageClip(Results(self).to_frame()).set_duration(20).set_position(('center', 'center')).add_mask()
+        result.mask = result.mask.fx(vfx.fadeout, 1)
+
+        series_standings = mpy.ImageClip(SeriesStandings(self).to_frame()).set_start(20).set_duration(20).set_position(('center', 'center')).add_mask()
+
+        if self.show_champion:
+            series_standings.mask = series_standings.mask.fx(vfx.fadein, 1).fx(vfx.fadeout, 1)
+            champion = mpy.ImageClip(Champion(self).to_frame()).set_start(40).set_duration(20).set_position(('center', 'center')).add_mask()
+            champion.mask = champion.mask.fx(vfx.fadein, 1)
+        else:
+            series_standings.mask = series_standings.mask.fx(vfx.fadein, 1)
+
+        intro = mpy.CompositeVideoClip([backdrop, title]).set_duration(5).fx(vfx.fadeout, 1)
+        mainevent = mpy.CompositeVideoClip([video, standing, timer]).set_duration(video.duration)
+
+        if self.show_champion:
+            outro = mpy.CompositeVideoClip([backdrop, result, series_standings, champion]).set_duration(sum([x.duration for x in [result, series_standings, champion]])).fx(vfx.fadein, 1)
+        else:
+            outro = mpy.CompositeVideoClip([backdrop, result, series_standings]).set_duration(sum([x.duration for x in [result, series_standings]])).fx(vfx.fadein, 1)
+
+        output = mpy.concatenate_videoclips([intro, mainevent, outro])
+        return output
+
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Project CARS Replay Enhancer")
+    parser.add_argument('-v', '--version', action='version', 
+        version='Version 0.3')
+    parser.add_argument('configuration', nargs='?')
+    parser.add_argument('-c', '--configure', action='store_true',
+        help='create or edit configuration file')
+    parser.add_argument('-r', '--racestart', action='store_true',
+        help='modify race start for telemetry sync')
+    parser.add_argument('-t', '--trim', action='store_true',
+        help='modify video trim parameters')
+        
+    arguments = parser.parse_args()
+
+    error_message = ""
+    if arguments.racestart is True and arguments.configuration is None:
+        error_message += "\n-r, --racestart requires a provided confguration file."
+    if arguments.trim is True and arguments.configuration is None:
+        error_message += "\n-t, --trim requires a provided configuration file."
+
+    if len(error_message):
+        parser.error(error_message)
+
+    if arguments.configure is True:
+        if arguments.configuration is None:
+            ReplayEnhancer.new_configuration()
+        else:
+            ReplayEnhancer.edit_configuration(arguments.configuration)
+        
+    if arguments.configure is False:
+        if arguments.configuration is None:
+            ReplayEnhancer.new_configuration()
+        else:
+            ReplayEnhancer.create_video(arguments.configuration)
+
+    '''
     if len(sys.argv) == 1:
         print("No configuration file provided.")
         print("Do you want to create a new configuration file?")
 
         while True:
             create_config = input("[Y/n]-->> ")
-            if len(create_config) == 0 or 
+            if len(create_config) == 0 or \
                     str.lower(create_config) == "y":
                 config = Configuration()
                 break;
@@ -498,3 +676,4 @@ if __name__ == "__main__":
         #Multiple frames.
         #for frame in range(int(output.duration-45), int(output.duration-25)):
             #output.save_frame(replay.output_video+"."+str(frame)+".jpg", frame)
+    '''

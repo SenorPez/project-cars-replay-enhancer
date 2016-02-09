@@ -28,7 +28,11 @@ class Results(StaticBase):
 
         for p, n, t, c, l, et, bl, bs1, bs2, bs3, pts in [list(zip(x, column_positions)) for x in self.classification]:
             draw.text((p[1], yPos), str(p[0]), fill='black', font=self.replay.font)
-            draw.text((n[1], yPos), str(n[0]), fill='black', font=self.replay.font)
+            try:
+                display_name = str(self.replay.name_display[n[0]])
+            except KeyError:
+                display_name = str(n[0])
+            draw.text((n[1], yPos), display_name, fill='black', font=self.replay.font)
             if t != "":
                 draw.text((t[1], yPos), str(t[0]), fill='black', font=self.replay.font)
             draw.text((c[1], yPos), str(c[0]), fill='black', font=self.replay.font)

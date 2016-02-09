@@ -133,7 +133,7 @@ class Standings(DynamicBase):
         for p, n, r, i, s, l, et, lx, cl, loc in self.standings[:10]+self.standings[self.current_group:self.current_group+6]:
             for pp, nn, ss, ll, rr in [list(zip((p, n, s, l, r), columnPositions+[0]))]:
                 draw.text((pp[1], yPos), str(pp[0]), fill='black', font=self.replay.font)
-                draw.text((nn[1], yPos), str(nn[0].split(" ")[0][0]+". "+nn[0].split(" ")[-1] if len(nn[0].split(" ")) > 1 else nn[0]), fill='black', font=self.replay.font)
+                draw.text((nn[1], yPos), str(self.replay.name_display[nn[0]].split(" ")[0][0]+". "+self.replay.name_display[nn[0]].split(" ")[-1] if len(self.replay.name_display[nn[0]].split(" ")) > 1 else self.replay.name_display[nn[0]]), fill='black', font=self.replay.font)
 
                 if isinstance(self.last_lap_splits[n], int) and self.last_lap_splits[n] < 0:
                     last_lap_time = "{}".format('')

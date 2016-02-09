@@ -24,12 +24,12 @@ class Champion(StaticBase):
             if r == '1':
                 draw.text((xPos, yPos), "Champion", fill='black', font=self.replay.heading_font)
                 yPos += self.replay.heading_font.getsize("Champion")[1]
-                draw.text((xPos, yPos), n, fill='black', font=self.replay.heading_font)
+                draw.text((xPos, yPos), self.replay.name_display[n], fill='black', font=self.replay.heading_font)
                 yPos += self.replay.heading_font.getsize(n)[1]
             else:
                 draw.text((xPos, yPos), "Runner Up", fill='black', font=self.replay.font)
                 yPos += self.replay.font.getsize("Runner Up")[1]
-                draw.text((xPos, yPos), n, fill='black', font=self.replay.font)
+                draw.text((xPos, yPos), self.replay.name_display[n], fill='black', font=self.replay.font)
                 yPos += self.replay.font.getsize(n)[1]
             draw.text((xPos+self.replay.column_margin, yPos), t, fill='black', font=self.replay.font)
             yPos += self.replay.font.getsize(t)[1]
