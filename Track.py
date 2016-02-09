@@ -35,13 +35,23 @@ class Track():
             if y['length'] == float(track_length)]
 
         if len(track) == 0:
-            raise ValueError("ValueError: No matching track found \
-                in data. Supplied track length was {}".format(
+            print("Error. No matching track length found",
+                "in data. Supplied track length was {}".format(
                     track_length))
-        if len(track) > 1:
-            raise ValueError("ValueError: Multiple matching tracks \
-                found in data. Supplied track length was {}".format(
+            print("Press any key to continue. Pit stop detection",
+                "will be disabled.")
+            input("--> ")
+
+            self.pit = False
+        elif len(track) > 1:
+            print("Error. Multiple matching track lengths found",
+                "in data. Supplied track length was {}".format(
                     track_length))
+            print("Press any key to continue. Pit stop detection",
+                "will be disabled.")
+            input("--> ")
+
+            self.pit = False
         else:
             track = track[0]
             self.name = str(track['display_name'])
