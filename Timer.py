@@ -72,19 +72,23 @@ class Timer(DynamicBase):
                 try:
                     telemetry_data, participant_data = [(x[0], x[-1]) for x in self.replay.telemetry_data if x[0][-1][-1] > self.clip_t-self.replay.sync_racestart][0]
                     telemetry_data = [x for x in telemetry_data if x[-1] > self.clip_t-self.replay.sync_racestart][0]
+                    currentLap = min((int(telemetry_data[10]), int(telemetry_data[184+int(telemetry_data[3])*9])))
+                    self.lap = "{}/{}".format(currentLap, telemetry_data[10])
                     #self.time = "{:.2f}".format(float([x for x in self.replay.telemetry_data if x[-1] > self.clip_t-self.replay.sync_racestart][0][13]))
                     #data = [x for x in self.replay.telemetry_data if x[-1] > self.clip_t-self.replay.sync_racestart][0]
                 except IndexError:
                     telemetry_data, participant_data, index_offset = [(x[0], x[-1], x[2]) for x in self.replay.telemetry_data if x[2] < self.replay.race_finish][-1]
                     telemetry_data = telemetry_data[self.replay.race_finish-index_offset]
+
+                    #Instead of the current lap, since we're freezing, we grab the completed laps.
+                    currentLap = min((int(telemetry_data[10]), int(telemetry_data[183+int(telemetry_data[3])*9])))
+                    self.lap = "{}/{}".format(currentLap, telemetry_data[10])
                     #raceFinish = [i for i, data in reversed(list(enumerate(self.replay.telemetry_data))) if int(data[9]) & int('111', 2)  == 2][0] + 1
                     #self.time = "{:.2f}".format(float(self.replay.telemetry_data[raceFinish][13]))
                     #data = self.replay.telemetry_data[raceFinish]
 
                 #self.time = "{:.2f}".format(float([x for x in telemetry_data if x[-1] > self.clip_t-self.replay.sync_racestart][0][13]))
                 self.time = "{:.2f}".format(float(telemetry_data[13]))
-                currentLap = min((int(telemetry_data[10]), int(telemetry_data[184+int(telemetry_data[3])*9])))
-                self.lap = "{}/{}".format(currentLap, telemetry_data[10])
             else:
                 telemetry_data = self.replay.telemetry_data[0][0][0]
                 self.time = "0.00"
