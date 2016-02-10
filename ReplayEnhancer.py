@@ -433,11 +433,11 @@ class ReplayEnhancer():
                 start_video = replay.__build_default_video(False)
                 end_video = replay.__build_default_video(False)
 
-                start_video = start_video.subclip(5, 185)
+                start_video = start_video.subclip(0, 185)
                 if replay.show_champion:
-                    end_video = end_video.subclip(end_video.duration-120, end_video.duration-60)
+                    end_video = end_video.subclip(end_video.duration-120, end_video.duration)
                 else:
-                    end_video = end_video.subclip(end_video.duration-100, end_video.duration-40)
+                    end_video = end_video.subclip(end_video.duration-100, end_video.duration)
                 output = mpy.concatenate_videoclips([start_video, end_video])
                 output.write_videofile(replay.output_video, fps=10, preset='superfast')
         except KeyboardInterrupt:
@@ -465,11 +465,11 @@ class ReplayEnhancer():
                 start_video = replay.__build_default_video(False)
                 end_video = replay.__build_default_video(False)
 
-                start_video = start_video.subclip(5, 185)
+                start_video = start_video.subclip(0, 185)
                 if replay.show_champion:
-                    end_video = end_video.subclip(end_video.duration-120, end_video.duration-60)
+                    end_video = end_video.subclip(end_video.duration-120, end_video.duration)
                 else:
-                    end_video = end_video.subclip(end_video.duration-100, end_video.duration-40)
+                    end_video = end_video.subclip(end_video.duration-100, end_video.duration)
                 output = mpy.concatenate_videoclips([start_video, end_video])
                 output.write_videofile(replay.output_video, fps=10, preset='superfast')
 
@@ -498,11 +498,11 @@ class ReplayEnhancer():
                 start_video = replay.__build_default_video(False)
                 end_video = replay.__build_default_video(False)
 
-                start_video = start_video.subclip(5, 185)
+                start_video = start_video.subclip(0, 185)
                 if replay.show_champion:
-                    end_video = end_video.subclip(end_video.duration-120, end_video.duration-60)
+                    end_video = end_video.subclip(end_video.duration-120, end_video.duration)
                 else:
-                    end_video = end_video.subclip(end_video.duration-100, end_video.duration-40)
+                    end_video = end_video.subclip(end_video.duration-100, end_video.duration)
                 output = mpy.concatenate_videoclips([start_video, end_video])
                 output.write_videofile(replay.output_video, fps=10, preset='superfast')
 
@@ -531,11 +531,11 @@ class ReplayEnhancer():
                 start_video = replay.__build_default_video(False)
                 end_video = replay.__build_default_video(False)
 
-                start_video = start_video.subclip(5, 185)
+                start_video = start_video.subclip(0, 185)
                 if replay.show_champion:
-                    end_video = end_video.subclip(end_video.duration-120, end_video.duration-60)
+                    end_video = end_video.subclip(end_video.duration-120, end_video.duration)
                 else:
-                    end_video = end_video.subclip(end_video.duration-100, end_video.duration-40)
+                    end_video = end_video.subclip(end_video.duration-100, end_video.duration)
                 output = mpy.concatenate_videoclips([start_video, end_video])
                 output.write_videofile(replay.output_video, fps=10, preset='superfast')
 
