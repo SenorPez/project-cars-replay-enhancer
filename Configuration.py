@@ -1150,17 +1150,16 @@ class Configuration:
                         progress_bar.update()
 
     def __get_participants(self, source_telemetry, telemetry_file):
-        with open(source_telemetry+telemetry_file) as f:
-            for i, l in enumerate(f):
-                pass
-        number_lines = i+1
-
         try:
             f = open(source_telemetry+telemetry_file, 'r')
         except FileNotFoundError:
             self.__process_telemetry(source_telemetry, telemetry_file)
             f = open(source_telemetry+telemetry_file, 'r')
         finally:
+            with open(source_telemetry+telemetry_file) as cf:
+                for i, l in enumerate(cf):
+                    pass
+            number_lines = i+1
             csvdata = csv.reader(f)
 
         new_data = list()
