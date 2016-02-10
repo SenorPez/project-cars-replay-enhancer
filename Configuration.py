@@ -600,7 +600,7 @@ class Configuration:
 
             point_structure = list()
             while True:
-                print("Enter bonus points for lastest lap.")
+                print("Enter bonus points for fastest lap.")
                 prompt = "({})".format(str(self.point_structure[0]) \
                     if previous_file else "0")
                 bonus_point = input(prompt+"--> ")
@@ -608,6 +608,9 @@ class Configuration:
                 if len(bonus_point) == 0 and previous_file:
                     point_structure.insert(0, 
                         int(self.point_structure[0]))
+                    break
+                elif len(bonus_point) == 0:
+                    point_structure.insert(0, int(0))
                     break
                 else:
                     try:
