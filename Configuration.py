@@ -599,6 +599,7 @@ class Configuration:
                     break
 
             point_structure = list()
+            import pdb; pdb.set_trace()
             while True:
                 print("Enter bonus points for fastest lap.")
                 prompt = "({})".format(str(self.point_structure[0]) \
@@ -1280,6 +1281,7 @@ class Configuration:
                 array += [array[-1]]*(length-len(array))
             except IndexError:
                 array = [None for x in range(length)]
+        return array
 
     def __load_configuration(self, configuration):
         with open(os.path.realpath(configuration), 'r') as f:
