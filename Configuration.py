@@ -682,21 +682,28 @@ class Configuration:
                     use_last_team = True
                     break
             
+            if previous_file:
+                self.participant_config = {k:v \
+                    for k, v in self.participant_config.items() \
+                    if k in self.participants}
             if not previous_file:
                 self.participant_config = dict()
 
-            for participant in self.participants:
+            for participant in sorted(self.participants, key=lambda x: str(x).lower()):
                 print("Entering data for {}.".format(participant))
-                if not previous_file:
-                    self.participant_config[participant] = {'display': None, 'car': None, 'team': None, 'points': None}
+                if participant not in self.participant_config.keys():
+                    self.participant_config[participant] = {'display': None, 'car': None, 'team': None, 'points': None, 'short_display': None}
 
                 while True:
                     print("Enter display name override for {}.".format(participant))
-                    prompt = "({})".format(self.participant_config[participant]['display'] \
-                        if previous_file else participant)
+                    if self.participant_config[participant]['display'] is not None:
+                        prompt = "({})".format(
+                            self.participant_config[participant]['display'])
+                    else:
+                        prompt = "({})".format(participant)
                     display_name = input(prompt+"--> ")
 
-                    if len(display_name) == 0 and previous_file:
+                    if len(display_name) == 0 and previous_file and self.participant_config[participant]['display'] is not None:
                         break
                     elif len(display_name) == 0:
                         self.participant_config[participant]['display'] = participant
@@ -708,11 +715,19 @@ class Configuration:
                 while True:
                     print("Enter abbreviated name override for {}.".format(participant))
                     print("(Used by some modules for space saving.)")
-                    prompt = "({})".format(self.participant_config[participant]['short_display'] \
-                        if previous_file else participant.split(" ")[0][0]+". "+participant.split(" ")[-1] if len(participant.split(" ")) > 1 else participant)
+
+                    if self.participant_config[participant]['short_display'] is not None:
+                        prompt = "({})".format(
+                            self.participant_config[participant]['short_display'])
+                    else:
+                        prompt = "({})".format(
+                            self.participant_config[participant]['display'].split(" ")[0][0] + \
+                            ". " + \
+                            self.participant_config[participant]['display'].split(" ")[-1] \
+                            if len(self.participant_config[participant]['display'].split(" ")) > 1 else self.participant_config[participant]['display'])
                     short_display_name = input(prompt+"--> ")
 
-                    if len(short_display_name) == 0 and previous_file:
+                    if len(short_display_name) == 0 and previous_file and self.participant_config[participant]['short_display'] is not None:
                         break
                     elif len(short_display_name) == 0:
                         self.participant_config[participant]['short_display'] = participant.split(" ")[0][0]+". "+participant.split(" ")[-1] if len(participant.split(" ")) > 1 else participant
@@ -728,20 +743,25 @@ class Configuration:
                         print("Enter car for {}.".format(participant))
                         if last_car:
                             print("Enter -1 to use {} for remaining drivers.".format(last_car))
-                        prompt = "({})".format(self.participant_config[participant]['car'] \
-                            if previous_file else last_car if last_car else "")
+
+                        if self.participant_config[participant]['car'] is not None:
+                            prompt = "({})".format(
+                                self.participant_config[participant]['car'])
+                        else:
+                            prompt = "({})".format(
+                                last_car if last_car else "")
                         car = input(prompt+"--> ")
 
-                        if len(car) == 0 and previous_file:
+                        if len(car) == 0 and previous_file and self.participant_config[participant]['car'] is not None:
                             break
                         elif len(car) == 0 and last_car:
                             self.participant_config[participant]['car'] = last_car
                             break
-                        elif car == "-1":
+                        elif car == "-1" and last_car:
                             self.participant_config[participant]['car'] = last_car
                             use_last_car = True
                             break
-                        elif len(car) != 0:
+                        elif len(car) != 0 and car != "-1":
                             last_car = car
                             self.participant_config[participant]['car'] = last_car
                             break
@@ -753,20 +773,25 @@ class Configuration:
                         print("Enter team for {}.".format(participant))
                         if last_team:
                             print("Enter -1 to use {} for remaining drivers.".format(last_team))
-                        prompt = "({})".format(self.participant_config[participant]['team'] \
-                            if previous_file else last_team if last_team else "")
+
+                        if self.participant_config[participant]['team'] is not None:
+                            prompt = "({})".format(
+                                self.participant_config[participant]['team'])
+                        else:
+                            prompt = "({})".format(
+                                last_team if last_team else "")
                         team = input(prompt+"--> ")
 
-                        if len(team) == 0 and previous_file:
+                        if len(team) == 0 and previous_file and self.participant_config[participant]['team'] is not None:
                             break
                         elif len(team) == 0 and last_team:
                             self.participant_config[participant]['team'] = last_team
                             break
-                        elif team == "-1":
+                        elif team == "-1" and last_team:
                             self.participant_config[participant]['team'] = last_team
                             use_last_team = True
                             break
-                        elif len(team) != 0:
+                        elif len(team) != 0 and team != "-1":
                             last_team = team
                             self.participant_config[participant]['team'] = last_team
                             break
@@ -778,20 +803,25 @@ class Configuration:
                         print("Enter previous series points for {}.".format(participant))
                         if last_points is not None:
                             print("Enter -1 to use {} for remaining drivers.".format(last_points))
-                        prompt = "({})".format(self.participant_config[participant]['points'] \
-                            if previous_file else last_points if last_points is not None else "")
+
+                        if self.participant_config[participant]['points'] is not None:
+                            prompt = "({})".format(
+                                self.participant_config[participant]['points'])
+                        else:
+                            prompt = "({})".format(
+                                last_points if last_points is not None else "")
                         points = input(prompt+"--> ")
 
-                        if len(points) == 0 and previous_file:
+                        if len(points) == 0 and previous_file and self.participant_config[participant]['points'] is not None:
                             break
                         elif len(points) == 0 and last_points is not None:
                             self.participant_config[participant]['points'] = last_points
                             break
-                        elif points == "-1":
+                        elif points == "-1" and last_points is not None:
                             self.participant_config[participant]['points'] = last_points
                             use_last_points = True
                             break
-                        elif len(points) != 0:
+                        elif len(points) != 0 and points != "-1":
                             try:
                                 last_points = int(points)
                                 self.participant_config[participant]['points'] = last_points
@@ -1242,7 +1272,7 @@ class Configuration:
             in self.participant_lookup.items() for v in l}
         self.participants = {v for v in self.participant_lookup.values()}
 
-    def __finish_array(array, previous_array=None, length=0):
+    def __finish_array(self, array, previous_array=None, length=0):
         if previous_array:
             array = array+previous_array[len(array):]
         else:
