@@ -20,7 +20,7 @@ class Track():
     - Pit Exit Coordinates: [float, float]
     - Pit Detection Radius: float
     """
-    def __init__(self, track_length, reverse=False):
+    def __init__(self, track_length, reverse=False, error=2):
         with open(os.path.realpath("track_data.json"), 'r') \
                 as json_file:
             try:
@@ -28,11 +28,15 @@ class Track():
             except ValueError as json_error:
                 raise json_error
 
-        integer, _, decimal = str(track_length).partition('.')
-        track_length = ".".join([integer, (decimal+'0'*3)[:3]])
-        track = [y for x in json_data['tracks'] \
+        #integer, _, decimal = str(track_length).partition('.')
+        #track_length = ".".join([integer, (decimal+'0'*3)[:3]])
+        track = sorted([y \
+            for x in json_data['tracks'] \
             for y in x.values() \
-            if y['length'] == float(track_length)]
+            if abs(y['length']-float(track_length)) < error])
+        #track = [y for x in json_data['tracks'] \
+            #for y in x.values() \
+            #if y['length'] == float(track_length)]
 
         if len(track) == 0:
             print("Error. No matching track length found",
@@ -52,9 +56,10 @@ class Track():
             input("--> ")
 
             self.pit = False
-        else:
+        else:   
             track = track[0]
             self.name = str(track['display_name'])
+            print("Using Track: {}".format(self.name))
             if reverse:
                 self.name += " Reverse"
             self.length = float(track['length'])
