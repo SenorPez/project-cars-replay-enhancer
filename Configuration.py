@@ -599,7 +599,6 @@ class Configuration:
                     break
 
             point_structure = list()
-            import pdb; pdb.set_trace()
             while True:
                 print("Enter bonus points for fastest lap.")
                 prompt = "({})".format(str(self.point_structure[0]) \
