@@ -90,14 +90,14 @@ class Standings(DynamicBase):
 
         if pit_stop:
             draw.rectangle([(xPos, 0), ((xPos+int(self.replay.margin/2)+1)*3, height-1)], fill=(0, 0, 255), outline=border_color)
-            font_size = 15
             width_target = ((xPos+int(self.replay.margin/2))*3)*0.80
             height_target = height*0.80
-            font = ImageFont.truetype("/usr/share/fonts/truetype/Roboto/Roboto-Regular.ttf", font_size)
+            font = self.replay.font
+            font_size = font.size
             while font.getsize("PIT")[0] > width_target and \
                     font.getsize("PIT")[1] > height_target:
                 font_size -= 1
-                font = ImageFont.truetype("/usr/share/fonts/truetype/Roboto/Roboto-Regular.ttf", font_size)
+                font.size = font_size
             position_x = int((output.size[0]-font.getsize("PIT")[0])/2)
             position_y = int((output.size[1]-font.getsize("PIT")[1])/2)
             draw.text((position_x, position_y), "PIT", fill='white', font=font)
