@@ -2,7 +2,6 @@
 Provides the default Results screen for the Project CARS Replay
 Enhancer
 """
-from collections import deque
 from numpy import diff, nonzero
 
 from PIL import Image, ImageDraw
@@ -30,7 +29,7 @@ class Results(StaticBase):
 
         participants = {x for x \
             in self.replay.participant_lookup.values()}
-        self.lap_finish = {n:-1 for n in participants}
+        self.lap_finish = {n:None for n in participants}
 
         self.classification = None
         self.material = None
@@ -150,107 +149,142 @@ class Results(StaticBase):
         sector_times = {n:[] for n in participants}
         laps_finished = {n:0 for n in participants}
         lap_times = {n:[] for n in participants}
+
         valid_lap_times = {n:[] for n in participants}
         personal_best_laps = {n:'' for n in participants}
         invalid_laps = {n:[] for n in participants}
 
         laps_at_p1_finish = {n:None for n in participants}
-        laps_at_race_end = {n:None for n in participants}
-        finish_status = {n:{'laps':None, 'dnf':True} \
+        finish_status = {n:{'laps':None, 'dnf':True, 'position':None} \
             for n in participants}
 
-        #Position data at P1 finish.
-        telemetry_data, participant_data, offset = \
-            zip(*[(x[0], x[-1], x[2]) \
-                for x in self.replay.telemetry_data \
-                if x[2] < self.replay.race_p1_finish])
-        participant_data = participant_data[-1]
-        offset = offset[-1]
-        telemetry_data = telemetry_data[-1]\
-            [self.replay.race_p1_finish-offset]
+        #Get the telemetry data from P1 finish to race end.
+        index = -1
+        participant_data = [self.replay.telemetry_data[-1][-1]]
+        offset = [self.replay.telemetry_data[-1][2]]
+        telemetry_data = [self.replay.telemetry_data[-1][0]]
 
+        while offset[0] > self.replay.race_p1_finish:
+            index -= 1
+            offset.insert(0, self.replay.telemetry_data[index][2])
+            participant_data.insert(
+                0,
+                self.replay.telemetry_data[index][-1])
+            telemetry_data.insert(
+                0,
+                self.replay.telemetry_data[index][0])
+        combined_data = [x for x in zip(
+            telemetry_data,
+            offset,
+            participant_data)]
+
+        p1_offset = self.replay.race_p1_finish-offset[0]
+
+        #Lap data at P1 finish.
         for name, laps in [(
-                participant_data[i][1],
-                int(telemetry_data[184+i*9])) \
-                    for i in range(int(telemetry_data[4]))]:
+                participant_data[0][i][1],
+                int(telemetry_data[0][p1_offset][184+i*9])) \
+                    for i in range(int(
+                        telemetry_data[0][p1_offset][4]))]:
             laps_at_p1_finish[name] = laps
 
+        position_1 = max(
+            [(name, laps) for name, laps \
+             in laps_at_p1_finish.items()
+             if laps is not None],
+            key=lambda x: x[1])
 
-        #Position data at race end.
-        #Participants are considered DNF if they haven't completed
-        #the lap they were on when P1 finished.
-        #TODO: Add support for timed races.
-        #TODO: Add configuration option to ignore all this, for short
-        #telemetry.
-        participant_data = self.replay.telemetry_data[-1][-1]
-        offset = self.replay.telemetry_data[-1][2]
-        telemetry_data = self.replay.telemetry_data[-1][0][-1]
+        finish_position = 1
+        finish_status[position_1[0]]['position'] = finish_position
+        finish_status[position_1[0]]['dnf'] = False
+        finish_status[position_1[0]]['laps'] = position_1[1]-1
 
-        for name, laps in [(
+        #Lap data at race finish.
+        for telemetry_data, offset, participant_data in combined_data:
+            finish_data = [(
                 participant_data[i][1],
-                int(telemetry_data[184+i*9])) \
-                    for i in range(int(telemetry_data[4]))]:
-            laps_at_race_end[name] = laps
+                int(x[184+participant_data[i][0]*9])) \
+                for telemetry_index, x in enumerate(telemetry_data) \
+                for i in range(int(x[4])) \
+                if telemetry_index+offset > self.replay.race_p1_finish]
 
-        for name, laps in laps_at_p1_finish.items():
-            if laps is None:
-                finish_status[name]['laps'] = None
-                finish_status[name]['dnf'] = True
-            elif max(
-                    [(name, laps) for name, laps \
-                        in laps_at_p1_finish.items() \
-                        if laps is not None],
-                    key=lambda x: x[1])[0] == name:
-                finish_status[name]['laps'] = laps-1
-                finish_status[name]['dnf'] = False
-            elif laps_at_race_end[name] == laps:
-                finish_status[name]['laps'] = laps-1
-                finish_status[name]['dnf'] = True
-            else:
-                finish_status[name]['laps'] = laps
-                finish_status[name]['dnf'] = False
+            for name, laps in finish_data:
+                if finish_status[name]['laps'] is None:
+                    finish_status[name]['laps'] = laps
+                elif laps > finish_status[name]['laps'] and \
+                        finish_status[name]['dnf']:
+                    finish_status[name]['dnf'] = False
+                    finish_position += 1
+                    finish_status[name]['position'] = finish_position
 
+            #Find the indexes when the last laps end.
+            for index, name, *_ in participant_data:
+                if self.lap_finish[name] is None:
+                    lap_finish_index = self.replay.race_p1_finish
+                    if name == position_1[0]:
+                        self.lap_finish[name] = lap_finish_index
+                    else:
+                        try:
+                            telemetry_offset = \
+                                self.replay.race_p1_finish-offset
+                            while telemetry_data[telemetry_offset]\
+                                    [184+index*9] == \
+                                telemetry_data[lap_finish_index-offset]\
+                                    [184+index*9]:
+                                lap_finish_index += 1
+                        except IndexError:
+                            lap_finish_index = None
+                        self.lap_finish[name] = lap_finish_index
+
+        #Assign finish positions to the DNFs that didn't drop out.
+        for name, laps in sorted(
+                [(name, value['laps']) \
+                    for name, value in finish_status.items() \
+                    if value['laps'] is not None and value['dnf']],
+                key=lambda x: x[1],
+                reverse=True):
+            finish_status[name]['laps'] = laps-1
+            finish_position += 1
+            finish_status[name]['position'] = finish_position
+
+        all_participants = {x[1:] \
+            for i in range(len(self.replay.telemetry_data)) \
+            for x in self.replay.telemetry_data[i][-1]}
         self.classification = sorted(
-            (
-                int(telemetry_data[182+i*9]) & int('01111111', 2),
-                n,
-                t if t is not None else "",
-                c,
-                i,
-                finish_status[n]['laps'])
-            for i, n, t, c in participant_data)
+            [(
+                finish_status[name]['position'],
+                name,
+                team,
+                car,
+                finish_status[name]['laps'])
+             for name, team, car \
+                in all_participants \
+            if finish_status[name]['position'] is not None])
+
+        dnf_classification = sorted(
+            [(
+                finish_status[name]['position'],
+                name,
+                team,
+                car,
+                finish_status[name]['laps'])
+             for name, team, car \
+                in all_participants \
+            if finish_status[name]['position'] is None],
+            key=lambda x: x[1].lower())
+        self.classification.extend(dnf_classification)
+
         self.classification = [
             (
                 ("DNF",) if finish_status[n]['dnf'] \
                     else (p,)) + (n,) + tuple(rest)
             for p, (i, n, *rest) in enumerate(self.classification, 1)]
 
-        telemetry_data = [x for x \
-            in zip(*self.replay.telemetry_data)][0]
-        telemetry_data = [item for chunk \
-            in telemetry_data for item in chunk]
-
-        #Find the indexes when the last laps end.
-        for position, name, _, _, index, _ in self.classification[:16]:
-            lap_finish_index = self.replay.race_p1_finish
-            if position == 1:
-                self.lap_finish[name] = lap_finish_index
-            else:
-                try:
-                    while telemetry_data[self.replay.race_p1_finish]\
-                            [184+index*9] == \
-                            telemetry_data\
-                                [lap_finish_index][184+index*9]:
-                        lap_finish_index += 1
-                except IndexError:
-                    lap_finish_index = len(telemetry_data)-1
-                self.lap_finish[name] = lap_finish_index
-
         for telemetry_data, _, index_offset, participant_data \
                 in self.replay.telemetry_data:
             for index, name, *rest in participant_data:
                 lap_finish = self.lap_finish[name] \
-                    if self.lap_finish[name] != -1 \
+                    if self.lap_finish[name] is not None \
                     else self.replay.race_end
                 new_sector_times = [
                     float(telemetry_data[x][186+index*9]) \
@@ -288,6 +322,7 @@ class Results(StaticBase):
             lap_times[name] = [sum(sector_times[name][x:x+3]) \
                 for x in range(0, len(sector_times[name]), 3)]
 
+
         for name, laps in invalid_laps.items():
             for lap in reversed(sorted({x for x in laps})):
                 del sector_times[name][(lap-1)*3:(lap-1)*3+3]
@@ -322,25 +357,64 @@ class Results(StaticBase):
             except ValueError:
                 personal_best_laps[name] = -1
 
-        #Add in DNFs to the classification.
-        in_classification = [n for _, n, *rest in self.classification]
-        participant_data = self.replay.update_participants(deque(
-            self.replay.participant_configurations))
-        for name in sorted(
-                laps_finished,
-                key=laps_finished.get,
-                reverse=True):
-            if name not in in_classification:
-                dnf_data = [x \
-                    for x in participant_data \
-                    if x[1] == name][0]
-                self.classification.append((
-                    "DNF",
-                    dnf_data[1],
-                    dnf_data[2],
-                    dnf_data[3],
-                    "-1",
-                    laps_finished[name]))
+        #Remove the early-quitters.
+        #Add in their lap data and sort.
+        #Readd.
+        #There has to be a better way?
+        dnf_classification = [x for x in self.classification \
+            if x[-1] is None]
+        #self.classification = [x for x in self.classification \
+            #if x[-1] is not None]
+
+        self.classification = sorted(
+            [(
+                position,
+                name,
+                team,
+                car,
+                laps)
+             for position, name, team, car, laps \
+                in self.classification
+             if laps is not None],
+            key=lambda x: sum(lap_times[x[1]]))
+        self.classification = sorted(
+            [(
+                position,
+                name,
+                team,
+                car,
+                laps)
+             for position, name, team, car, laps \
+                in self.classification],
+            key=lambda x: x[-1], reverse=True)
+
+        self.classification = [
+            ("DNF" if position == "DNF" else index,) + \
+            tuple(rest) \
+            for index, (position, *rest) \
+                in enumerate(self.classification, 1)]
+
+        dnf_classification = sorted(
+            [(
+                "DNF",
+                name,
+                team,
+                car,
+                laps_finished[name])
+             for position, name, team, car, laps \
+                in dnf_classification],
+            key=lambda x: sum(lap_times[x[1]]))
+        dnf_classification = sorted(
+            [(
+                "DNF",
+                name,
+                team,
+                car,
+                laps_finished[name])
+             for position, name, team, car, laps \
+                in dnf_classification],
+            key=lambda x: x[-1], reverse=True)
+        self.classification.extend(dnf_classification)
 
         column_headings = [(
             "Pos.",
@@ -390,13 +464,14 @@ class Results(StaticBase):
                                 if isinstance(x, float)]) == \
                                     personal_best_laps[n] \
                                 else self.replay.point_structure[p])) \
-            for p, n, t, c, i, l in self.classification[:16]]
+            for p, n, t, c, l in self.classification[:16]]
 
         #Remap to display names
         self.classification = [(
             p,
             self.replay.name_display[n]) + tuple(rest) \
             for p, n, *rest in self.classification]
+
 
         column_headings = [tuple([x \
             if len([y[i] \
