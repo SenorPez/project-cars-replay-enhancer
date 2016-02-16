@@ -730,7 +730,8 @@ class Configuration:
                     if len(short_display_name) == 0 and previous_file and self.participant_config[participant]['short_display'] is not None:
                         break
                     elif len(short_display_name) == 0:
-                        self.participant_config[participant]['short_display'] = participant.split(" ")[0][0]+". "+participant.split(" ")[-1] if len(participant.split(" ")) > 1 else participant
+                        self.participant_config[participant]['short_display'] = self.participant_config[participant]['display'].split(" ")[0][0] + ". " + self.participant_config[participant]['display'].split(" ")[-1] if len(self.participant_config[participant]['display'].split(" ")) > 1 else self.participant_config[participant]['display']
+                        #self.participant_config[participant]['short_display'] = participant.split(" ")[0][0]+". "+participant.split(" ")[-1] if len(participant.split(" ")) > 1 else self.participant_config[participant]['display']
                         break
                     else:
                         self.participant_config[participant]['short_display'] = short_display_name
