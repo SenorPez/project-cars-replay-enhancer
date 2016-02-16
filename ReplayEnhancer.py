@@ -450,14 +450,18 @@ class ReplayEnhancer():
                 print("Invalid JSON in configuration file: {}".format(e))
             else:
                 start_video = replay.__build_default_video(False)
-                #end_video = replay.__build_default_video(False)
-                end_video = start_video.copy()
+                end_video = replay.__build_default_video(False)
 
-                start_video = start_video.subclip(0, 185)
+                start_video = start_video.set_duration(
+                    start_video.duration).subclip(0, 185)
                 if replay.show_champion:
-                    end_video = end_video.subclip(end_video.duration-120, end_video.duration)
+                    end_video = end_video.set_duration(
+                        end_video.duration).subclip(
+                            end_video.duration-120)
                 else:
-                    end_video = end_video.subclip(end_video.duration-100, end_video.duration)
+                    end_video = end_video.set_duration(
+                        end_video.duration).subclip(
+                            end_video.duration-100)
                 output = mpy.concatenate_videoclips([start_video, end_video])
                 output.write_videofile(replay.output_video, fps=10, preset='superfast')
         except KeyboardInterrupt:
@@ -483,14 +487,18 @@ class ReplayEnhancer():
                 print("Invalid JSON in configuration file: {}".format(e))
             else:
                 start_video = replay.__build_default_video(False)
-                #end_video = replay.__build_default_video(False)
-                end_video = start_video.copy()
+                end_video = replay.__build_default_video(False)
 
-                start_video = start_video.subclip(0, 185)
+                start_video = start_video.set_duration(
+                    start_video.duration).subclip(0, 185)
                 if replay.show_champion:
-                    end_video = end_video.subclip(end_video.duration-120, end_video.duration)
+                    end_video = end_video.set_duration(
+                        end_video.duration).subclip(
+                            end_video.duration-120)
                 else:
-                    end_video = end_video.subclip(end_video.duration-100, end_video.duration)
+                    end_video = end_video.set_duration(
+                        end_video.duration).subclip(
+                            end_video.duration-100)
                 output = mpy.concatenate_videoclips([start_video, end_video])
                 output.write_videofile(replay.output_video, fps=10, preset='superfast')
 
@@ -516,16 +524,20 @@ class ReplayEnhancer():
             except ValueError as e:
                 print("Invalid JSON in configuration file: {}".format(e))
             else:
-                import pdb; pdb.set_trace()
                 start_video = replay.__build_default_video(False)
-                #end_video = replay.__build_default_video(False)
-                end_video = start_video.copy()
+                end_video = replay.__build_default_video(False)
 
-                start_video = start_video.subclip(0, 185)
+                start_video = start_video.set_duration(
+                    start_video.duration).subclip(0, 185)
                 if replay.show_champion:
-                    end_video = end_video.subclip(end_video.duration-120, end_video.duration)
+                    end_video = end_video.set_duration(
+                        end_video.duration).subclip(
+                            end_video.duration-120)
                 else:
-                    end_video = end_video.subclip(end_video.duration-100, end_video.duration)
+                    end_video = end_video.set_duration(
+                        end_video.duration).subclip(
+                            end_video.duration-100)
+
                 output = mpy.concatenate_videoclips([start_video, end_video])
                 output.write_videofile(replay.output_video, fps=10, preset='superfast')
 
@@ -552,14 +564,18 @@ class ReplayEnhancer():
                 print("Invalid JSON in configuration file: {}".format(e))
             else:
                 start_video = replay.__build_default_video(False)
-                #end_video = replay.__build_default_video(False)
-                end_video = start_video.copy()
+                end_video = replay.__build_default_video(False)
 
-                start_video = start_video.subclip(0, 185)
+                start_video = start_video.set_duration(
+                    start_video.duration).subclip(0, 185)
                 if replay.show_champion:
-                    end_video = end_video.subclip(end_video.duration-120, end_video.duration)
+                    end_video = end_video.set_duration(
+                        end_video.duration).subclip(
+                            end_video.duration-120)
                 else:
-                    end_video = end_video.subclip(end_video.duration-100, end_video.duration)
+                    end_video = end_video.set_duration(
+                        end_video.duration).subclip(
+                            end_video.duration-100)
                 output = mpy.concatenate_videoclips([start_video, end_video])
                 output.write_videofile(replay.output_video, fps=10, preset='superfast')
 
@@ -580,7 +596,7 @@ class ReplayEnhancer():
                 #output.save_frame("outputs/frame1.png", output.duration-50)
                 #output.save_frame("outputs/frame2.png", output.duration-30)
                 #output.save_frame("outputs/frame3.png", output.duration-10)
-                output.subclip(5, 15).write_videofile(replay.output_video, fps=10, preset='superfast')
+                output.set_duration(output.duration).subclip(5, 15).write_videofile(replay.output_video, fps=10, preset='superfast')
         except KeyboardInterrupt:
             print("Aborting...")
 
