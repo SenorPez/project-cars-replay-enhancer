@@ -16,6 +16,7 @@ from moviepy.editor import vfx
 from moviepy.video.io.bindings import PIL_to_npimage
 from numpy import diff, nonzero, where, cumsum
 from PIL import Image, ImageFont
+from tqdm import tqdm
 
 from Champion import Champion
 from Configuration import Configuration
@@ -94,6 +95,7 @@ class ReplayEnhancer():
 
         self.race_start = -1
         self.race_finish = -1
+        self.race_p1_finish = -1
         self.race_end = -1
 
         self.get_telemetry()
@@ -107,74 +109,86 @@ class ReplayEnhancer():
             self.process_telemetry()
             f = open(self.source_telemetry+self.telemetry_file, 'r')
         finally:
+            index = 0
+            with open(self.source_telemetry+self.telemetry_file) as csv_file:
+                for index, _ in enumerate(csv_file):
+                    pass
+            number_lines = index+1
             csvdata = csv.reader(f)
 
         try:
             i = 0;
-            for row in csvdata:
-                self.telemetry_data.append(row+[i])
-                i += 1
+            with tqdm(desc="Loading telemetry", total=number_lines) \
+                        as progress_bar:
+                for row in csvdata:
+                    self.telemetry_data.append(row+[i])
+                    i += 1
+                    progress_bar.update()
 
-                '''
-                if int(row[1]) & 3 == 0:
-                    self.telemetry_data.append(row)
-                elif int(row[1]) & 3 == 1:
-                    for p in enumerate(row[6:-1]):
-                        if len(p[1]):
-                            self.participant_data.append(p)
-                elif int(row[1]) & 3 == 2:
-                    for p in enumerate(row[3:-1], int(row[2])):
-                        if len(p[1]):
-                            self.participant_data.append(p)
-                else:
-                    raise ValueError("ValueError: Unrecognized packet type ("+str(int(row[1]) & 3)+")")
-
-            self.participant_data = [(i, n, t, c) for (i, n), t, c in zip(list(sorted({x for x in self.participant_data})), self.team_data, self.car_data)]
-            '''
-
-            #Extract, process, and de-garbage the participant data.
-            #Also add cumulative time index to end of data structure.
-
-            last_time = 0
-            add_time = 0
-            time_adjust = 0
-            participants = 0
-            new_data = list()
-
-            for i, data in enumerate(self.telemetry_data):
-                if len(data) == 688 and int(data[4]) != -1:
-                    participants = int(data[4])
-
-                    if float(data[13]) == -1:
-                        self.telemetry_data[i] = data+[-1]
+                    '''
+                    if int(row[1]) & 3 == 0:
+                        self.telemetry_data.append(row)
+                    elif int(row[1]) & 3 == 1:
+                        for p in enumerate(row[6:-1]):
+                            if len(p[1]):
+                                self.participant_data.append(p)
+                    elif int(row[1]) & 3 == 2:
+                        for p in enumerate(row[3:-1], int(row[2])):
+                            if len(p[1]):
+                                self.participant_data.append(p)
                     else:
-                        if last_time == 0:
-                            time_adjust = float(data[13])
-                        elif float(data[13]) < last_time:
-                            add_time = last_time + add_time
-                        self.telemetry_data[i] = data+[float(data[13])+add_time-time_adjust]
-                        last_time = float(data[13])
-                elif len(data) == 688 and int(data[4]) == -1:
-                    pass
-                elif len(data) == 24:
-                    for p in enumerate(data[6:6+min(16, participants)]):
-                        if len(p[1]):
-                            new_data.append(p)
-                elif len(data) == 21:
-                    for p in enumerate(data[3:3+min(16, participants)], int(data[2])):
-                        if len(p[1]):
-                            new_data.append(p)
-                else:
-                    raise ValueError("ValueError: Unrecognized or malformed packet.")
+                        raise ValueError("ValueError: Unrecognized packet type ("+str(int(row[1]) & 3)+")")
 
-                if len(new_data) >= participants and participants > 0:
-                    try:
-                        if new_data != self.participant_configurations[-1][:-1]:
+                self.participant_data = [(i, n, t, c) for (i, n), t, c in zip(list(sorted({x for x in self.participant_data})), self.team_data, self.car_data)]
+                '''
+
+                #Extract, process, and de-garbage the participant data.
+                #Also add cumulative time index to end of data structure.
+
+            with tqdm(desc="Processing telemetry", total=number_lines) \
+                        as progress_bar:
+                last_time = 0
+                add_time = 0
+                time_adjust = 0
+                participants = 0
+                new_data = list()
+
+                for i, data in enumerate(self.telemetry_data):
+                    if len(data) == 688 and int(data[4]) != -1:
+                        participants = int(data[4])
+
+                        if float(data[13]) == -1:
+                            self.telemetry_data[i] = data+[-1]
+                        else:
+                            if last_time == 0:
+                                time_adjust = float(data[13])
+                            elif float(data[13]) < last_time:
+                                add_time = last_time + add_time
+                            self.telemetry_data[i] = data+[float(data[13])+add_time-time_adjust]
+                            last_time = float(data[13])
+                    elif len(data) == 688 and int(data[4]) == -1:
+                        pass
+                    elif len(data) == 24:
+                        for p in enumerate(data[6:6+min(16, participants)]):
+                            if len(p[1]):
+                                new_data.append(p)
+                    elif len(data) == 21:
+                        for p in enumerate(data[3:3+min(16, participants)], int(data[2])):
+                            if len(p[1]):
+                                new_data.append(p)
+                    else:
+                        raise ValueError("ValueError: Unrecognized or malformed packet.")
+
+                    if len(new_data) >= participants and participants > 0:
+                        try:
+                            if new_data != self.participant_configurations[-1][:-1]:
+                                self.participant_configurations.append(new_data+[participants])
+                        except IndexError:
                             self.participant_configurations.append(new_data+[participants])
-                    except IndexError:
-                        self.participant_configurations.append(new_data+[participants])
-                    finally:
-                        new_data = list()
+                        finally:
+                            new_data = list()
+
+                    progress_bar.update()
 
             self.participant_lookup = {x: [x] for i, x in self.participant_configurations[0][:-1]}
 
@@ -210,7 +224,12 @@ class ReplayEnhancer():
                 self.race_finish = len(self.telemetry_data)
 
             try:
-                self.race_start = [i for i, data in reversed(list(enumerate(self.telemetry_data[:self.race_finish]))) if(int(data[2]) & int('11110000', 2)) >> 4 != 5 or int(data[2]) & int('00001111', 2) != 2][0] + 1
+                self.race_p1_finish = [ix for ix, data in reversed(list(enumerate(self.telemetry_data[:self.race_finish]))) for i in range(int(data[4])) if int(data[182+i*9]) & int('01111111', 2) == 1 and int(data[184+i*9]) <= int(data[10])][0] + 1
+            except IndexError:
+                self.race_p1_finish = len(self.telemetry_data)
+
+            try:
+                self.race_start = [i for i, data in reversed(list(enumerate(self.telemetry_data[:self.race_p1_finish]))) if(int(data[2]) & int('11110000', 2)) >> 4 != 5 or int(data[2]) & int('00001111', 2) != 2][0] + 1
                 #self.race_start = [i for i, data in reversed(list(enumerate(self.telemetry_data[:self.race_finish]))) if int(data[9]) & int('111', 2) == 0 or (int(data[2]) & int('11110000', 2)) >> 4 != 5][0] + 1
             except IndexError:
                 self.race_start = 0
@@ -230,12 +249,12 @@ class ReplayEnhancer():
             participant_queue = deque(self.participant_configurations)
             participant_groups = [self.update_participants(participant_queue) for x in range(len(self.participant_configurations))]
 
-
             #Trim and partition the telemetry data, and attach participants.
             self.telemetry_data = [(list(g), x) for x, g in groupby(self.telemetry_data[self.race_start:self.race_end], key=lambda k: int(k[4]))]
             self.telemetry_data = [(g, x, y, p) for (g, x), y, p in zip(self.telemetry_data, [0]+list(cumsum([len(g) for g, x in self.telemetry_data])), participant_groups)]
             self.race_end = self.race_end-self.race_start
             self.race_finish = self.race_finish-self.race_start
+            self.race_p1_finish = self.race_p1_finish-self.race_start
             self.race_start = self.race_start-self.race_start
 
             #Change the elapsed time values.
@@ -422,7 +441,7 @@ class ReplayEnhancer():
             print("If video trimming needs to be adjusted, run the Project CARS Replay Enhancer with the `-t` option.")
             print("\n")
             print("To synchronize telemetry with video, run the Project CARS Replay Enhancer with the `-r` option.")
-            print("Set the synchronization offset to the value shown on the Timer when the viewed car crosses the start finish line to begin lap 2.")
+            print("Set the synchronization offset to the value shown on the Timer when the viewed car crosses the start finish linee to begin lap 2.")
             print("Please wait. Telemetry being processed and rendered. If this is the first time this data has been used, it make take longer.")
 
             try:
@@ -431,7 +450,8 @@ class ReplayEnhancer():
                 print("Invalid JSON in configuration file: {}".format(e))
             else:
                 start_video = replay.__build_default_video(False)
-                end_video = replay.__build_default_video(False)
+                #end_video = replay.__build_default_video(False)
+                end_video = start_video.copy()
 
                 start_video = start_video.subclip(0, 185)
                 if replay.show_champion:
@@ -440,7 +460,8 @@ class ReplayEnhancer():
                     end_video = end_video.subclip(end_video.duration-100, end_video.duration)
                 output = mpy.concatenate_videoclips([start_video, end_video])
                 output.write_videofile(replay.output_video, fps=10, preset='superfast')
-        except KeyboardInterrupt:
+        except IOError:
+        #except KeyboardInterrupt:
             print("Aborting...")
 
     @classmethod
@@ -455,7 +476,7 @@ class ReplayEnhancer():
             print("If video trimming needs to be adjusted, run the Project CARS Replay Enhancer with the `-t` option.")
             print("\n")
             print("To synchronize telemetry with video, run the Project CARS Replay Enhancer with the `-r` option.")
-            print("Set the synchronization offset to the value shown on the Timer when the viewed car crosses the start finish lin to begin lap 2.")
+            print("Set the synchronization offset to the value shown on the Timer when the viewed car crosses the start finish line to begin lap 2.")
 
             try:
                 replay = cls(config.config_file)
@@ -463,7 +484,8 @@ class ReplayEnhancer():
                 print("Invalid JSON in configuration file: {}".format(e))
             else:
                 start_video = replay.__build_default_video(False)
-                end_video = replay.__build_default_video(False)
+                #end_video = replay.__build_default_video(False)
+                end_video = start_video.copy()
 
                 start_video = start_video.subclip(0, 185)
                 if replay.show_champion:
@@ -488,15 +510,17 @@ class ReplayEnhancer():
             print("If video trimming needs to be adjusted, run the Project CARS Replay Enhancer with the `-t` option.")
             print("\n")
             print("To synchronize telemetry with video, run the Project CARS Replay Enhancer with the `-r` option.")
-            print("Set the synchronization offset to the value shown on the Timer when the viewed car crosses the start finish lin to begin lap 2.")
+            print("Set the synchronization offset to the value shown on the Timer when the viewed car crosses the start finish line to begin lap 2.")
 
             try:
                 replay = cls(config.config_file)
             except ValueError as e:
                 print("Invalid JSON in configuration file: {}".format(e))
             else:
+                import pdb; pdb.set_trace()
                 start_video = replay.__build_default_video(False)
-                end_video = replay.__build_default_video(False)
+                #end_video = replay.__build_default_video(False)
+                end_video = start_video.copy()
 
                 start_video = start_video.subclip(0, 185)
                 if replay.show_champion:
@@ -521,7 +545,7 @@ class ReplayEnhancer():
             print("If video trimming needs to be adjusted, run the Project CARS Replay Enhancer with the `-t` option.")
             print("\n")
             print("To synchronize telemetry with video, run the Project CARS Replay Enhancer with the `-r` option.")
-            print("Set the synchronization offset to the value shown on the Timer when the viewed car crosses the start finish lin to begin lap 2.")
+            print("Set the synchronization offset to the value shown on the Timer when the viewed car crosses the start finish line to begin lap 2.")
 
             try:
                 replay = cls(config.config_file)
@@ -529,7 +553,8 @@ class ReplayEnhancer():
                 print("Invalid JSON in configuration file: {}".format(e))
             else:
                 start_video = replay.__build_default_video(False)
-                end_video = replay.__build_default_video(False)
+                #end_video = replay.__build_default_video(False)
+                end_video = start_video.copy()
 
                 start_video = start_video.subclip(0, 185)
                 if replay.show_champion:
@@ -552,8 +577,11 @@ class ReplayEnhancer():
             except ValueError as e:
                 print("Invalid JSON in configuration file: {}".format(e))
             else:
-                output = replay.__build_default_video(True)
-                output.save_frame("outputs/frame.png", output.duration-50)
+                output = replay.__build_default_video(False)
+                output.save_frame("outputs/frame1.png", output.duration-50)
+                output.save_frame("outputs/frame2.png", output.duration-30)
+                output.save_frame("outputs/frame3.png", output.duration-10)
+                #output.subclip(output.duration-60, output.duration).write_videofile(replay.output_video, fps=10, preset='superfast')
         except KeyboardInterrupt:
             print("Aborting...")
 
