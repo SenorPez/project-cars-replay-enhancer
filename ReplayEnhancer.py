@@ -142,17 +142,17 @@ class ReplayEnhancer():
                 self.participant_data = [(i, n, t, c) for (i, n), t, c in zip(list(sorted({x for x in self.participant_data})), self.team_data, self.car_data)]
                 '''
 
-                #Extract, process, and de-garbage the participant data.
-                #Also add cumulative time index to end of data structure.
+            #Extract, process, and de-garbage the participant data.
+            #Also add cumulative time index to end of data structure.
+
+            last_time = 0
+            add_time = 0
+            time_adjust = 0
+            participants = 0
+            new_data = list()
 
             with tqdm(desc="Processing telemetry", total=number_lines) \
                         as progress_bar:
-                last_time = 0
-                add_time = 0
-                time_adjust = 0
-                participants = 0
-                new_data = list()
-
                 for i, data in enumerate(self.telemetry_data):
                     if len(data) == 688 and int(data[4]) != -1:
                         participants = int(data[4])
@@ -460,8 +460,7 @@ class ReplayEnhancer():
                     end_video = end_video.subclip(end_video.duration-100, end_video.duration)
                 output = mpy.concatenate_videoclips([start_video, end_video])
                 output.write_videofile(replay.output_video, fps=10, preset='superfast')
-        except IOError:
-        #except KeyboardInterrupt:
+        except KeyboardInterrupt:
             print("Aborting...")
 
     @classmethod
@@ -578,10 +577,10 @@ class ReplayEnhancer():
                 print("Invalid JSON in configuration file: {}".format(e))
             else:
                 output = replay.__build_default_video(False)
-                output.save_frame("outputs/frame1.png", output.duration-50)
-                output.save_frame("outputs/frame2.png", output.duration-30)
-                output.save_frame("outputs/frame3.png", output.duration-10)
-                #output.subclip(output.duration-60, output.duration).write_videofile(replay.output_video, fps=10, preset='superfast')
+                #output.save_frame("outputs/frame1.png", output.duration-50)
+                #output.save_frame("outputs/frame2.png", output.duration-30)
+                #output.save_frame("outputs/frame3.png", output.duration-10)
+                output.subclip(5, 15).write_videofile(replay.output_video, fps=10, preset='superfast')
         except KeyboardInterrupt:
             print("Aborting...")
 
