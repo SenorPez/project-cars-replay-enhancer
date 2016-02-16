@@ -661,7 +661,7 @@ class Configuration:
                 if previous_file:
                     print("Enter -1 to use previous values for",
                           "remaining positions.")
-                print("Enter points scored for finish poisition",
+                print("Enter points scored for finish position",
                       "{}".format(position))
                 try:
                     prompt = "({})".format(str(
