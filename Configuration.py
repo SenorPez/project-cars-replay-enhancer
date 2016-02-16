@@ -1012,10 +1012,10 @@ class Configuration:
                 previous_file = self.previous_file
 
             print("Modifying video trim files.")
-            print("Telemetry synchronization value will be cleared",
-                  "and must be reset.")
+            print("If blackframe detection values or starting trim",
+                  "value is changed, telemetry syncronization value",
+                  "will be reset to 0.0")
             print("Press CTRL+C at any time to abort.")
-            self.sync_racestart = 0.0
 
             purge_cache = False
             while True:
@@ -1048,11 +1048,13 @@ class Configuration:
                     elif len(video_threshold) == 0:
                         self.video_threshold = 1
                         purge_cache = True
+                        self.sync_racestart = 0.0
                         break
                     elif len(video_threshold) != 0:
                         try:
                             self.video_threshold = int(video_threshold)
                             purge_cache = True
+                            self.sync_racestart = 0.0
                         except ValueError:
                             print("Blackframe detection threshold",
                                   "should be an integer value.")
@@ -1073,11 +1075,13 @@ class Configuration:
                     elif len(video_gaptime) == 0:
                         self.video_gaptime = 1
                         purge_cache = True
+                        self.sync_racestart = 0.0
                         break
                     elif len(video_gaptime):
                         try:
                             self.video_gaptime = int(video_gaptime)
                             purge_cache = True
+                            self.sync_racestart = 0.0
                         except ValueError:
                             print("Blackframe gap time should be an",
                                   "integer value.")
@@ -1101,11 +1105,13 @@ class Configuration:
                 elif len(video_skipstart) == 0:
                     self.video_skipstart = 1 if use_blackframe else 0.0
                     purge_cache = True
+                    self.sync_racestart = 0.0
                     break
                 elif len(video_skipstart) != 0 and use_blackframe:
                     try:
                         self.video_skipstart = int(video_skipstart)
                         purge_cache = True
+                        self.sync_racestart = 0.0
                         break
                     except ValueError:
                         print("Number of scenes to skip should be an",
@@ -1117,6 +1123,7 @@ class Configuration:
                             self.video_skipstart = float(
                                 video_skipstart)
                             purge_cache = True
+                            self.sync_racestart = 0.0
                             break
                         else:
                             raise ValueError
