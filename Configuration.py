@@ -1404,7 +1404,9 @@ class Configuration:
                     raise ValueError("ValueError: Unrecognized or",
                                      "malformed packet.")
 
-                if len(new_data) >= participants and participants > 0:
+                if participants is not None and \
+                        participants > 0 and \
+                        len(new_data) >= participants:
                     try:
                         if new_data != \
                                 self.participant_configurations\
