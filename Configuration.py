@@ -84,7 +84,8 @@ class Configuration:
               "abort.")
 
         try:
-            self.sync_racestart = 0.0
+            if self.sync_racestart is None:
+                self.sync_racestart = 0.0
 
             while True:
                 print("Enter destination file for configuration.")
