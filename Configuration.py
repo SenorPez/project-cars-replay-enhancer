@@ -264,6 +264,16 @@ class Configuration:
                         break
 
             purge_cache = False
+            use_blackframe = False
+            """
+            Removing blackframe detection for the time being.
+            It's too slow, there are too many problems with it, and
+            it's too arcane for the average user.
+
+            Until it can be better automated and faster, it's gone.
+            """
+
+            '''
             while True:
                 print("Use blackframe detection to crop video?")
                 print("Choose YES (default) to trim video based on",
@@ -279,6 +289,7 @@ class Configuration:
                 elif str.lower(use_blackframe) == 'n':
                     use_blackframe = False
                     break
+            '''
 
             if use_blackframe:
                 while True:
@@ -337,6 +348,7 @@ class Configuration:
                 else:
                     print("Enter the start time of the video.")
 
+                duration = mpy.VideoFileClip(self.source_video).duration
                 prompt = "({})".format(self.video_skipstart \
                     if previous_file else "1" if use_blackframe \
                                      else "0.0")
@@ -347,11 +359,13 @@ class Configuration:
                 elif len(video_skipstart) == 0:
                     self.video_skipstart = 1 if use_blackframe else 0.0
                     purge_cache = True
+                    self.sync_racestart = 0.0
                     break
                 elif len(video_skipstart) != 0 and use_blackframe:
                     try:
                         self.video_skipstart = int(video_skipstart)
                         purge_cache = True
+                        self.sync_racestart = 0.0
                         break
                     except ValueError:
                         print("Number of scenes to skip should be an",
@@ -359,16 +373,20 @@ class Configuration:
                 elif len(video_skipstart) != 0 and not use_blackframe:
                     try:
                         video_skipstart = float(video_skipstart)
-                        if video_skipstart >= 0.0:
+                        if video_skipstart < 0.0:
+                            raise ValueError
+                        elif video_skipstart <= duration:
                             self.video_skipstart = \
                                 float(video_skipstart)
                             purge_cache = True
+                            self.sync_racestart = 0.0
                             break
                         else:
                             raise ValueError
                     except ValueError:
-                        print("Start time should be greater than",
-                              "zero.")
+                        print("End time should be greater than zero",
+                              "and less than the",
+                              "video duration of {}.".format(duration))
 
             while True:
                 if use_blackframe:
@@ -401,16 +419,20 @@ class Configuration:
                 elif len(video_skipend) != 0 and not use_blackframe:
                     try:
                         video_skipend = float(video_skipend)
-                        if video_skipend <= duration:
+                        if video_skipend <= self.video_skipstart:
+                            raise ValueError
+                        elif video_skipend <= duration:
                             self.video_skipend = float(video_skipend)
                             purge_cache = True
                             break
                         else:
                             raise ValueError
                     except ValueError:
-                        print("Start time should be less than the",
+                        print("End time should be greater than the",
+                              "start time and less than the",
                               "video duration of {}.".format(duration))
 
+            '''
             while True:
                 print("Enter file to use as a cache for video data.")
                 prompt = "({})".format(self.video_cache \
@@ -438,6 +460,7 @@ class Configuration:
                     print("Location invalid. Please try again.")
                     print("Directories must be created before",
                           "running script.")
+            '''
 
             #TODO: Move to module-specific configuration
             while True:
@@ -1018,6 +1041,8 @@ class Configuration:
             print("Press CTRL+C at any time to abort.")
 
             purge_cache = False
+            use_blackframe = False
+            '''
             while True:
                 print("Use blackframe detection to crop video?")
                 print("Choose YES (default) to trim video based on",
@@ -1033,6 +1058,7 @@ class Configuration:
                 elif str.lower(use_blackframe) == 'n':
                     use_blackframe = False
                     break
+            '''
 
             if use_blackframe:
                 while True:
@@ -1095,6 +1121,7 @@ class Configuration:
                 else:
                     print("Enter the start time of the video.")
 
+                duration = mpy.VideoFileClip(self.source_video).duration
                 prompt = "({})".format(self.video_skipstart \
                     if previous_file else "1" if use_blackframe \
                                      else "0.0")
@@ -1119,7 +1146,9 @@ class Configuration:
                 elif len(video_skipstart) != 0 and not use_blackframe:
                     try:
                         video_skipstart = float(video_skipstart)
-                        if video_skipstart >= 0.0:
+                        if video_skipstart < 0.0:
+                            raise ValueError
+                        elif video_skipstart <= duration:
                             self.video_skipstart = float(
                                 video_skipstart)
                             purge_cache = True
@@ -1128,8 +1157,9 @@ class Configuration:
                         else:
                             raise ValueError
                     except ValueError:
-                        print("Start time should be greater than",
-                              "zero.")
+                        print("End time should be greater than zero",
+                              "and less than the",
+                              "video duration of {}.".format(duration))
 
             while True:
                 if use_blackframe:
@@ -1162,16 +1192,20 @@ class Configuration:
                 elif len(video_skipend) != 0 and not use_blackframe:
                     try:
                         video_skipend = float(video_skipend)
-                        if video_skipend <= duration:
+                        if video_skipend <= self.video_skipstart:
+                            raise ValueError
+                        elif video_skipend <= duration:
                             self.video_skipend = float(video_skipend)
                             purge_cache = True
                             break
                         else:
                             raise ValueError
                     except ValueError:
-                        print("Start time should be less than the",
+                        print("End time should be greater than the",
+                              "start time and less than the",
                               "video duration of {}.".format(duration))
 
+            '''
             while True:
                 print("Enter file to use as a cache for video data.")
                 prompt = "({})".format(self.video_cache \
@@ -1199,6 +1233,7 @@ class Configuration:
                     print("Location invalid. Please try again.")
                     print("Directories must be created before",
                           "running script.")
+            '''
 
         except KeyboardInterrupt:
             print("\n\nExiting. No configuration data written.")
