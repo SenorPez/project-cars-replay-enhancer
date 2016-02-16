@@ -951,6 +951,7 @@ class Configuration:
             print("\n\nConfiguration data written to {}".format(
                 self.config_file))
 
+            '''
             if purge_cache:
                 try:
                     with open(os.path.realpath(self.video_cache), 'r') \
@@ -975,6 +976,7 @@ class Configuration:
 
                 print("\n\nFile cache modified at {}".format(
                     self.video_cache))
+            '''
 
     def modify_racestart(self):
         """
@@ -1247,6 +1249,7 @@ class Configuration:
             print("\n\nConfiguration data written to {}".format(
                 self.config_file))
 
+            '''
             if purge_cache:
                 try:
                     with open(
@@ -1275,6 +1278,7 @@ class Configuration:
 
                 print("\n\nFile cache modified at",
                       "{}".format(self.video_cache))
+            '''
 
     def __get_values(self):
         output = {'font': self.font,
