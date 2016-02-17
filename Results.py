@@ -132,12 +132,13 @@ class Results(StaticBase):
                 str(best_sector_3[0]),
                 fill='black',
                 font=self.replay.font)
-            draw.text(
-                (points[1]+(self.widths[10]-self.replay.font.getsize(
-                    str(points[0]))[0])/2, y_pos),
-                str(points[0]),
-                fill='black',
-                font=self.replay.font)
+            if points != "":
+                draw.text(
+                    (points[1]+(self.widths[10]-self.replay.font.getsize(
+                        str(points[0]))[0])/2, y_pos),
+                    str(points[0]),
+                    fill='black',
+                    font=self.replay.font)
             y_pos += self.data_height+self.replay.margin
 
         return self.material
@@ -429,7 +430,8 @@ class Results(StaticBase):
             "Best S3",
             "Points")]
 
-        if len(self.replay.point_structure) < 17:
+        if self.replay.point_structure is not None and \
+                len(self.replay.point_structure) < 17:
             self.replay.point_structure += [0] * \
                 (17-len(self.replay.point_structure))
 
@@ -452,7 +454,7 @@ class Results(StaticBase):
             self.format_time(float(sector_bests[n][2])) \
                 if sector_bests[n][2] != -1 \
                 else "",
-            "0" \
+            "" if self.replay.point_structure is None else "0" \
                 if p == "DNF" \
                 else "0" \
                     if l < 1 \

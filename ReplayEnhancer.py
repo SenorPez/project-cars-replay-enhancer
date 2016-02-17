@@ -451,7 +451,7 @@ class ReplayEnhancer():
             print("If video trimming needs to be adjusted, run the Project CARS Replay Enhancer with the `-t` option.")
             print("\n")
             print("To synchronize telemetry with video, run the Project CARS Replay Enhancer with the `-r` option.")
-            print("Set the synchronization offset to the value shown on the Timer when the viewed car crosses the start finish linee to begin lap 2.")
+            print("Set the synchronization offset to the value shown on the Timer when the viewed car crosses the start finish line to begin lap 2.")
             print("Please wait. Telemetry being processed and rendered. If this is the first time this data has been used, it make take longer.")
 
             try:
@@ -660,24 +660,42 @@ class ReplayEnhancer():
         timer = timer.set_mask(timer_mask)
 
         result = mpy.ImageClip(Results(self).to_frame()).set_duration(20).set_position(('center', 'center')).add_mask()
-        result.mask = result.mask.fx(vfx.fadeout, 1)
 
-        series_standings = mpy.ImageClip(SeriesStandings(self).to_frame()).set_start(20).set_duration(20).set_position(('center', 'center')).add_mask()
+        if self.point_structure is not None:
+            result.mask = result.mask.fx(vfx.fadeout, 1)
+            series_standings = mpy.ImageClip(SeriesStandings(self).to_frame()).set_start(20).set_duration(20).set_position(('center', 'center')).add_mask()
 
-        if self.show_champion:
-            series_standings.mask = series_standings.mask.fx(vfx.fadein, 1).fx(vfx.fadeout, 1)
-            champion = mpy.ImageClip(Champion(self).to_frame()).set_start(40).set_duration(20).set_position(('center', 'center')).add_mask()
-            champion.mask = champion.mask.fx(vfx.fadein, 1)
+            if self.show_champion:
+                series_standings.mask = series_standings.mask.fx(vfx.fadein, 1).fx(vfx.fadeout, 1)
+                champion = mpy.ImageClip(Champion(self).to_frame()).set_start(40).set_duration(20).set_position(('center', 'center')).add_mask()
+                champion.mask = champion.mask.fx(vfx.fadein, 1)
+            else:
+                series_standings.mask = series_standings.mask.fx(vfx.fadein, 1)
         else:
-            series_standings.mask = series_standings.mask.fx(vfx.fadein, 1)
+            if self.show_champion:
+                result.mask = result.mask.fx(vfx.fadeout, 1)
+                champion = mpy.ImageClip(Champion(self).to_frame()).set_start(20).set_duration(20).set_position(('center', 'center')).add_mask()
+                champion.mask = champion.mask.fx(vfx.fadein, 1)
+            
 
         intro = mpy.CompositeVideoClip([backdrop, title]).set_duration(5).fx(vfx.fadeout, 1)
         mainevent = mpy.CompositeVideoClip([video, standing, timer]).set_duration(video.duration)
 
+        outro_videos = [backdrop, result]
+        if self.point_structure is not None:
+            outro_videos.append(series_standings)
+        if self.show_champion:
+            outro_videos.append(champion)
+
+        outro = mpy.CompositeVideoClip(outro_videos).set_duration(
+            sum([x.duration for x in outro_videos[1:]])).fx(vfx.fadein, 1)
+
+        '''
         if self.show_champion:
             outro = mpy.CompositeVideoClip([backdrop, result, series_standings, champion]).set_duration(sum([x.duration for x in [result, series_standings, champion]])).fx(vfx.fadein, 1)
         else:
             outro = mpy.CompositeVideoClip([backdrop, result, series_standings]).set_duration(sum([x.duration for x in [result, series_standings]])).fx(vfx.fadein, 1)
+        '''
 
         output = mpy.concatenate_videoclips([intro, mainevent, outro])
         return output
@@ -701,7 +719,7 @@ if __name__ == "__main__":
 
     error_message = ""
     if arguments.racestart is True and arguments.configuration is None:
-        error_message += "\n-r, --racestart requires a provided confguration file."
+        error_message += "\n-r, --racestart requires a provided configuration file."
     if arguments.trim is True and arguments.configuration is None:
         error_message += "\n-t, --trim requires a provided configuration file."
 

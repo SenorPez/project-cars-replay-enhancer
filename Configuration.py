@@ -80,8 +80,8 @@ class Configuration:
         """
         previous_file = self.previous_file
 
-        print("Beginning configuration. Press CTRL+C at any time to",
-              "abort.")
+        print("Creating configuration file.")
+        print("Press CTRL+C at any time to abort.")
 
         try:
             if self.sync_racestart is None:
@@ -471,7 +471,7 @@ class Configuration:
             #TODO: Move to module-specific configuration
             while True:
                 print("Enter heading color.")
-                print("Color should be enetered as three integers,",
+                print("Color should be entered as three integers,",
                       "separated by commas, representing Red, Green,",
                       "and Blue values.")
                 prompt = "({}, {}, {})".format(*self.heading_color) \
@@ -641,40 +641,25 @@ class Configuration:
 
             point_structure = list()
             while True:
-                print("Enter bonus points for fastest lap.")
-                prompt = "({})".format(str(self.point_structure[0]) \
-                    if previous_file else "0")
-                bonus_point = input(prompt+"--> ")
-
-                if len(bonus_point) == 0 and previous_file:
-                    point_structure.insert(
-                        0,
-                        int(self.point_structure[0]))
-                    break
-                elif len(bonus_point) == 0:
-                    point_structure.insert(0, int(0))
-                    break
+                position = len(point_structure)+1
+                print("Enter points scored for finish position",
+                      "{}".format(position))
+                if position == 1:
+                    print("Enter 0 to disable points for this race")
                 else:
-                    try:
-                        point_structure.insert(0, int(bonus_point))
-                        break
-                    except ValueError:
-                        print("Points should be integer values.")
+                    print("Enter 0 to finish points structure.")
 
-            while True:
-                position = len(point_structure)
-                print("Enter 0 to finish points structure.")
                 if previous_file:
                     print("Enter -1 to use previous values for",
                           "remaining positions.")
-                print("Enter points scored for finish position",
-                      "{}".format(position))
                 try:
                     prompt = "({})".format(str(
                         self.point_structure[position])) \
-                        if previous_file else ""
+                        if previous_file else "0"
                 except IndexError:
-                    prompt = ""
+                    prompt = "0"
+                except TypeError:
+                    prompt = "0"
 
                 new_point = input(prompt+"--> ")
                 if new_point == "0":
@@ -683,9 +668,14 @@ class Configuration:
                     point_structure = self.__finish_array(
                         point_structure, self.point_structure)
                     break
+                elif new_point == "-1":
+                    print("Point values should be greater than"
+                          "zero.")
                 elif len(new_point) == 0 and previous_file:
                     try:
-                        if self.point_structure[position] == 0:
+                        if self.point_structure is None:
+                            break
+                        elif self.point_structure[position] == 0:
                             break
                         else:
                             point_structure.insert(
@@ -694,12 +684,40 @@ class Configuration:
                     except IndexError:
                         print("No previous value for this position.",
                               "Enter 0 to end points structure.")
+                elif len(new_point) == 0:
+                    break
                 else:
                     try:
                         point_structure.insert(position, int(new_point))
                     except ValueError:
                         print("Points should be integer values.")
-            self.point_structure = point_structure
+
+            if len(point_structure):
+                while True:
+                    print("Enter bonus points for fastest lap.")
+                    prompt = "({})".format(str(
+                        self.point_structure[0]) \
+                        if previous_file else "0")
+                    bonus_point = input(prompt+"--> ")
+
+                    if len(bonus_point) == 0 and previous_file:
+                        point_structure.insert(
+                            0,
+                            int(self.point_structure[0]))
+                        break
+                    elif len(bonus_point) == 0:
+                        point_structure.insert(0, int(0))
+                        break
+                    else:
+                        try:
+                            point_structure.insert(0, int(bonus_point))
+                            break
+                        except ValueError:
+                            print("Points should be integer values.")
+
+                self.point_structure = point_structure
+            else:
+                self.point_structure = None
 
             print("Parsing telemetry data for driver information.")
             print("Please wait...")
@@ -712,6 +730,10 @@ class Configuration:
             use_last_car = False
             use_last_team = False
             use_last_points = False
+
+            if self.point_structure is None:
+                last_points = None
+                use_last_points = True
 
             while True:
                 print("Include team data for drivers?")
@@ -986,7 +1008,7 @@ class Configuration:
 
     def modify_racestart(self):
         """
-        Modifies the telemetry syncronization value in the
+        Modifies the telemetry synchronization value in the
         configuraiton file. All other properties are left
         unchanged.
         """
@@ -996,7 +1018,7 @@ class Configuration:
             else:
                 previous_file = self.previous_file
 
-            print("Modifying synchonization offset value.")
+            print("Modifying synchronization offset value.")
             print("Press CTRL+C at any time to abort.")
 
             while True:
@@ -1044,7 +1066,7 @@ class Configuration:
 
             print("Modifying video trim files.")
             print("If blackframe detection values or starting trim",
-                  "value is changed, telemetry syncronization value",
+                  "value is changed, telemetry synchronization value",
                   "will be reset to 0.0")
             print("Press CTRL+C at any time to abort.")
 

@@ -82,12 +82,13 @@ class SeriesStandings(StaticBase):
                 str(car[0]),
                 fill='black',
                 font=self.replay.font)
-            draw.text(
-                (points[1]+(self.widths[4]-self.replay.font.getsize(
-                    str(points[0]))[0])/2, y_pos),
-                str(points[0]),
-                fill='black',
-                font=self.replay.font)
+            if points != "":
+                draw.text(
+                    (points[1]+(self.widths[4]-self.replay.font.getsize(
+                        str(points[0]))[0])/2, y_pos),
+                    str(points[0]),
+                    fill='black',
+                    font=self.replay.font)
             y_pos += self.row_height+self.replay.margin
         return self.material
 
@@ -374,7 +375,8 @@ class SeriesStandings(StaticBase):
             "Car",
             "Series Points")]
 
-        if len(self.replay.point_structure) < 17:
+        if self.replay.point_structure is not None and \
+                len(self.replay.point_structure) < 17:
             self.replay.point_structure += [0] * \
                 (17-len(self.replay.point_structure))
 
@@ -382,7 +384,8 @@ class SeriesStandings(StaticBase):
             name,
             team,
             car,
-            str(self.replay.points[name]) if position == "DNF"
+            "" if self.replay.point_structure is None \
+            else str(self.replay.points[name]) if position == "DNF" \
             else str(self.replay.points[name]) if laps < 1 else str(
                 self.replay.points[name]+\
                 self.replay.point_structure[position]+\
