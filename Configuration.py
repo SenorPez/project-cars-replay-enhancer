@@ -657,9 +657,9 @@ class Configuration:
                         self.point_structure[position])) \
                         if previous_file else "0"
                 except IndexError:
-                    prompt = "0"
+                    prompt = "(0)"
                 except TypeError:
-                    prompt = "0"
+                    prompt = "(0)"
 
                 new_point = input(prompt+"--> ")
                 if new_point == "0":
@@ -726,7 +726,7 @@ class Configuration:
 
             last_car = None
             last_team = None
-            last_points = None
+            last_points = 0
             use_last_car = False
             use_last_team = False
             use_last_points = False
@@ -857,7 +857,7 @@ class Configuration:
                                     ['car'])
                         else:
                             prompt = "({})".format(
-                                last_car if last_car else "")
+                                last_car) if last_car else ""
                         car = input(prompt+"--> ")
 
                         if len(car) == 0 and \
@@ -928,10 +928,9 @@ class Configuration:
                     while True:
                         print("Enter previous series points for",
                               "{}.".format(participant))
-                        if last_points is not None:
-                            print("Enter -1 to use {}".format(
-                                last_points),
-                                  "for remaining drivers.")
+                        print("Enter -1 to use {}".format(
+                            last_points),
+                              "for remaining drivers.")
 
                         if self.participant_config[participant]\
                             ['points'] is not None:
@@ -940,8 +939,7 @@ class Configuration:
                                     ['points'])
                         else:
                             prompt = "({})".format(
-                                last_points if last_points \
-                                    is not None else "")
+                                last_points)
                         points = input(prompt+"--> ")
 
                         if len(points) == 0 and \
@@ -949,13 +947,11 @@ class Configuration:
                                 self.participant_config[participant]\
                                     ['points'] is not None:
                             break
-                        elif len(points) == 0 and \
-                                last_points is not None:
+                        elif len(points) == 0:
                             self.participant_config[participant]\
                                 ['points'] = last_points
                             break
-                        elif points == "-1" and \
-                                last_points is not None:
+                        elif points == "-1":
                             self.participant_config[participant]\
                                 ['points'] = last_points
                             use_last_points = True
@@ -1310,6 +1306,15 @@ class Configuration:
             '''
 
     def __get_values(self):
+        participant_config = OrderedDict(sorted(
+            self.participant_config.items(),
+            key=lambda x: x[0]))
+
+        for name, data in participant_config.items():
+            participant_config[name] = OrderedDict(sorted(
+                data.items(),
+                key=lambda x: x[0]))
+
         output = {'font': self.font,
                   'font_size': self.font_size,
                   'heading_font': self.heading_font,
@@ -1328,7 +1333,7 @@ class Configuration:
                   'source_video': self.source_video,
                   'source_telemetry': self.source_telemetry,
                   'output_video': self.output_video,
-                  'participant_config': self.participant_config,
+                  'participant_config': participant_config,
                   'point_structure': self.point_structure,
                   'video_threshold': self.video_threshold,
                   'video_gaptime': self.video_gaptime,
