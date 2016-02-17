@@ -1,5 +1,5 @@
-# project-cars-replay-enhancer
-Project CARS Replay Enhancer: Combines telemetry data with replay video to improve Project CARS replays.
+# Project CARS Replay Enhancer
+Combines telemetry data with replay video to improve Project CARS replays.
 
 Current release: 0.3  
 Current edge state: Less Rough  
