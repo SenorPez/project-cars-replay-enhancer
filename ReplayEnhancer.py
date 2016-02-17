@@ -226,7 +226,7 @@ class ReplayEnhancer():
                 self.race_finish = len(self.telemetry_data)
 
             try:
-                self.race_start = [i for i, data in reversed(list(enumerate(self.telemetry_data[:self.race_p1_finish]))) if(int(data[2]) & int('11110000', 2)) >> 4 != 5 or int(data[2]) & int('00001111', 2) != 2][0] + 1
+                self.race_start = [i for i, data in reversed(list(enumerate(self.telemetry_data[:self.race_finish]))) if(int(data[2]) & int('11110000', 2)) >> 4 != 5 or int(data[2]) & int('00001111', 2) != 2][0] + 1
             except IndexError:
                 self.race_start = 0
 
