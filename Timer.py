@@ -32,6 +32,7 @@ class Timer(DynamicBase):
         self.time = -1
         self.lap = -1
         self.data_height = -1
+        self.event_time = None
 
         #Whats the slowest lap time in the entire race.
         #Used for sizing.
@@ -39,13 +40,57 @@ class Timer(DynamicBase):
         telemetry_data = [item for chunk in telemetry_data for item in chunk]
         split_data = [[float(telemetry_data[y+1][186+i*9]) for y in nonzero(diff([float(x[186+i*9]) for x in telemetry_data]))[0].tolist()] for i in range(56)]
         self.max_lap_time = self.format_time(max([sum(x[i:i+3]) for x in split_data for i in range(0, len(x), 3)]))
-        self.max_laps = "{}/{}".format(telemetry_data[0][10], telemetry_data[0][10])
+
+        if self.replay.race_mode == "Laps":
+            self.max_laps = "{}/{}".format(telemetry_data[0][10], telemetry_data[0][10])
+        elif self.replay.race_mode == "Time":
+            self.event_time = max([float(x[17]) for x in telemetry_data if float(x[17]) < 100000000])
+
+            #For whatever reason, there's garbage time on the value.
+            #Truncate to the minute.
+            self.event_time = divmod(self.event_time, 60)[0]*60
+
+            self.max_laps = "{}".format(self.format_time(self.event_time))
 
     def _write_data(self):
         draw = ImageDraw.Draw(self.material)
-        draw.text((self.replay.margin, int(self.replay.margin/2)), self.format_time(self.time), fill='black', font=self.replay.font)
-        draw.text((self.replay.margin, self.data_height+int(self.replay.margin*1.5)), self.lap, fill='black', font=self.replay.font)
+        material_width = self.material.size[0]
+        draw.text(
+            (
+                int(
+                    material_width-self.replay.font.getsize(
+                        self.format_time(
+                            self.time))[0]-self.replay.margin),
+                int(self.replay.margin/2)),
+            self.format_time(self.time),
+            fill='black',
+            font=self.replay.font)
 
+        if self.replay.race_mode == "Laps":
+            draw.text(
+                (
+                    int(
+                        material_width-self.replay.font.getsize(
+                            self.lap)[0]-self.replay.margin),
+                    self.data_height+int(self.replay.margin*1.5)),
+                self.lap,
+                fill='black',
+                font=self.replay.font)
+        elif self.replay.race_mode == "Time":
+            if int(float(self.lap)) == -1:
+                self.lap = 0.00
+
+            draw.text(
+                (
+                    int(
+                        material_width-self.replay.font.getsize(
+                            self.format_time(
+                                self.lap))[0]-self.replay.margin),
+                    self.data_height+int(self.replay.margin*1.5)),
+                self.format_time(self.lap),
+                fill='black',
+                font=self.replay.font)
+        
         return self.material
 
     def _make_material(self, bgOnly):
@@ -55,7 +100,7 @@ class Timer(DynamicBase):
         text_height = sum((self.replay.font.getsize(self.time)[1], self.replay.font.getsize(self.lap)[1], self.replay.margin))
 
         text_width = max((self.replay.font.getsize(str(self.max_lap_time))[0], self.replay.font.getsize(self.max_laps)[0]))
-        
+
         self.material = Image.new('RGBA', (text_width+self.replay.margin*2, text_height+self.replay.margin*2))
 
         topMaterial = Image.new('RGBA', (text_width+self.replay.margin*2, self.data_height+self.replay.margin), (255, 255, 255, 128))
@@ -72,8 +117,15 @@ class Timer(DynamicBase):
                 try:
                     telemetry_data, participant_data = [(x[0], x[-1]) for x in self.replay.telemetry_data if x[0][-1][-1] > self.clip_t-self.replay.sync_racestart][0]
                     telemetry_data = [x for x in telemetry_data if x[-1] > self.clip_t-self.replay.sync_racestart][0]
-                    currentLap = min((int(telemetry_data[10]), int(telemetry_data[184+int(telemetry_data[3])*9])))
-                    self.lap = "{}/{}".format(currentLap, telemetry_data[10])
+
+                    if self.replay.race_mode == "Laps":
+                        currentLap = min((int(telemetry_data[10]), int(telemetry_data[184+int(telemetry_data[3])*9])))
+                        self.lap = "{}/{}".format(currentLap, telemetry_data[10])
+                    elif self.replay.race_mode == "Time":
+                        if float(telemetry_data[17]) < 100000000:
+                            self.lap = "{:.2f}".format(float(telemetry_data[17]))
+                        else:
+                            self.lap = "{:.2f}".format(float(self.event_time))
                     #self.time = "{:.2f}".format(float([x for x in self.replay.telemetry_data if x[-1] > self.clip_t-self.replay.sync_racestart][0][13]))
                     #data = [x for x in self.replay.telemetry_data if x[-1] > self.clip_t-self.replay.sync_racestart][0]
                 except IndexError:
@@ -81,8 +133,11 @@ class Timer(DynamicBase):
                     telemetry_data = telemetry_data[self.replay.race_finish-index_offset]
 
                     #Instead of the current lap, since we're freezing, we grab the completed laps.
-                    currentLap = min((int(telemetry_data[10]), int(telemetry_data[183+int(telemetry_data[3])*9])))
-                    self.lap = "{}/{}".format(currentLap, telemetry_data[10])
+                    if self.replay.race_mode == "Laps":
+                        currentLap = min((int(telemetry_data[10]), int(telemetry_data[183+int(telemetry_data[3])*9])))
+                        self.lap = "{}/{}".format(currentLap, telemetry_data[10])
+                    elif self.replay.race_mode == "Time":
+                        self.lap = "{:.2f}".format(float(0))
                     #raceFinish = [i for i, data in reversed(list(enumerate(self.replay.telemetry_data))) if int(data[9]) & int('111', 2)  == 2][0] + 1
                     #self.time = "{:.2f}".format(float(self.replay.telemetry_data[raceFinish][13]))
                     #data = self.replay.telemetry_data[raceFinish]
@@ -92,7 +147,10 @@ class Timer(DynamicBase):
             else:
                 telemetry_data = self.replay.telemetry_data[0][0][0]
                 self.time = "0.00"
-                self.lap = "{}/{}".format(1, telemetry_data[10])
+                if self.replay.race_mode == "Laps":
+                    self.lap = "{}/{}".format(1, telemetry_data[10])
+                elif self.replay.race_mode == "Time":
+                    self.lap = "{:.2f}".format(float(self.event_time))
 
             #self.time = "{:.2f}".format(self.clip_t)
         self.clip_t += float(1/self.ups)

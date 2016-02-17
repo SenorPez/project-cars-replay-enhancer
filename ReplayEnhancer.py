@@ -14,7 +14,7 @@ import sys
 import moviepy.editor as mpy
 from moviepy.editor import vfx
 from moviepy.video.io.bindings import PIL_to_npimage
-from numpy import diff, nonzero, where, cumsum
+from numpy import diff, nonzero, where, cumsum, mean
 from PIL import Image, ImageFont
 from tqdm import tqdm
 
@@ -36,6 +36,8 @@ class ReplayEnhancer():
             except ValueError as e:
                 raise e
 
+        self.race_mode = None
+
         self.font = ImageFont.truetype(json_data['font'], json_data['font_size'])
         self.heading_font = ImageFont.truetype(json_data['heading_font'], json_data['heading_font_size'])
         self.heading_color = tuple(json_data['heading_color'])
@@ -54,7 +56,7 @@ class ReplayEnhancer():
         self.margin = json_data['margin']
         self.column_margin = json_data['column_margin']
 
-        self.source_video = json_data['source_video'] if len(json_data['source_video']) else None
+        self.source_video = json_data['source_video'] 
         self.source_telemetry = json_data['source_telemetry']
         self.telemetry_file = 'tele.csv'
         self.output_video = json_data['output_video']
@@ -224,15 +226,23 @@ class ReplayEnhancer():
                 self.race_finish = len(self.telemetry_data)
 
             try:
-                self.race_p1_finish = [ix for ix, data in reversed(list(enumerate(self.telemetry_data[:self.race_finish]))) for i in range(int(data[4])) if int(data[182+i*9]) & int('01111111', 2) == 1 and int(data[184+i*9]) <= int(data[10])][0] + 1
-            except IndexError:
-                self.race_p1_finish = len(self.telemetry_data)
-
-            try:
                 self.race_start = [i for i, data in reversed(list(enumerate(self.telemetry_data[:self.race_p1_finish]))) if(int(data[2]) & int('11110000', 2)) >> 4 != 5 or int(data[2]) & int('00001111', 2) != 2][0] + 1
-                #self.race_start = [i for i, data in reversed(list(enumerate(self.telemetry_data[:self.race_finish]))) if int(data[9]) & int('111', 2) == 0 or (int(data[2]) & int('11110000', 2)) >> 4 != 5][0] + 1
             except IndexError:
                 self.race_start = 0
+
+            try:
+                if mean([int(x[10]) for x in self.telemetry_data[self.race_start:self.race_finish]]):
+                    self.race_mode = "Laps"
+                    self.race_p1_finish = [ix for ix, data in reversed(list(enumerate(self.telemetry_data[:self.race_finish]))) for i in range(int(data[4])) if int(data[182+i*9]) & int('01111111', 2) == 1 and int(data[184+i*9]) <= int(data[10])][0] + 1
+                else:
+                    self.race_mode = "Time"
+                    time_expired = [ix for ix, data in list(enumerate(self.telemetry_data[self.race_start:])) if float(data[17]) == -1.0][0]+self.race_start
+                    data = self.telemetry_data[time_expired]
+                    lead_lap = max([int(data[184+i*9]) for i in range(int(data[4]))])
+
+                    self.race_p1_finish = [ix for ix, data in reversed(list(enumerate(self.telemetry_data[:self.race_finish]))) for i in range(int(data[4])) if int(data[182+i*9]) & int('01111111', 2) == 1 and int(data[184+i*9]) == lead_lap][0]+1
+            except IndexError:
+                self.race_p1_finish = len(self.telemetry_data)
 
             #For some reason (probably loading lag?) the telemetry
             #doesn't immediately load standings or reset lap distance
@@ -596,7 +606,7 @@ class ReplayEnhancer():
                 #output.save_frame("outputs/frame1.png", output.duration-50)
                 #output.save_frame("outputs/frame2.png", output.duration-30)
                 #output.save_frame("outputs/frame3.png", output.duration-10)
-                output.set_duration(output.duration).subclip(5, 15).write_videofile(replay.output_video, fps=10, preset='superfast')
+                output.set_duration(output.duration).subclip(output.duration-60).write_videofile(replay.output_video, fps=10, preset='superfast')
         except KeyboardInterrupt:
             print("Aborting...")
 
