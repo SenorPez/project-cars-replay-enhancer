@@ -353,7 +353,8 @@ class Champion(StaticBase):
             key=lambda x: x[-1], reverse=True)
         self.classification.extend(dnf_classification)
 
-        if len(self.replay.point_structure) < 17:
+        if self.replay.point_structure is not None and \
+                len(self.replay.point_structure) < 17:
             self.replay.point_structure += [0] * \
                 (17-len(self.replay.point_structure))
 
@@ -361,7 +362,8 @@ class Champion(StaticBase):
             name,
             team,
             car,
-            str(self.replay.points[name]) if position == "DNF"
+            str(16-int(position)) if self.replay.point_structure is None \
+            else str(self.replay.points[name]) if position == "DNF"
             else str(self.replay.points[name]) if laps < 1 else str(
                 self.replay.points[name]+\
                 self.replay.point_structure[position]+\
