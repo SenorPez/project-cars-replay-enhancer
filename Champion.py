@@ -362,7 +362,9 @@ class Champion(StaticBase):
             name,
             team,
             car,
-            str(16-int(position)) if self.replay.point_structure is None \
+            str(16-16) if self.replay.point_structure is None \
+                and position == "DNF"
+            else str(16-int(position)) if self.replay.point_structure is None \
             else str(self.replay.points[name]) if position == "DNF"
             else str(self.replay.points[name]) if laps < 1 else str(
                 self.replay.points[name]+\
