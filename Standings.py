@@ -47,22 +47,11 @@ class Standings(DynamicBase):
         self.leader_elapsed_time = -1
         self.leader_laps_completed = 0
 
-        '''
-        self.sector_status = [['current', 'none', 'none'] for x in range(64)]
-        self.last_lap_valid = [True for x in range(64)]
-        self.last_lap_sectors = [[-1, -1, -1] for x in range(64)]
-
-        self.sector_bests = [-1, -1, -1]
-        self.personal_bests = [[-1, -1, -1] for x in range(64)]
-        self.best_lap = -1
-        self.personal_best_laps = [-1 for x in range(64)]
-        self.elapsed_times = [-1 for x in range(64)]
-
-        self.current_laps = [1 for x in range(64)]
-        self.last_lap_splits = [-1 for x in range(64)]
-        self.leader_elapsed_time = -1
-        self.leader_laps_completed = 0
-        '''
+        self.pit_font_path = self.replay.font.path
+        self.pit_font_size = self.replay.font.size
+        self.pit_font = ImageFont.truetype(
+            self.pit_font_path, 
+            self.pit_font_size)
 
         self.standings = list()
 
@@ -92,15 +81,15 @@ class Standings(DynamicBase):
             draw.rectangle([(xPos, 0), ((xPos+int(self.replay.margin/2)+1)*3, height-1)], fill=(0, 0, 255), outline=border_color)
             width_target = ((xPos+int(self.replay.margin/2))*3)*0.80
             height_target = height*0.80
-            font = self.replay.font
-            font_size = font.size
-            while font.getsize("PIT")[0] > width_target and \
-                    font.getsize("PIT")[1] > height_target:
-                font_size -= 1
-                font.size = font_size
-            position_x = int((output.size[0]-font.getsize("PIT")[0])/2)
-            position_y = int((output.size[1]-font.getsize("PIT")[1])/2)
-            draw.text((position_x, position_y), "PIT", fill='white', font=font)
+            while self.pit_font.getsize("PIT")[0] > width_target or \
+                    self.pit_font.getsize("PIT")[1] > height_target:
+                self.pit_font_size -= 1
+                self.pit_font = ImageFont.truetype(
+                    self.pit_font_path,
+                    self.pit_font_size)
+            position_x = int((output.size[0]-self.pit_font.getsize("PIT")[0])/2)
+            position_y = int((output.size[1]-self.pit_font.getsize("PIT")[1])/2)
+            draw.text((position_x, position_y), "PIT", fill='white', font=self.pit_font)
         else:
             for sector in data:
                 if sector == 'invalid':
@@ -207,20 +196,13 @@ class Standings(DynamicBase):
         if self.process_data or force_process:
             if self.clip_t > self.replay.sync_racestart:
                 try:
-                    #data = [x for x in self.replay.telemetry_data if x[-1] > self.clip_t-self.replay.sync_racestart][0]
                     telemetry_data, participant_data = [(x[0], x[-1]) for x in self.replay.telemetry_data if x[0][-1][-1] > self.clip_t-self.replay.sync_racestart][0]
                     telemetry_data = [x for x in telemetry_data if x[-1] > self.clip_t-self.replay.sync_racestart][0]
                 except IndexError:
-                    #raceFinish = [i for i, data in reversed(list(enumerate(self.replay.telemetry_data))) if int(data[9]) & int('111', 2) == 2][0] + 1
-                    #telemetry_data = [x for x in self.replay.telemetry_data if x[2] < self.replay.race_finish][-1]
                     telemetry_data, participant_data, index_offset = [(x[0], x[-1], x[2]) for x in self.replay.telemetry_data if x[2] < self.replay.race_finish][-1]
                     telemetry_data = telemetry_data[self.replay.race_finish-index_offset]
 
-                    #telemetry_data = telemetry_data[0][self.replay.race_finish-telemetry_data[2]]
-                    #participant_data = [x for x in self.replay.telemetry_data if x[2] < self.replay.race_finish][-1][0]
-                    #data = self.replay.telemetry_data[raceFinish]
             else:
-                #data = self.replay.telemetry_data[0]
                 telemetry_data = self.replay.telemetry_data[0][0][0]
                 participant_data = self.replay.telemetry_data[0][-1]
             '''

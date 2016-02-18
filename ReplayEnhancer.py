@@ -603,10 +603,11 @@ class ReplayEnhancer():
                 print("Invalid JSON in configuration file: {}".format(e))
             else:
                 output = replay.__build_default_video(False)
-                output.save_frame("outputs/frame1.png", output.duration-50)
-                output.save_frame("outputs/frame2.png", output.duration-30)
-                output.save_frame("outputs/frame3.png", output.duration-10)
+                #output.save_frame("outputs/frame1.png", output.duration-50)
+                #output.save_frame("outputs/frame2.png", output.duration-30)
+                #output.save_frame("outputs/frame3.png", output.duration-10)
                 #output.set_duration(output.duration).subclip(output.duration-60).write_videofile(replay.output_video, fps=10, preset='superfast')
+                output.set_duration(output.duration).subclip(800, 900).write_videofile(replay.output_video, fps=30)
         except KeyboardInterrupt:
             raise
 
@@ -760,6 +761,7 @@ if __name__ == "__main__":
                     parser.error("\n{} not found. Aborting.".format(arguments.configuration))
     except KeyboardInterrupt:
         print("Aborting Project CARS Replay Enhancer.")
+        raise
     '''
     if len(sys.argv) == 1:
         print("No configuration file provided.")
