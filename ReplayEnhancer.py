@@ -475,7 +475,7 @@ class ReplayEnhancer():
                 output = mpy.concatenate_videoclips([start_video, end_video])
                 output.write_videofile(replay.output_video, fps=10, preset='superfast')
         except KeyboardInterrupt:
-            print("Aborting...")
+            raise
 
     @classmethod
     def edit_configuration(cls, previous_file):
@@ -513,7 +513,7 @@ class ReplayEnhancer():
                 output.write_videofile(replay.output_video, fps=10, preset='superfast')
 
         except KeyboardInterrupt:
-            print("Aborting...")
+            raise
 
     @classmethod
     def edit_trim(cls, previous_file):
@@ -552,7 +552,7 @@ class ReplayEnhancer():
                 output.write_videofile(replay.output_video, fps=10, preset='superfast')
 
         except KeyboardInterrupt:
-            print("Aborting...")
+            raise
             
     @classmethod
     def edit_racestart(cls, previous_file):
@@ -590,7 +590,7 @@ class ReplayEnhancer():
                 output.write_videofile(replay.output_video, fps=10, preset='superfast')
 
         except KeyboardInterrupt:
-            print("Aborting...")
+            raise
 
     @classmethod
     def create_custom(cls, config_file):
@@ -603,12 +603,12 @@ class ReplayEnhancer():
                 print("Invalid JSON in configuration file: {}".format(e))
             else:
                 output = replay.__build_default_video(False)
-                #output.save_frame("outputs/frame1.png", output.duration-50)
-                #output.save_frame("outputs/frame2.png", output.duration-30)
-                #output.save_frame("outputs/frame3.png", output.duration-10)
-                output.set_duration(output.duration).subclip(output.duration-60).write_videofile(replay.output_video, fps=10, preset='superfast')
+                output.save_frame("outputs/frame1.png", output.duration-50)
+                output.save_frame("outputs/frame2.png", output.duration-30)
+                output.save_frame("outputs/frame3.png", output.duration-10)
+                #output.set_duration(output.duration).subclip(output.duration-60).write_videofile(replay.output_video, fps=10, preset='superfast')
         except KeyboardInterrupt:
-            print("Aborting...")
+            raise
 
     @classmethod
     def create_video(cls, config_file):
@@ -621,9 +621,9 @@ class ReplayEnhancer():
                 print("Invalid JSON in configuration file: {}".format(e))
             else:
                 output = replay.__build_default_video(True)
-                output.write_videofile(replay.output_video, fps=30)
+                output.write_videofile(replay.output_video, fps=30, write_logfile=True)
         except KeyboardInterrupt:
-            print("Aborting...")
+            raise
 
     def __build_default_video(self, process_data):
         if self.source_video is None:
@@ -701,63 +701,65 @@ class ReplayEnhancer():
         return output
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Project CARS Replay Enhancer")
-    parser.add_argument('-v', '--version', action='version', 
-        version='Version 0.3')
-    parser.add_argument('configuration', nargs='?')
-    parser.add_argument('-c', '--configure', action='store_true',
-        help='create or edit configuration file')
-    parser.add_argument('-u', '--custom', action='store_true',
-        help=argparse.SUPPRESS)
-    parser.add_argument('-r', '--racestart', action='store_true',
-        help='modify race start for telemetry sync')
-    parser.add_argument('-t', '--trim', action='store_true',
-        help='modify video trim parameters')
-        
-    arguments = parser.parse_args()
+    try:    
+        parser = argparse.ArgumentParser(
+            description="Project CARS Replay Enhancer")
+        parser.add_argument('-v', '--version', action='version', 
+            version='Version 0.3')
+        parser.add_argument('configuration', nargs='?')
+        parser.add_argument('-c', '--configure', action='store_true',
+            help='create or edit configuration file')
+        parser.add_argument('-u', '--custom', action='store_true',
+            help=argparse.SUPPRESS)
+        parser.add_argument('-r', '--racestart', action='store_true',
+            help='modify race start for telemetry sync')
+        parser.add_argument('-t', '--trim', action='store_true',
+            help='modify video trim parameters')
+            
+        arguments = parser.parse_args()
 
-    error_message = ""
-    if arguments.racestart is True and arguments.configuration is None:
-        error_message += "\n-r, --racestart requires a provided configuration file."
-    if arguments.trim is True and arguments.configuration is None:
-        error_message += "\n-t, --trim requires a provided configuration file."
+        error_message = ""
+        if arguments.racestart is True and arguments.configuration is None:
+            error_message += "\n-r, --racestart requires a provided configuration file."
+        if arguments.trim is True and arguments.configuration is None:
+            error_message += "\n-t, --trim requires a provided configuration file."
 
-    if len(error_message):
-        parser.error(error_message)
+        if len(error_message):
+            parser.error(error_message)
 
-    if arguments.custom is True:
-        try:
-            ReplayEnhancer.create_custom(arguments.configuration)
-        except FileNotFoundError:
-            parser.error("\n{} not found. Aborting.".format(arguments.configuration))
-    elif arguments.configure is True:
-        if arguments.configuration is None:
-            ReplayEnhancer.new_configuration()
-        else:
+        if arguments.custom is True:
             try:
-                ReplayEnhancer.edit_configuration(arguments.configuration)
+                ReplayEnhancer.create_custom(arguments.configuration)
             except FileNotFoundError:
                 parser.error("\n{} not found. Aborting.".format(arguments.configuration))
-    elif arguments.trim is True:
-        try:
-            ReplayEnhancer.edit_trim(arguments.configuration)
-        except FileNotFoundError:
-            parser.error("\n{} not found. Aborting.".format(arguments.configuration))
-    elif arguments.racestart is True:
-        try:
-            ReplayEnhancer.edit_racestart(arguments.configuration)
-        except FileNotFoundError:
-            parser.error("\n{} not found. Aborting.".format(arguments.configuration))
-    else:
-        if arguments.configuration is None:
-            ReplayEnhancer.new_configuration()
-        else:
+        elif arguments.configure is True:
+            if arguments.configuration is None:
+                ReplayEnhancer.new_configuration()
+            else:
+                try:
+                    ReplayEnhancer.edit_configuration(arguments.configuration)
+                except FileNotFoundError:
+                    parser.error("\n{} not found. Aborting.".format(arguments.configuration))
+        elif arguments.trim is True:
             try:
-                ReplayEnhancer.create_video(arguments.configuration)
+                ReplayEnhancer.edit_trim(arguments.configuration)
             except FileNotFoundError:
                 parser.error("\n{} not found. Aborting.".format(arguments.configuration))
-
+        elif arguments.racestart is True:
+            try:
+                ReplayEnhancer.edit_racestart(arguments.configuration)
+            except FileNotFoundError:
+                parser.error("\n{} not found. Aborting.".format(arguments.configuration))
+        else:
+            if arguments.configuration is None:
+                ReplayEnhancer.new_configuration()
+            else:
+                try:
+                    ReplayEnhancer.create_video(arguments.configuration)
+                except FileNotFoundError:
+                    parser.error("\n{} not found. Aborting.".format(arguments.configuration))
+    except KeyboardInterrupt:
+        print("Aborting Project CARS Replay Enhancer.")
     '''
     if len(sys.argv) == 1:
         print("No configuration file provided.")
