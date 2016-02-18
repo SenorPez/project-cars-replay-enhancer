@@ -639,9 +639,9 @@ class Configuration:
                     self.subheading_text = subheading_text
                     break
 
-            point_structure = list()
+            point_structure = [0]
             while True:
-                position = len(point_structure)+1
+                position = len(point_structure)
                 print("Enter points scored for finish position",
                       "{}".format(position))
                 if position == 1:
@@ -678,8 +678,7 @@ class Configuration:
                         elif self.point_structure[position] == 0:
                             break
                         else:
-                            point_structure.insert(
-                                position,
+                            point_structure.append(
                                 int(self.point_structure[position]))
                     except IndexError:
                         print("No previous value for this position.",
@@ -688,11 +687,11 @@ class Configuration:
                     break
                 else:
                     try:
-                        point_structure.insert(position, int(new_point))
+                        point_structure.append(int(new_point))
                     except ValueError:
                         print("Points should be integer values.")
 
-            if len(point_structure):
+            if len(point_structure) > 1:
                 while True:
                     print("Enter bonus points for fastest lap.")
                     prompt = "({})".format(str(
@@ -701,16 +700,14 @@ class Configuration:
                     bonus_point = input(prompt+"--> ")
 
                     if len(bonus_point) == 0 and previous_file:
-                        point_structure.insert(
-                            0,
-                            int(self.point_structure[0]))
+                        point_structure[0] = int(self.point_structure[0])
                         break
                     elif len(bonus_point) == 0:
-                        point_structure.insert(0, int(0))
+                        point_structure[0] = int(0)
                         break
                     else:
                         try:
-                            point_structure.insert(0, int(bonus_point))
+                            point_structure[0] = int(0)
                             break
                         except ValueError:
                             print("Points should be integer values.")
@@ -1308,12 +1305,12 @@ class Configuration:
     def __get_values(self):
         participant_config = OrderedDict(sorted(
             self.participant_config.items(),
-            key=lambda x: x[0]))
+            key=lambda x: x[0].lower()))
 
         for name, data in participant_config.items():
             participant_config[name] = OrderedDict(sorted(
                 data.items(),
-                key=lambda x: x[0]))
+                key=lambda x: x[0].lower()))
 
         output = {'font': self.font,
                   'font_size': self.font_size,
@@ -1341,7 +1338,9 @@ class Configuration:
                   'video_skipend': self.video_skipend,
                   'video_cache': self.video_cache,
                   'sync_racestart': self.sync_racestart}
-        return OrderedDict(sorted(output.items(), key=lambda x: x[0]))
+        return OrderedDict(sorted(
+            output.items(), 
+            key=lambda x: x[0].lower()))
 
     @staticmethod
     def __process_telemetry(source_telemetry, telemetry_file):
