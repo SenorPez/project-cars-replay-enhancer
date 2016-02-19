@@ -707,7 +707,7 @@ class Configuration:
                         break
                     else:
                         try:
-                            point_structure[0] = int(0)
+                            point_structure[0] = int(bonus_point)
                             break
                         except ValueError:
                             print("Points should be integer values.")
