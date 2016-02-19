@@ -1,34 +1,42 @@
+"""
+Captures UDP telemetry packets for use by the Project CARS Replay
+Enhancer. Run on the network to which Project CARS is broadcasting
+
+Writes the packets to a directory named "packetdata" with an
+appended timestamp. Each packet is named "pdata" with an appended
+sequence number.
+
+Stop telemetry packet capture by hitting CTRL+C.
+"""
 import datetime
 import os
 import socket
 
 # Create a new UDP socket.
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+SOCKET = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 # Bind the socket to the port
-server_address = ("", 5606)
-#print >> sys.stderr, 'Starting listener on port %s' % server_address[1]
-print("Starting listener on port {}".format(server_address[1]))
-sock.bind(server_address)
+SERVER_ADDRESS = ("", 5606)
+print("Starting listener on port {}".format(SERVER_ADDRESS[1]))
+SOCKET.bind(SERVER_ADDRESS)
 
-i = 0;
-directory = "packetdata-"+datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+i = 0
+DIRECTORY = "packetdata-"+datetime.datetime.now().strftime(
+    "%Y%m%d-%H%M%S")
 try:
-	if not os.path.exists(directory):
-		os.makedirs(directory)
-	while True:
-		data, address = sock.recvfrom(65565)
-		#print >> sys.stderr, 'Writing packet #%s' % i
-		print("Writing packet {}".format(i))
-		f = open('./'+directory+'/pdata'+str(i), 'wb')
-		f.write(data)
-		f.close()
-		i+=1
+    if not os.path.exists(DIRECTORY):
+        os.makedirs(DIRECTORY)
+    while True:
+        DATA, _ = SOCKET.recvfrom(65565)
+        print("Writing packet {}".format(i))
+        FILE = open('./'+DIRECTORY+'/pdata'+str(i), 'wb')
+        FILE.write(DATA)
+        FILE.close()
+        i += 1
 
 except KeyboardInterrupt:
-	print("Closing listener on port {}".format(server_address[1]))
-	#print 'Closing listener on port %s' % server_address[1]
+    print("Closing listener on port {}".format(SERVER_ADDRESS[1]))
 
 finally:
-	if i == 0:
-		os.rmdir(directory)
+    if i == 0:
+        os.rmdir(DIRECTORY)

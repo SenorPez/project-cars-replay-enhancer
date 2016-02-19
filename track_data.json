@@ -1,0 +1,968 @@
+{
+    "tracks": [
+        {
+            "Autodromo Nazionale Monza:Grand Prix": {
+                "display_name": "Autodromo Nazionale Monza",
+                "length": 5782.521,
+                "pit_entry": [
+                    22.20312,
+                    -437.1672
+                ],
+                "pit_exit": [
+                    63.60915,
+                    -1.117797
+                ],
+                "pit_radius": 3
+            }
+        },
+        {
+            "Autodromo Nazionale Monza:Short": {
+                "display_name": "Autodromo Nazionale Monza Short",
+                "length": 2422.831,
+                "pit_entry": [
+                    22.20312,
+                    -437.1672
+                ],
+                "pit_exit": [
+                    63.60915,
+                    -1.117797
+                ],
+                "pit_radius": 3
+            }
+        },
+        {
+            "Azure Circuit:Grand Prix": {
+                "display_name": "Azure Circuit",
+                "length": 3325.762,
+                "pit_entry": [
+                    -203.8109,
+                    613.3162
+                ],
+                "pit_exit": [
+                    105.2057,
+                    525.9147
+                ],
+                "pit_radius": 2
+            }
+        },
+        {},
+        {
+            "Bathurst:": {
+                "display_name": "Bathurst",
+                "length": 6238.047,
+                "pit_entry": [
+                    80.84997,
+                    7.21405
+                ],
+                "pit_exit": [
+                    -368.7227,
+                    12.93535
+                ],
+                "pit_radius": 2
+            }
+        },
+        {
+            "Brands Hatch:Indy": {
+                "display_name": "Brands Hatch Indy",
+                "length": 1924.475,
+                "pit_entry": [
+                    -329.1295,
+                    165.8752
+                ],
+                "pit_exit": [
+                    -36.68332,
+                    355.611
+                ],
+                "pit_radius": 2.5
+            }
+        },
+        {
+            "Brands Hatch:Grand Prix": {
+                "display_name": "Brands Hatch",
+                "length": 3890.407,
+                "pit_entry": [
+                    -329.1295,
+                    165.8752
+                ],
+                "pit_exit": [
+                    -36.68332,
+                    355.611
+                ],
+                "pit_radius": 2.5
+            }
+        },
+        {
+            "Brno:": {
+                "display_name": "Brno",
+                "length": 5377.732,
+                "pit_entry": [
+                    -194.1228,
+                    -11.41852
+                ],
+                "pit_exit": [
+                    139.6739,
+                    0.06169825
+                ],
+                "pit_radius": 3
+            }
+        },
+        {
+            "Cadwell:Club Circuit": {
+                "display_name": "Cadwell Club",
+                "length": 2346.271
+            }
+        },
+        {
+            "Cadwell:Woodland": {
+                "display_name": "Cadwell Woodland",
+                "length": 1335.426,
+                "pit_entry": [
+                    45.92422,
+                    72.04858
+                ],
+                "pit_exit": [
+                    -10.31487,
+                    -40.43255
+                ],
+                "pit_radius": 2
+            }
+        },
+        {
+            "Cadwell:Grand Prix": {
+                "display_name": "Cadwell",
+                "length": 3453.817,
+                "pit_entry": [
+                    45.92422,
+                    72.04858
+                ],
+                "pit_exit": [
+                    -10.31487,
+                    -40.43255
+                ],
+                "pit_radius": 2
+            }
+        },
+        {
+            "Circuit de Barcelona-Catalunya:Club": {
+                "display_name": "Catalunya Club",
+                "length": 1691.681
+            }
+        },
+        {
+            "Circuit de Barcelona-Catalunya:Grand Prix": {
+                "display_name": "Catalunya",
+                "length": 4630.515,
+                "pit_entry": [
+                    622.7108,
+                    -137.3975
+                ],
+                "pit_exit": [
+                    26.52858,
+                    -167.9301
+                ],
+                "pit_radius": 3
+            }
+        },
+        {
+            "Circuit de Barcelona-Catalunya:National": {
+                "display_name": "Catalunya National",
+                "length": 2948.298,
+                "pit_entry": [
+                    622.7108,
+                    -137.3975
+                ],
+                "pit_exit": [
+                    26.52858,
+                    -167.9301
+                ],
+                "pit_radius": 3
+            }
+        },
+        {
+            "Circuit de Spa-Francorchamps:": {
+                "display_name": "Circuit de Spa-Francorchamps",
+                "length": 6997.816,
+                "pit_entry": [
+                    -685.1871,
+                    1238.607
+                ],
+                "pit_exit": [
+                    -952.3125,
+                    1656.81
+                ],
+                "pit_radius": 2.5
+            }
+        },
+        {
+            "Le Mans:Circuit des 24 Heures du Mans": {
+                "display_name": "Circuit des 24 Heures du Mans",
+                "length": 13595.01,
+                "pit_entry": [
+                    -737.9395,
+                    1107.367
+                ],
+                "pit_exit": [
+                    -721.3452,
+                    1582.873
+                ],
+                "pit_radius": 3
+            }
+        },
+        {
+            "Dubai Autodrome:Club": {
+                "display_name": "Dubai Autodrome Club",
+                "length": 2525.363,
+                "pit_entry": [
+                    971.8023,
+                    199.1564
+                ],
+                "pit_exit": [
+                    452.5084,
+                    126.7626
+                ],
+                "pit_radius": 3
+            }
+        },
+        {
+            "Dubai Autodrome:Grand Prix": {
+                "display_name": "Dubai Autodrome",
+                "length": 5372.706,
+                "pit_entry": [
+                    971.8023,
+                    199.1564
+                ],
+                "pit_exit": [
+                    452.5084,
+                    126.7626
+                ],
+                "pit_radius": 3
+            }
+        },
+        {
+            "Dubai Autodrome:International": {
+                "display_name": "Dubai Autodrome International",
+                "length": 4290.958,
+                "pit_entry": [
+                    971.8023,
+                    199.1564
+                ],
+                "pit_exit": [
+                    452.5084,
+                    126.7626
+                ],
+                "pit_radius": 3
+            }
+        },
+        {
+            "Dubai Autodrome:National": {
+                "display_name": "Dubai Autodrome National",
+                "length": 3570.053,
+                "pit_entry": [
+                    971.8023,
+                    199.1564
+                ],
+                "pit_exit": [
+                    452.5084,
+                    126.7626
+                ],
+                "pit_radius": 3
+            }
+        },
+        {
+            "Donington Park:Grand Prix": {
+                "display_name": "Donington Park",
+                "length": 3982.949,
+                "pit_entry": [
+                    200.8843,
+                    144.8465
+                ],
+                "pit_exit": [
+                    486.4654,
+                    119.9713
+                ],
+                "pit_radius": 2
+            }
+        },
+        {
+            "Donington Park:National": {
+                "display_name": "Donington Park National",
+                "length": 3175.802,
+                "pit_entry": [
+                    200.8843,
+                    144.8465
+                ],
+                "pit_exit": [
+                    486.4654,
+                    119.9713
+                ],
+                "pit_radius": 2
+            }
+        },
+        {
+            "Hockenheim:Grand Prix": {
+                "display_name": "Hockenheim",
+                "length": 4563.47,
+                "pit_entry": [
+                    -483.1076,
+                    -428.47
+                ],
+                "pit_exit": [
+                    -704.3397,
+                    11.15407
+                ],
+                "pit_radius": 3
+            }
+        },
+        {
+            "Hockenheim:Short": {
+                "display_name": "Hockenheim Short",
+                "length": 2593.466,
+                "pit_entry": [
+                    -483.1076,
+                    -428.47
+                ],
+                "pit_exit": [
+                    -704.3397,
+                    11.15407
+                ],
+                "pit_radius": 3
+            }
+        },
+        {
+            "Hockenheim:National": {
+                "display_name": "Hockenheim National",
+                "length": 3685.798,
+                "pit_entry": [
+                    -483.1076,
+                    -428.47
+                ],
+                "pit_exit": [
+                    -704.3397,
+                    11.15407
+                ],
+                "pit_radius": 3
+            }
+        },
+        {
+            "Imola:Grand Prix": {
+                "display_name": "Imola",
+                "length": 4847.88,
+                "pit_entry": [
+                    311.259,
+                    420.3269
+                ],
+                "pit_exit": [
+                    -272.6198,
+                    418.3795
+                ],
+                "pit_radius": 3
+            }
+        },
+        {
+            "Le Mans:Le Circuit Bugatti": {
+                "display_name": "Le Circuit Bugatti",
+                "length": 4149.839,
+                "pit_entry": [
+                    -737.9395,
+                    1107.367
+                ],
+                "pit_exit": [
+                    -721.3452,
+                    1582.873
+                ],
+                "pit_radius": 3
+            }
+        },
+        {
+            "Chesterfield:Grand Prix": {
+                "display_name": "Chesterfield",
+                "length": 871.259
+            }
+        },
+        {
+            "Dubai Autodrome:Kartdrome": {
+                "display_name": "Dubai Kartdrome",
+                "length": 1165.729
+            }
+        },
+        {
+            "Glencairn:East": {
+                "display_name": "Glencairn East",
+                "length": 510.172
+            }
+        },
+        {
+            "Glencairn:Grand Prix": {
+                "display_name": "Glencairn",
+                "length": 921.8
+            }
+        },
+        {
+            "Glencairn:West": {
+                "display_name": "Glencairn West",
+                "length": 451.737
+            }
+        },
+        {
+            "Greenwood:Karting Circuit": {
+                "display_name": "Greenwood Karting Circuit",
+                "length": 1073.663
+            }
+        },
+        {
+            "Mazda Raceway:Laguna Seca": {
+                "display_name": "Mazda Raceway at Laguna Seca",
+                "length": 3593.582,
+                "pit_entry": [
+                    -70.22401,
+                    432.3777
+                ],
+                "pit_exit": [
+                    -279.2681,
+                    228.165
+                ],
+                "pit_radius": 2
+            }
+        },
+        {
+            "Nordschleife:Full": {
+                "display_name": "Nordschleife",
+                "length": 20735.4,
+                "pit_entry": [
+                    599.293,
+                    606.7135
+                ],
+                "pit_exit": [
+                    391.6694,
+                    694.4844
+                ],
+                "pit_radius": 3
+            }
+        },
+        {
+            "Nürburgring:Grand Prix": {
+                "display_name": "Nürburgring",
+                "length": 5122.845,
+                "pit_entry": [
+                    443.6332,
+                    527.8024
+                ],
+                "pit_exit": [
+                    66.84711,
+                    96.7378
+                ],
+                "pit_radius": 2.5
+            }
+        },
+        {
+            "Nürburgring:MuellenBach": {
+                "display_name": "Nürburgring MuellenBach",
+                "length": 1488.941
+            }
+        },
+        {
+            "Nürburgring:Sprint": {
+                "display_name": "Nürburgring Sprint",
+                "length": 3603.18,
+                "pit_entry": [
+                    443.6332,
+                    527.8024
+                ],
+                "pit_exit": [
+                    66.84711,
+                    96.7378
+                ],
+                "pit_radius": 2.5
+            }
+        },
+        {
+            "Nürburgring:Sprint Short": {
+                "display_name": "Nürburgring Sprint Short",
+                "length": 3083.551,
+                "pit_entry": [
+                    443.6332,
+                    527.8024
+                ],
+                "pit_exit": [
+                    66.84711,
+                    96.7378
+                ],
+                "pit_radius": 2.5
+            }
+        },
+        {
+            "Oschersleben:C Circuit": {
+                "display_name": "Oschersleben C Circuit",
+                "length": 1061.989
+            }
+        },
+        {
+            "Oschersleben:Grand Prix": {
+                "display_name": "Oschersleben",
+                "length": 3656.855,
+                "pit_entry": [
+                    -350.7033,
+                    31.39084
+                ],
+                "pit_exit": [
+                    239.3137,
+                    91.73861
+                ],
+                "pit_radius": 3
+            }
+        },
+        {
+            "Oschersleben:National": {
+                "display_name": "Oschersleben National",
+                "length": 2417.65,
+                "pit_entry": [
+                    -350.7033,
+                    31.39084
+                ],
+                "pit_exit": [
+                    239.3137,
+                    91.73861
+                ],
+                "pit_radius": 3
+            }
+        },
+        {
+            "Oulton Park:International": {
+                "display_name": "Oulton Park International",
+                "length": 4302.739,
+                "pit_entry": [
+                    46.9972,
+                    80.40176
+                ],
+                "pit_exit": [
+                    114.8132,
+                    -165.5994
+                ],
+                "pit_radius": 2
+            }
+        },
+        {
+            "Oulton Park:Fosters": {
+                "display_name": "Oulton Park Fosters",
+                "length": 2649.91,
+                "pit_entry": [
+                    46.9972,
+                    80.40176
+                ],
+                "pit_exit": [
+                    114.8132,
+                    -165.5994
+                ],
+                "pit_radius": 2
+            }
+        },
+        {
+            "Oulton Park:Island": {
+                "display_name": "Oulton Park Island",
+                "length": 3547.586,
+                "pit_entry": [
+                    46.9972,
+                    80.40176
+                ],
+                "pit_exit": [
+                    114.8132,
+                    -165.5994
+                ],
+                "pit_radius": 2
+            }
+        },
+        {
+            "Road America": {
+                "display_name": "Road America",
+                "length": 6482.489,
+                "pit_entry": [
+                    430.8689,
+                    245.7329
+                ],
+                "pit_exit": [
+                    451.5659,
+                    -330.7411
+                ],
+                "pit_radius": 3.5
+            }
+        },
+        {
+            "Sakitto:Grand Prix": {
+                "display_name": "Sakitto",
+                "length": 5383.884,
+                "pit_entry": [
+                    576.6671,
+                    -142.1608
+                ],
+                "pit_exit": [
+                    607.291,
+                    -646.9218
+                ],
+                "pit_radius": 2.5
+            }
+        },
+        {
+            "Sakitto:International": {
+                "display_name": "Sakitto International",
+                "length": 2845.161,
+                "pit_entry": [
+                    -265.1671,
+                    472.4344
+                ],
+                "pit_exit": [
+                    -154.9505,
+                    278.1627
+                ],
+                "pit_radius": 2
+            }
+        },
+        {
+            "Sakitto:National": {
+                "display_name": "Sakitto National",
+                "length": 3100.48,
+                "pit_entry": [
+                    -265.1671,
+                    472.4344
+                ],
+                "pit_exit": [
+                    -154.9505,
+                    278.1627
+                ],
+                "pit_radius": 2
+            }
+        },
+        {
+            "Sakitto:Sprint": {
+                "display_name": "Sakitto Sprint",
+                "length": 3539.384,
+                "pit_entry": [
+                    576.6671,
+                    -142.1608
+                ],
+                "pit_exit": [
+                    607.291,
+                    -646.9218
+                ],
+                "pit_radius": 2.5
+            }
+        },
+        {
+            "Silverstone:Grand Prix": {
+                "display_name": "Silverstone",
+                "length": 5809.965,
+                "pit_entry": [
+                    -504.739,
+                    -1274.686
+                ],
+                "pit_exit": [
+                    -273.1427,
+                    -861.1436
+                ],
+                "pit_radius": 3
+            }
+        },
+        {
+            "Silverstone:International": {
+                "display_name": "Silverstone International",
+                "length": 2978.349,
+                "pit_entry": [
+                    -504.739,
+                    -1274.686
+                ],
+                "pit_exit": [
+                    -273.1427,
+                    -861.1436
+                ],
+                "pit_radius": 3
+            }
+        },
+        {
+            "Silverstone:National": {
+                "display_name": "Silverstone National",
+                "length": 2620.891,
+                "pit_entry": [
+                    -323.1119,
+                    -115.6939
+                ],
+                "pit_exit": [
+                    157.4515,
+                    0.4208831
+                ],
+                "pit_radius": 2
+            }
+        },
+        {
+            "Silverstone:Stowe": {
+                "display_name": "Silverstone Stowe",
+                "length": 1712.277,
+                "pit_entry": [
+                    -75.90499,
+                    -1396.183
+                ],
+                "pit_exit": [
+                    -0.5095776,
+                    -1096.397
+                ],
+                "pit_radius": 2
+            }
+        },
+        {
+            "Snetterton:100 Circuit": {
+                "display_name": "Snetterton 100",
+                "length": 1712.277
+            }
+        },
+        {
+            "Snetterton:200 Circuit": {
+                "display_name": "Snetterton 200",
+                "length": 3170.307,
+                "pit_entry": [
+                    228.4838,
+                    -25.23679
+                ],
+                "pit_exit": [
+                    -44.5122,
+                    -55.82156
+                ],
+                "pit_radius": 2
+            }
+        },
+        {
+            "Snetterton:300 Circuit": {
+                "display_name": "Snetterton 300",
+                "length": 4747.875,
+                "pit_entry": [
+                    228.4838,
+                    -25.23679
+                ],
+                "pit_exit": [
+                    -44.5122,
+                    -55.82156
+                ],
+                "pit_radius": 2
+            }
+        },
+        {
+            "Ruapuna Park:Club": {
+                "display_name": "Ruapuna Park Club",
+                "length": 2261.983
+            }
+        },
+        {
+            "Sonoma Raceway:Grand Prix": {
+                "display_name": "Sonoma Raceway",
+                "length": 4025.978,
+                "pit_entry": [
+                    -592.7792,
+                    87.43731
+                ],
+                "pit_exit": [
+                    -152.6224,
+                    -30.71386
+                ],
+                "pit_radius": 2
+            }
+        },
+        {
+            "Sonoma Raceway:National": {
+                "display_name": "Sonoma Raceway National",
+                "length": 3792.239,
+                "pit_entry": [
+                    -592.7792,
+                    87.43731
+                ],
+                "pit_exit": [
+                    -152.6224,
+                    -30.71386
+                ],
+                "pit_radius": 2
+            }
+        },
+        {
+            "Sonoma Raceway:Short": {
+                "display_name": "Sonoma Raceway Short",
+                "length": 3174.824,
+                "pit_entry": [
+                    -592.7792,
+                    87.43731
+                ],
+                "pit_exit": [
+                    -152.6224,
+                    -30.71386
+                ],
+                "pit_radius": 2
+            }
+        },
+        {
+            "Watkins Glen International:Grand Prix": {
+                "display_name": "Watkins Glen International",
+                "length": 5112.122,
+                "pit_entry": [
+                    589.6273,
+                    -928.2814
+                ],
+                "pit_exit": [
+                    542.0042,
+                    -1410.464
+                ],
+                "pit_radius": 3
+            }
+        },
+        {
+            "Watkins Glen International:Short Circuit": {
+                "display_name": "Watkins Glen International Short",
+                "length": 3676.561,
+                "pit_entry": [
+                    589.6273,
+                    -928.2814
+                ],
+                "pit_exit": [
+                    542.0042,
+                    -1410.464
+                ],
+                "pit_radius": 3
+            }
+        },
+        {
+            "Willow Springs:Short Circuit": {
+                "display_name": "Willow Springs Short",
+                "length": 1627.787,
+                "pit_entry": [
+                    -386.1919,
+                    818.131
+                ],
+                "pit_exit": [
+                    -317.1366,
+                    641.947
+                ],
+                "pit_radius": 3
+            }
+        },
+        {
+            "Willow Springs:International Raceway": {
+                "display_name": "Willow Springs International Raceway",
+                "length": 4038.008,
+                "pit_entry": [
+                    319.4275,
+                    -21.51243
+                ],
+                "pit_exit": [
+                    -44.84023,
+                    -23.41344
+                ],
+                "pit_radius": 3
+            }
+        },
+        {
+            "Summerton:International": {
+                "display_name": "Summerton",
+                "length": 996.807
+            }
+        },
+        {
+            "Zhuhai:International Circuit": {
+                "display_name": "Zhuhai",
+                "length": 4293.098,
+                "pit_entry": [
+                    -193.7068,
+                    123.679
+                ],
+                "pit_exit": [
+                    64.56277,
+                    -71.51254
+                ],
+                "pit_radius": 3
+            }
+        },
+        {
+            "Bannochbrae:Road Circuit": {
+                "display_name": "Bannochbrae",
+                "length": 7251.9004,
+                "pit_entry": [
+                    -175,
+                    16
+                ],
+                "pit_exit": [
+                    131,
+                    14.5
+                ],
+                "pit_radius": 4
+            }
+        },
+        {
+            "Rouen Les Essarts:": {
+                "display_name": "Rouen Les Essarts",
+                "length": 6499.198,
+                "pit_entry": [
+                    117.25,
+                    25.5
+                ],
+                "pit_exit": [
+                    -84.75,
+                    -13.5
+                ],
+                "pit_radius": 4
+            }
+        },
+        {
+            "Rouen Les Essarts:Short": {
+                "display_name": "Rouen Les Essarts Short",
+                "length": 5390.12939,
+                "pit_entry": [
+                    117.25,
+                    25.5
+                ],
+                "pit_exit": [
+                    -84.75,
+                    -13.5
+                ],
+                "pit_radius": 4
+            }
+        },
+        {
+            "Silverstone:Grand Prix": {
+                "display_name": "Silverstone (Classic)",
+                "length": 4697.72656,
+                "pit_entry": [
+                    -347,
+                    -165
+                ],
+                "pit_exit": [
+                    152.75,
+                    -1.25
+                ],
+                "pit_radius": 3
+            }
+        },
+        {
+            "Hockenheim:Classic": {
+                "display_name": "Hockenheim (Classic)",
+                "length": 6763.425,
+                "pit_entry": [
+                    -533,
+                    -318.25
+                ],
+                "pit_exit": [
+                    -705.5,
+                    -2
+                ],
+                "pit_radius": 3
+            }
+        },
+        {
+            "Zolder:Grand Prix": {
+                "display_name": "Zolder",
+                "length": 4146.733,
+                "pit_entry": [
+                    138.3811,
+                    132.7747
+                ],
+                "pit_exit": [
+                    682.2009,
+                    179.8147
+                ],
+                "pit_radius": 4
+            }
+        }
+    ]
+}
