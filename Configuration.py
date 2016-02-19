@@ -361,7 +361,14 @@ class Configuration:
                     video_skipstart = input(prompt+"--> ")
 
                     if len(video_skipstart) == 0 and previous_file:
-                        break
+                        if self.video_skipstart >= 0.0:
+                            break
+                        elif self.video_skipstart <= duration:
+                            break
+                        else:
+                            print("Start time should be greater than",
+                                  "or equal to zero and less than the",
+                                  "video duration of {}.".format(duration))
                     elif len(video_skipstart) == 0:
                         self.video_skipstart = 1 if use_blackframe else 0.0
                         purge_cache = True
@@ -408,7 +415,14 @@ class Configuration:
                     video_skipend = input(prompt+"--> ")
 
                     if len(video_skipend) == 0 and previous_file:
-                        break
+                        if self.video_skipend <= self.video_skipstart:
+                            break
+                        elif self.video_skipend <= duration:
+                            break
+                        else:
+                            print("End time should be greater than the",
+                                  "start time and less than the",
+                                  "video duration of {}.".format(duration))
                     elif len(video_skipend) == 0:
                         self.video_skipend = 1 if use_blackframe \
                             else duration
@@ -1152,7 +1166,14 @@ class Configuration:
                     video_skipstart = input(prompt+"--> ")
 
                     if len(video_skipstart) == 0 and previous_file:
-                        break
+                        if self.video_skipstart >= 0.0:
+                            break
+                        elif self.video_skipstart <= duration:
+                            break
+                        else:
+                            print("Start time should be greater than",
+                                  "or equal to zero and less than the",
+                                  "video duration of {}.".format(duration))
                     elif len(video_skipstart) == 0:
                         self.video_skipstart = 1 if use_blackframe else 0.0
                         purge_cache = True
@@ -1199,7 +1220,15 @@ class Configuration:
                     video_skipend = input(prompt+"--> ")
 
                     if len(video_skipend) == 0 and previous_file:
-                        break
+                        if self.video_skipend <= self.video_skipstart:
+                            break
+                        elif self.video_skipend <= duration:
+                            break
+                        else:
+                            print("End time should be greater than the",
+                                  "start time and less than the",
+                                  "video duration of {}.".format(duration))
+
                     elif len(video_skipend) == 0:
                         self.video_skipend = 1 if use_blackframe \
                             else duration
