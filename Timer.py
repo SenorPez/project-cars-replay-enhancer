@@ -31,7 +31,6 @@ class Timer(DynamicBase):
 
         self.time = -1
         self.lap = -1
-        self.data_height = -1
         self.event_time = None
 
         #Whats the slowest lap time in the entire race.
@@ -52,16 +51,28 @@ class Timer(DynamicBase):
 
             self.max_laps = "{}".format(self.format_time(self.event_time))
 
+        self.data_height = max((self.replay.font.getsize(self.max_lap_time)[1], self.replay.font.getsize(self.max_laps)[1]))
+        text_width = max((self.replay.font.getsize(str(self.max_lap_time))[0], self.replay.font.getsize(self.max_laps)[0]))
+
+        self.material = Image.new('RGBA', (text_width+self.replay.margin*2, self.data_height*2+int(self.replay.column_margin)*4))
+
+        topMaterial = Image.new('RGBA', (text_width+self.replay.margin*2, self.data_height+self.replay.column_margin*2), (255, 255, 255, 128))
+        self.material.paste(topMaterial, (0, 0))
+
+        bottomMaterial = Image.new('RGBA', (text_width+self.replay.margin*2, self.data_height+self.replay.column_margin*2), (192, 192, 192, 128))
+        self.material.paste(bottomMaterial, (0, self.data_height+self.replay.margin))
+
     def _write_data(self):
-        draw = ImageDraw.Draw(self.material)
-        material_width = self.material.size[0]
+        material = self.material.copy()
+        draw = ImageDraw.Draw(material)
+        material_width = material.size[0]
         draw.text(
             (
                 int(
                     material_width-self.replay.font.getsize(
                         self.format_time(
                             self.time))[0]-self.replay.margin),
-                int(self.replay.margin/2)),
+                int(self.replay.column_margin)),
             self.format_time(self.time),
             fill='black',
             font=self.replay.font)
@@ -72,7 +83,7 @@ class Timer(DynamicBase):
                     int(
                         material_width-self.replay.font.getsize(
                             self.lap)[0]-self.replay.margin),
-                    self.data_height+int(self.replay.margin*1.5)),
+                    self.data_height+int(self.replay.column_margin)*3),
                 self.lap,
                 fill='black',
                 font=self.replay.font)
@@ -86,28 +97,15 @@ class Timer(DynamicBase):
                         material_width-self.replay.font.getsize(
                             self.format_time(
                                 self.lap))[0]-self.replay.margin),
-                    self.data_height+int(self.replay.margin*1.5)),
+                    self.data_height+int(self.replay.column_margin)*3),
                 self.format_time(self.lap),
                 fill='black',
                 font=self.replay.font)
         
-        return self.material
+        return material
 
     def _make_material(self, bgOnly):
         self.time, self.lap = self.update(force_process=True)
-
-        self.data_height = max((self.replay.font.getsize(self.time)[1], self.replay.font.getsize(self.lap)[1]))
-        text_height = sum((self.replay.font.getsize(self.time)[1], self.replay.font.getsize(self.lap)[1], self.replay.margin))
-
-        text_width = max((self.replay.font.getsize(str(self.max_lap_time))[0], self.replay.font.getsize(self.max_laps)[0]))
-
-        self.material = Image.new('RGBA', (text_width+self.replay.margin*2, text_height+self.replay.margin*2))
-
-        topMaterial = Image.new('RGBA', (text_width+self.replay.margin*2, self.data_height+self.replay.margin), (255, 255, 255, 128))
-        self.material.paste(topMaterial, (0, 0))
-
-        bottomMaterial = Image.new('RGBA', (text_width+self.replay.margin*2, self.data_height+self.replay.margin), (192, 192, 192, 128))
-        self.material.paste(bottomMaterial, (0, self.data_height+self.replay.margin))
 
         return self.material if bgOnly else self._write_data()
 
@@ -126,8 +124,6 @@ class Timer(DynamicBase):
                             self.lap = "{:.2f}".format(float(telemetry_data[17]))
                         else:
                             self.lap = "{:.2f}".format(float(self.event_time))
-                    #self.time = "{:.2f}".format(float([x for x in self.replay.telemetry_data if x[-1] > self.clip_t-self.replay.sync_racestart][0][13]))
-                    #data = [x for x in self.replay.telemetry_data if x[-1] > self.clip_t-self.replay.sync_racestart][0]
                 except IndexError:
                     telemetry_data, participant_data, index_offset = [(x[0], x[-1], x[2]) for x in self.replay.telemetry_data if x[2] < self.replay.race_finish][-1]
                     telemetry_data = telemetry_data[self.replay.race_finish-index_offset]
@@ -138,11 +134,6 @@ class Timer(DynamicBase):
                         self.lap = "{}/{}".format(currentLap, telemetry_data[10])
                     elif self.replay.race_mode == "Time":
                         self.lap = "{:.2f}".format(float(0))
-                    #raceFinish = [i for i, data in reversed(list(enumerate(self.replay.telemetry_data))) if int(data[9]) & int('111', 2)  == 2][0] + 1
-                    #self.time = "{:.2f}".format(float(self.replay.telemetry_data[raceFinish][13]))
-                    #data = self.replay.telemetry_data[raceFinish]
-
-                #self.time = "{:.2f}".format(float([x for x in telemetry_data if x[-1] > self.clip_t-self.replay.sync_racestart][0][13]))
                 self.time = "{:.2f}".format(float(telemetry_data[13]))
             else:
                 telemetry_data = self.replay.telemetry_data[0][0][0]
@@ -152,7 +143,6 @@ class Timer(DynamicBase):
                 elif self.replay.race_mode == "Time":
                     self.lap = "{:.2f}".format(float(self.event_time))
 
-            #self.time = "{:.2f}".format(self.clip_t)
         self.clip_t += float(1/self.ups)
 
         return self.time, self.lap
