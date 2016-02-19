@@ -361,8 +361,10 @@ class Configuration:
                     video_skipstart = input(prompt+"--> ")
 
                     if len(video_skipstart) == 0 and previous_file:
-                        if self.video_skipstart >= 0.0:
-                            break
+                        if self.video_skipstart < 0.0:
+                            print("Start time should be greater than",
+                                  "or equal to zero and less than the",
+                                  "video duration of {}.".format(duration))
                         elif self.video_skipstart <= duration:
                             break
                         else:
@@ -1166,8 +1168,10 @@ class Configuration:
                     video_skipstart = input(prompt+"--> ")
 
                     if len(video_skipstart) == 0 and previous_file:
-                        if self.video_skipstart >= 0.0:
-                            break
+                        if self.video_skipstart < 0.0:
+                            print("Start time should be greater than",
+                                  "or equal to zero and less than the",
+                                  "video duration of {}.".format(duration))
                         elif self.video_skipstart <= duration:
                             break
                         else:
