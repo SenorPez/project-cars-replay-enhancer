@@ -144,11 +144,11 @@ class ReplayEnhancer():
                         pass
                     elif len(data) == 24:
                         for p in enumerate(data[6:6+min(16, participants)]):
-                            if len(p[1]):
+                            if len(p[1]) and p not in new_data:
                                 new_data.append(p)
                     elif len(data) == 21:
                         for p in enumerate(data[3:3+min(16, participants)], int(data[2])):
-                            if len(p[1]):
+                            if len(p[1]) and p not in new_data:
                                 new_data.append(p)
                     else:
                         raise ValueError("ValueError: Unrecognized or malformed packet.")
@@ -198,7 +198,9 @@ class ReplayEnhancer():
                 self.race_finish = len(self.telemetry_data)
 
             try:
-                self.race_start = [i for i, data in tqdm(reversed(list(enumerate(self.telemetry_data[:self.race_finish]))), desc="Detecting Race Start") if(int(data[2]) & int('11110000', 2)) >> 4 != 5 or (int(data[2]) & int('00001111', 2) != 2 and int(data[2]) & int('00001111', 2) != 3)][0] + 1
+                self.race_start = [i for i, data in tqdm(reversed(list(enumerate(self.telemetry_data[:self.race_finish]))), desc="Detecting Race Start") if(int(data[2]) & int('11110000', 2)) >> 4 != 5 or (int(data[2]) & int('00001111', 2) != 2)][0] + 1
+                #TODO: Race start detection is bad. See issue in Github.
+                #self.race_start = [i for i, data in tqdm(reversed(list(enumerate(self.telemetry_data[:self.race_finish]))), desc="Detecting Race Start") if(int(data[2]) & int('11110000', 2)) >> 4 != 5 or (int(data[2]) & int('00001111', 2) != 2 and int(data[2]) & int('00001111', 2) != 3)][0] + 1
             except IndexError:
                 self.race_start = 0
 

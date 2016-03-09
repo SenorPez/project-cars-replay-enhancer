@@ -1466,13 +1466,15 @@ class Configuration:
                 elif len(row) == 23:
                     for index, participant_name in enumerate(
                             row[6:6+min(16, participants)]):
-                        if len(participant_name):
+                        if len(participant_name) and \
+                                participant_name not in new_data:
                             new_data.append(participant_name)
                 elif len(row) == 20:
                     for index, participant_name in enumerate(
                             row[3:3+min(16, participants)],
                             int(row[2])):
-                        if len(participant_name):
+                        if len(participant_name) and \
+                                participant_name not in new_data:
                             new_data.append(participant_name)
                 else:
                     raise ValueError("ValueError: Unrecognized or",
