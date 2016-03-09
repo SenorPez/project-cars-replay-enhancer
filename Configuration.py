@@ -4,7 +4,7 @@ configuration files for the Project CARS Replay Enhancer.
 """
 
 from collections import OrderedDict
-import csv
+import unicodecsv as csv
 import re
 import os
 import json
@@ -1377,9 +1377,9 @@ class Configuration:
 
     @staticmethod
     def __process_telemetry(source_telemetry, telemetry_file):
-        with open(source_telemetry+telemetry_file, 'w') as csvfile:
+        with open(source_telemetry+telemetry_file, 'wb') as csvfile:
             with tqdm(
-                desc="Processing:",
+                desc="Processing",
                 total=len(glob(source_telemetry+'pdata*'))) \
                     as progress_bar:
                 for tele_file in natsorted(
@@ -1419,6 +1419,7 @@ class Configuration:
 
                             pack_string += "64x"
 
+                        '''
                         csvfile.write(",".join(str(
                             x,
                             encoding='utf-8', errors='ignore').\
@@ -1428,27 +1429,34 @@ class Configuration:
                             for x in unpack(
                                 pack_string, pack_data)+\
                                     (tele_file,))+"\n")
+                        '''
+                        writer = csv.writer(csvfile, encoding='utf-8')
+                        data = [str(x, encoding='utf-8', errors='ignore').replace('\x00', '') if isinstance(x, bytes) else str(x).replace('\x00', '') for x in unpack(pack_string, pack_data)+(tele_file,)]
+                        _ = writer.writerow(tuple(data))
                         progress_bar.update()
 
     def __get_participants(self, source_telemetry, telemetry_file):
         try:
-            tele_file = open(source_telemetry+telemetry_file, 'r')
+            tele_file = open(source_telemetry+telemetry_file, 'rb')
         except FileNotFoundError:
             self.__process_telemetry(source_telemetry, telemetry_file)
-            tele_file = open(source_telemetry+telemetry_file, 'r')
+            tele_file = open(source_telemetry+telemetry_file, 'rb')
         finally:
             index = 0
-            with open(source_telemetry+telemetry_file) as csv_file:
-                for index, _ in enumerate(csv_file):
-                    pass
+            with open(source_telemetry+telemetry_file, 'rb') as csv_file:
+                csvdata2 = csv.reader(csv_file, encoding='utf-8')
+                for row in csvdata2:
+                    index += 1
+                #for index, _ in enumerate(csv_file):
+                    #pass
             number_lines = index+1
-            csvdata = csv.reader(tele_file)
+            csvdata = csv.reader(tele_file, encoding='utf-8')
 
         new_data = list()
         participants = 0
         self.participant_configurations = list()
 
-        with tqdm(desc="Analyzing telemetry:", total=number_lines) \
+        with tqdm(desc="Analyzing telemetry", total=number_lines) \
                 as progress_bar:
             for row in csvdata:
                 if len(row) == 687 and int(row[4]) != -1:

@@ -1,7 +1,7 @@
 from collections import deque
 from itertools import groupby
 from os.path import commonprefix
-import csv
+import unicodecsv as csv
 import argparse
 from glob import glob
 from hashlib import sha256
@@ -94,17 +94,18 @@ class ReplayEnhancer():
 
     def get_telemetry(self):
         try:
-            f = open(self.source_telemetry+self.telemetry_file, 'r')
+            f = open(self.source_telemetry+self.telemetry_file, 'rb')
         except FileNotFoundError:
             self.process_telemetry()
-            f = open(self.source_telemetry+self.telemetry_file, 'r')
+            f = open(self.source_telemetry+self.telemetry_file, 'rb')
         finally:
             index = 0
-            with open(self.source_telemetry+self.telemetry_file) as csv_file:
-                for index, _ in enumerate(csv_file):
-                    pass
+            with open(self.source_telemetry+self.telemetry_file, 'rb') as csv_file:
+                csvdata2 = csv.reader(csv_file, encoding='utf-8')
+                for row in csvdata2:
+                    index += 1
             number_lines = index+1
-            csvdata = csv.reader(f)
+            csvdata = csv.reader(f, encoding='utf-8')
 
         try:
             i = 0;
@@ -187,31 +188,32 @@ class ReplayEnhancer():
             self.telemetry_data = [x for x in self.telemetry_data if len(x) == 689]
 
             try:
-                self.race_end = [i for i, data in reversed(list(enumerate(self.telemetry_data))) if int(data[9]) & int('111', 2) == 3][0] + 1
+                self.race_end = [i for i, data in tqdm(reversed(list(enumerate(self.telemetry_data))), desc="Detecting Race End") if int(data[9]) & int('111', 2) == 3][0] + 1
             except IndexError:
                 self.race_end = len(self.telemetry_data)
 
             try:
-                self.race_finish = [i for i, data in reversed(list(enumerate(self.telemetry_data[:self.race_end]))) if int(data[9]) & int('111', 2) == 2][0] + 1
+                self.race_finish = [i for i, data in tqdm(reversed(list(enumerate(self.telemetry_data[:self.race_end]))), desc="Detecting Race Finish") if int(data[9]) & int('111', 2) == 2][0] + 1
             except IndexError:
                 self.race_finish = len(self.telemetry_data)
 
             try:
-                self.race_start = [i for i, data in reversed(list(enumerate(self.telemetry_data[:self.race_finish]))) if(int(data[2]) & int('11110000', 2)) >> 4 != 5 or int(data[2]) & int('00001111', 2) != 2][0] + 1
+                self.race_start = [i for i, data in tqdm(reversed(list(enumerate(self.telemetry_data[:self.race_finish]))), desc="Detecting Race Start") if(int(data[2]) & int('11110000', 2)) >> 4 != 5 or (int(data[2]) & int('00001111', 2) != 2 and int(data[2]) & int('00001111', 2) != 3)][0] + 1
             except IndexError:
                 self.race_start = 0
 
             try:
                 if mean([int(x[10]) for x in self.telemetry_data[self.race_start:self.race_finish]]):
                     self.race_mode = "Laps"
-                    self.race_p1_finish = [ix for ix, data in reversed(list(enumerate(self.telemetry_data[:self.race_finish]))) for i in range(int(data[4])) if int(data[182+i*9]) & int('01111111', 2) == 1 and int(data[184+i*9]) <= int(data[10])][0] + 1
+                    self.race_p1_finish = [ix for ix, data in tqdm(reversed(list(enumerate(self.telemetry_data[:self.race_finish]))), desc="Detecting Race P1 Finish") for i in range(int(data[4])) if int(data[182+i*9]) & int('01111111', 2) == 1 and int(data[184+i*9]) <= int(data[10])][0] + 1
                 else:
                     self.race_mode = "Time"
-                    time_expired = [ix for ix, data in list(enumerate(self.telemetry_data[self.race_start:])) if float(data[17]) == -1.0][0]+self.race_start
+                    time_expired = [ix for ix, data in tqdm(list(enumerate(self.telemetry_data[self.race_start:])), desc="Detecting Time Expiration") if float(data[17]) == -1.0][0]+self.race_start
+                    self.time_expired = time_expired
                     data = self.telemetry_data[time_expired]
                     lead_lap = max([int(data[184+i*9]) for i in range(int(data[4]))])
 
-                    self.race_p1_finish = [ix for ix, data in reversed(list(enumerate(self.telemetry_data[:self.race_finish]))) for i in range(int(data[4])) if int(data[182+i*9]) & int('01111111', 2) == 1 and int(data[184+i*9]) == lead_lap][0]+1
+                    self.race_p1_finish = [ix for ix, data in tqdm(reversed(list(enumerate(self.telemetry_data[:self.race_finish]))), desc="Detecting Race P1 Finish") for i in range(int(data[4])) if int(data[182+i*9]) & int('01111111', 2) == 1 and int(data[184+i*9]) == lead_lap][0]+1
             except IndexError:
                 self.race_p1_finish = len(self.telemetry_data)
 
@@ -261,7 +263,7 @@ class ReplayEnhancer():
     def process_telemetry(self):
         source_telemetry = self.source_telemetry
         telemetry_file = "tele.csv"
-        with open(source_telemetry+telemetry_file, 'w') as csvfile:
+        with open(source_telemetry+telemetry_file, 'wb') as csvfile:
             for a in natsorted(glob(source_telemetry+'pdata*')):
                 with open(a, 'rb') as packFile:
                     packData = packFile.read()
@@ -301,7 +303,9 @@ class ReplayEnhancer():
 
                         packString += "64x"
 
-                    csvfile.write(",".join(str(x, encoding='utf-8', errors='ignore').replace('\x00', '') if isinstance(x, bytes) else str(x).replace('\x00', '') for x in unpack(packString, packData)+(a,))+"\n")
+                    writer = csv.writer(csvfile, encoding='utf-8')
+                    data = [str(x, encoding='utf-8', errors='ignore').replace('\x00', '') if isinstance(x, bytes) else str(x).replace('\x00', '') for x in unpack(packString, packData)+(a,)]
+                    _ = writer.writerow(tuple(data))
         
     def black_test(self):
         #Test file hash, because blackframe detection is slow, so we cache it.
@@ -476,7 +480,8 @@ class ReplayEnhancer():
             try:
                 replay = cls(config.config_file)
             except ValueError as e:
-                print("Invalid JSON in configuration file: {}".format(e))
+                raise
+                #print("Invalid JSON in configuration file: {}".format(e))
             else:
                 start_video = replay.__build_default_video(False)
                 end_video = replay.__build_default_video(False)
@@ -546,12 +551,15 @@ class ReplayEnhancer():
             except ValueError as e:
                 print("Invalid JSON in configuration file: {}".format(e))
             else:
-                output = replay.__build_default_video(False)
+                #output = replay.__build_default_video(True)
+                output = mpy.ImageClip(Champion(replay).to_frame()).set_duration(20).set_position(('center', 'center')).add_mask()
+                output.save_frame("outputs/results.png", 0)
                 #output.save_frame("outputs/frame1.png", output.duration-50)
                 #output.save_frame("outputs/frame2.png", output.duration-30)
                 #output.save_frame("outputs/frame3.png", output.duration-10)
                 #output.set_duration(output.duration).subclip(output.duration-60).write_videofile(replay.output_video, fps=10, preset='superfast')
-                output.set_duration(output.duration).subclip(800, 900).write_videofile(replay.output_video, fps=30)
+                #output.set_duration(output.duration).subclip(800, 900).write_videofile(replay.output_video, fps=30)
+                #output.set_duration(output.duration).subclip(output.duration-120).write_videofile(replay.output_video, fps=10, preset='superfast')
         except KeyboardInterrupt:
             raise
 
