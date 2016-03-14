@@ -397,6 +397,8 @@ class SeriesStandings(StaticBase):
             self.replay.point_structure += [0] * \
                 (17-len(self.replay.point_structure))
 
+        self.replay.point_structure += [0]*(
+            len(self.classification)-len(self.replay.point_structure)+1)
         self.classification = [(
             name,
             team,
@@ -414,7 +416,7 @@ class SeriesStandings(StaticBase):
                 self.replay.points[name]+\
                 self.replay.point_structure[position])) \
             for position, name, team, car, laps \
-            in self.classification[:16]]
+            in self.classification]
 
         self.classification = sorted(
             self.classification,
@@ -423,6 +425,7 @@ class SeriesStandings(StaticBase):
             self.classification,
             key=lambda x: int(x[-1]),
             reverse=True)
+        self.classification = self.classification[:16]
 
         for rank, data in enumerate(self.classification):
             if rank == 0:
