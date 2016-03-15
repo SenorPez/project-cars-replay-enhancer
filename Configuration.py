@@ -67,6 +67,9 @@ class Configuration:
         self.participant_lookup = dict()
         self.participant_configurations = list()
 
+        self.additional_participants = dict()
+        self.additional_participant_configurations = list()
+
         self.previous_file = previous_file
         if previous_file:
             self.config_file = os.path.realpath(previous_file)
@@ -978,6 +981,345 @@ class Configuration:
                             except ValueError:
                                 print("Point values should be",
                                       "integers.")
+
+            last_car = None
+            last_team = None
+            last_points = 0
+            use_last_car = False
+            use_last_team = False
+            use_last_points = False
+
+            if self.point_structure is None:
+                last_points = None
+                use_last_points = True
+
+            if len(show_team) == 0 or \
+                    str.lower(show_team) == 'y':
+                pass
+            elif str.lower(show_team) == 'n':
+                last_team = ""
+                use_last_team = True
+
+            if previous_file:
+                try:
+                    self.additional_participant_config = {k:v \
+                        for k, v in self.additional_participant_config.items() \
+                        if k in self.additional_participants}
+                except AttributeError:
+                    self.additional_participant_config = dict()
+            if not previous_file:
+                self.additional_participant_config = dict()
+
+            if self.additional_participants is None:
+                self.additional_participants = list()
+
+            for additional_participant in sorted(
+                    self.additional_participants,
+                    key=lambda x: str(x).lower()):
+                print("Modifying data for {}".format(additional_participant))
+                if additional_participant not in self.additional_participant_config.keys():
+                    self.additional_participant_config[additional_participant] = {
+                        'car': None,
+                        'team': None,
+                        'points': 0,
+                        'short_display': None}
+                while True:
+                    print("Edit name for {}.".format(additional_participant))
+                    print("Enter -1 to delete.")
+                    prompt = "({})".format(
+                        additional_participant)
+                    additional_participant_name = input(prompt+"--> ")
+
+                    if len(additional_participant_name) == 0:
+                        break
+                    elif additional_participant_name == additional_participant:
+                        break
+                    elif additional_participant_name == "-1":
+                        self.additional_participant_config.pop(additional_participant, None)
+                        self.additional_participants.remove(additional_participant)
+                        break
+                    else:
+                        self.additional_participants.append(additional_participant_name)
+                        self.additional_participants.remove(additional_participant)
+                        self.additional_participant_config[additional_participant_name] = self.additional_participant_config[additional_participant]
+                        self.additional_participant_config.pop(additional_participant, None)
+                        additional_participant = additional_participant_name
+                
+                try:
+                    while True:
+                        print("Enter abbreviated name override for",
+                              "{}.".format(additional_participant))
+                        print("(Used by some modules for space saving.)")
+
+                        if self.additional_participant_config[additional_participant]\
+                                ['short_display'] is not None:
+                            prompt = "({})".format(
+                                self.additional_participant_config[additional_participant]\
+                                    ['short_display'])
+                        else:
+                            prompt = "({})".format(
+                                additional_participant.split(" ")[0][0] + \
+                                ". " + \
+                                additional_participant.split(" ")[-1] \
+                                if len(additional_participant.split(" ")) > 1 \
+                                else additional_participant)
+
+                        short_display_name = input(prompt+"--> ")
+
+                        if len(short_display_name) == 0 and \
+                                previous_file and \
+                                self.additional_participant_config[additional_participant]['short_display'] is not None:
+                            break
+                        elif len(short_display_name) == 0:
+                            self.additional_participant_config[additional_participant]['short_display'] = \
+                                additional_participant.split(" ")[0][0] + \
+                                ". " + \
+                                additional_participant.split(" ")[-1] \
+                                if len(additional_participant.split(" ")) > 1 \
+                                else additional_participant
+                            break
+                        else:
+                            self.additional_participant_config[additional_participant]['short_display'] = short_display_name
+                            break
+
+                    if use_last_car:
+                        self.additional_participant_config[additional_participant]['car'] = last_car
+                    else:
+                        while True:
+                            print("Enter car for {}.".format(additional_participant))
+                            if last_car:
+                                print("Enter -1 to use {}".format(last_car), "for remaining drivers.")
+
+                            if self.additional_participant_config[additional_participant]['car'] is not None:
+                                prompt = "({})".format(self.additional_participant_config[additional_participant]['car'])
+                            else:
+                                prompt = "({})".format(last_car) if last_car else ""
+                            car = input(prompt+"--> ")
+
+                            if len(car) == 0 and previous_file and self.additional_participant_config[additional_participant] is not None:
+                                break
+                            elif len(car) == 0 and last_car:
+                                self.additional_participant_config[additional_participant]['car'] = last_car
+                                break
+                            elif car == "-1" and last_car:
+                                self.additional_participant_config[additional_participant]['car'] = last_car
+                                use_last_car = True
+                                break
+                            elif len(car) != 0 and car != "-1":
+                                last_car = car
+                                self.additional_participant_config[additional_participant]['car'] = last_car
+                                break
+
+                    if use_last_team:
+                        self.additional_participant_config[additional_participant]['team'] = last_team
+                    else:
+                        while True:
+                            print("Enter team for {}.".format(additional_participant))
+                            if last_team:
+                                print("Enter -1 to use {}".format(last_team), "for remaining drivers.")
+
+                            if self.additional_participant_config[additional_participant]['team'] is not None:
+                                prompt = "({})".format(self.additional_participant_config[additional_participant]['team'])
+                            else:
+                                prompt = "({})".format(last_team) if last_team else ""
+                            team = input(prompt+"--> ")
+
+                            if len(team) == 0 and previous_file and self.additional_participant_config[additional_participant] is not None:
+                                break
+                            elif len(team) == 0 and last_team:
+                                self.additional_participant_config[additional_participant]['team'] = last_team
+                                break
+                            elif team == "-1" and last_team:
+                                self.additional_participant_config[additional_participant]['team'] = last_team
+                                use_last_team = True
+                                break
+                            elif len(team) != 0 and team != "-1":
+                                last_team = team
+                                self.additional_participant_config[additional_participant]['team'] = last_team
+                                break
+
+                    if use_last_points:
+                        self.additional_participant_config[additional_participant]['points'] = last_points
+                    else:
+                        while True:
+                            print("Enter previous series points for {}.".format(additional_participant))
+                            if last_points:
+                                print("Enter -1 to use {}".format(last_points), "for remaining drivers.")
+
+                            if self.additional_participant_config[additional_participant]['points'] is not None:
+                                prompt = "({})".format(self.additional_participant_config[additional_participant]['points'])
+                            else:
+                                prompt = "({})".format(last_points)
+                            points = input(prompt+"--> ")
+
+                            if len(points) == 0 and previous_file and self.additional_participant_config[additional_participant]['points'] is not None:
+                                break
+                            elif len(points) == 0:
+                                self.additional_participant_config[additional_participant]['points'] = last_points
+                                break
+                            elif points == "-1":
+                                self.additional_participant_config[additional_participant]['points'] = last_points
+                                use_last_points = True
+                                break
+                            elif len(points) != 0 and points != "-1":
+                                try:
+                                    last_points = int(points)
+                                    self.additional_participant_config[additional_participant]['points'] = last_points
+                                    break
+                                except ValueError:
+                                    print("Point values should be integers.")
+                except KeyError:
+                    #This should only occur on delete.
+                    print("Additional participant deleted or not found.")
+
+            while True:
+                add_additional_participant = True
+                while True:
+                    print("Enter additional participant.")
+                    print("(Used for series participants not in the current race.)")
+                    print("Enter -1 to stop entering additional participants.")
+                    prompt = ""
+                    additional_participant_name = input(prompt+"--> ")
+
+                    if additional_participant_name == "-1":
+                        add_additional_participant = False
+                        break
+                    elif len(additional_participant_name):
+                        self.additional_participants.append(additional_participant_name)
+                        self.additional_participant_config[additional_participant_name] = {'car': None, 'team': None, 'points': 0, 'short_display': None}
+                        additional_participant = additional_participant_name
+                        break
+                
+                if not add_additional_participant:
+                    break
+
+                while True:
+                    print("Enter abbreviated name override for",
+                          "{}.".format(additional_participant))
+                    print("(Used by some modules for space saving.)")
+
+                    if self.additional_participant_config[additional_participant]\
+                            ['short_display'] is not None:
+                        prompt = "({})".format(
+                            self.additional_participant_config[additional_participant]\
+                                ['short_display'])
+                    else:
+                        prompt = "({})".format(
+                            additional_participant.split(" ")[0][0] + \
+                            ". " + \
+                            additional_participant.split(" ")[-1] \
+                            if len(additional_participant.split(" ")) > 1 \
+                            else additional_participant)
+
+                    short_display_name = input(prompt+"--> ")
+
+                    if len(short_display_name) == 0 and \
+                            previous_file and \
+                            self.additional_participant_config[additional_participant]['short_display'] is not None:
+                        break
+                    elif len(short_display_name) == 0:
+                        self.additional_participant_config[additional_participant]['short_display'] = \
+                            additional_participant.split(" ")[0][0] + \
+                            ". " + \
+                            additional_participant.split(" ")[-1] \
+                            if len(additional_participant.split(" ")) > 1 \
+                            else additional_participant
+                        break
+                    else:
+                        self.additional_participant_config[additional_participant]['short_display'] = short_display_name
+                        break
+
+                if use_last_car:
+                    self.additional_participant_config[additional_participant]['car'] = last_car
+                else:
+                    while True:
+                        print("Enter car for {}.".format(additional_participant))
+                        if last_car:
+                            print("Enter -1 to use {}".format(last_car), "for remaining drivers.")
+
+                        if self.additional_participant_config[additional_participant]['car'] is not None:
+                            prompt = "({})".format(self.additional_participant_config[additional_participant]['car'])
+                        else:
+                            prompt = "({})".format(last_car) if last_car else ""
+                        car = input(prompt+"--> ")
+
+                        if len(car) == 0 and previous_file and self.additional_participant_config[additional_participant] is not None:
+                            break
+                        elif len(car) == 0 and last_car:
+                            self.additional_participant_config[additional_participant]['car'] = last_car
+                            break
+                        elif car == "-1" and last_car:
+                            self.additional_participant_config[additional_participant]['car'] = last_car
+                            use_last_car = True
+                            break
+                        elif len(car) != 0 and car != "-1":
+                            last_car = car
+                            self.additional_participant_config[additional_participant]['car'] = last_car
+                            break
+
+                if use_last_team:
+                    self.additional_participant_config[additional_participant]['team'] = last_team
+                else:
+                    while True:
+                        print("Enter team for {}.".format(additional_participant))
+                        if last_team:
+                            print("Enter -1 to use {}".format(last_team), "for remaining drivers.")
+
+                        if self.additional_participant_config[additional_participant]['team'] is not None:
+                            prompt = "({})".format(self.additional_participant_config[additional_participant]['team'])
+                        else:
+                            prompt = "({})".format(last_team) if last_team else ""
+                        team = input(prompt+"--> ")
+
+                        if len(team) == 0 and previous_file and self.additional_participant_config[additional_participant] is not None:
+                            break
+                        elif len(team) == 0 and last_team:
+                            self.additional_participant_config[additional_participant]['team'] = last_team
+                            break
+                        elif team == "-1" and last_team:
+                            self.additional_participant_config[additional_participant]['team'] = last_team
+                            use_last_team = True
+                            break
+                        elif len(team) != 0 and team != "-1":
+                            last_team = team
+                            self.additional_participant_config[additional_participant]['team'] = last_team
+                            break
+
+                if use_last_points:
+                    self.additional_participant_config[additional_participant]['points'] = last_points
+                else:
+                    while True:
+                        print("Enter previous series points for {}.".format(additional_participant))
+                        if last_points:
+                            print("Enter -1 to use {}".format(last_points), "for remaining drivers.")
+
+                        if self.additional_participant_config[additional_participant]['points'] is not None:
+                            prompt = "({})".format(self.additional_participant_config[additional_participant]['points'])
+                        else:
+                            prompt = "({})".format(last_points)
+                        points = input(prompt+"--> ")
+
+                        if len(points) == 0 and previous_file and self.additional_participant_config[additional_participant]['points'] is not None:
+                            break
+                        elif len(points) == 0:
+                            self.additional_participant_config[additional_participant]['points'] = last_points
+                            break
+                        elif points == "-1":
+                            self.additional_participant_config[additional_participant]['points'] = last_points
+                            use_last_points = True
+                            break
+                        elif len(points) != 0 and points != "-1":
+                            try:
+                                last_points = int(points)
+                                self.additional_participant_config[additional_participant]['points'] = last_points
+                                break
+                            except ValueError:
+                                print("Point values should be integers.")
+
+
+
+
+            
         except KeyboardInterrupt:
             print("\n\nExiting. No configuration data written.")
             raise KeyboardInterrupt
@@ -1336,6 +1678,15 @@ class Configuration:
             '''
 
     def __get_values(self):
+        additional_participant_config = OrderedDict(sorted(
+            self.additional_participant_config.items(),
+            key=lambda x: x[0].lower()))
+
+        for name, data in additional_participant_config.items():
+            additional_participant_config[name] = OrderedDict(sorted(
+                data.items(),
+                key=lambda x: x[0].lower()))
+
         participant_config = OrderedDict(sorted(
             self.participant_config.items(),
             key=lambda x: x[0].lower()))
@@ -1364,6 +1715,7 @@ class Configuration:
                   'source_telemetry': self.source_telemetry,
                   'output_video': self.output_video,
                   'participant_config': participant_config,
+                  'additional_participant_config': additional_participant_config,
                   'point_structure': self.point_structure,
                   'video_threshold': self.video_threshold,
                   'video_gaptime': self.video_gaptime,
@@ -1581,6 +1933,17 @@ class Configuration:
         self.participant_config = {k:v \
             for k, v \
             in json_data['participant_config'].items()}
+
+        try:
+            self.additional_participants = \
+                [x for x \
+                in json_data['additional_participant_config'].keys()]
+            self.additional_participant_config = {k:v \
+                for k, v \
+                in json_data['additional_participant_config'].items()}
+        except KeyError:
+            self.additional_participants = None
+            self.additional_participant_config = None
 
         self.point_structure = json_data['point_structure']
 

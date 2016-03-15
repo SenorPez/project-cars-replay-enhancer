@@ -62,10 +62,39 @@ class ReplayEnhancer():
         self.output_video = json_data['output_video']
 
         self.name_display = {k:v['display'] for k, v in json_data['participant_config'].items()}
+        try:
+            additional_names = {k:k for k, v in json_data['additional_participant_config'].items()}
+            self.name_display.update(additional_names)
+        except KeyError:
+            pass
+
         self.short_name_display = {k:v['short_display'] for k, v in json_data['participant_config'].items()}
+        try:
+            additional_short_names = {k:v['short_display'] for k, v in json_data['additional_participant_config'].items()}
+            self.short_name_display.update(additional_short_names)
+        except KeyError:
+            pass
+
         self.car_data = {k:v['car'] for k, v in json_data['participant_config'].items()}
+        try:
+            additional_cars = {k:v['car'] for k, v in json_data['additional_participant_config'].items()}
+            self.car_data.update(additional_cars)
+        except KeyError:
+            pass
+
         self.team_data = {k:v['team'] for k, v in json_data['participant_config'].items()}
+        try:
+            additional_teams = {k:v['team'] for k, v in json_data['additional_participant_config'].items()}
+            self.team_data.update(additional_teams)
+        except KeyError:
+            pass
+
         self.points = {k:v['points'] for k, v in json_data['participant_config'].items()}
+        try:
+            additional_points = {k:v['points'] for k, v in json_data['additional_participant_config'].items()}
+            self.points.update(additional_points)
+        except KeyError:
+            pass
 
         self.point_structure = json_data['point_structure']
 
@@ -80,6 +109,17 @@ class ReplayEnhancer():
         self.participant_data = list()
         self.participant_configurations = list()
         self.participant_lookup = list()
+
+        try:
+            self.additional_participants = \
+                [x for x \
+                in json_data['additional_participant_config'].keys()]
+            self.additional_participant_config = {k:v \
+                for k, v \
+                in json_data['additional_participant_config'].items()}
+        except KeyError:
+            pass
+
         self.telemetry_data = list()
         self.config_version = 4
 

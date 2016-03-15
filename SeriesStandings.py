@@ -385,6 +385,13 @@ class SeriesStandings(StaticBase):
             key=lambda x: x[-1], reverse=True)
         self.classification.extend(dnf_classification)
 
+        try:
+            for name, data in self.replay.additional_participant_config.items():
+                self.classification.append(
+                    ("DNF", name, data['team'], data['car'], 0))
+        except AttributeError:
+            pass
+
         column_headings = [(
             "Rank",
             "Driver",
@@ -399,6 +406,7 @@ class SeriesStandings(StaticBase):
 
         self.replay.point_structure += [0]*(
             len(self.classification)-len(self.replay.point_structure)+1)
+
         self.classification = [(
             name,
             team,
