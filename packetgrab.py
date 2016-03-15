@@ -13,13 +13,13 @@ import os
 import socket
 
 # Create a new UDP socket.
-s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+SOCKET = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+SOCKET.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
 # Bind the socket to the port
 SERVER_ADDRESS = ("", 5606)
 print("Starting listener on port {}".format(SERVER_ADDRESS[1]))
-s.bind(SERVER_ADDRESS)
+SOCKET.bind(SERVER_ADDRESS)
 
 i = 0
 DIRECTORY = "packetdata-"+datetime.datetime.now().strftime(
@@ -28,7 +28,7 @@ try:
     if not os.path.exists(DIRECTORY):
         os.makedirs(DIRECTORY)
     while True:
-        DATA, _ = s.recvfrom(65565)
+        DATA, _ = SOCKET.recvfrom(65565)
         print("Writing packet {}".format(i))
         FILE = open('./'+DIRECTORY+'/pdata'+str(i), 'wb')
         FILE.write(DATA)
