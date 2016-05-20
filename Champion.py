@@ -29,7 +29,7 @@ class Champion(StaticBase):
         draw.text(
             (self.replay.margin, self.replay.margin),
             self.replay.heading_text,
-            fill='white',
+            fill=self.heading_font_color,
             font=self.replay.heading_font)
 
         x_pos = 300+self.replay.margin
@@ -40,38 +40,38 @@ class Champion(StaticBase):
                 draw.text(
                     (x_pos, y_pos),
                     "Champion",
-                    fill='black',
+                    fill=self.font_color,
                     font=self.replay.heading_font)
                 y_pos += self.replay.heading_font.getsize("Champion")[1]
                 draw.text(
                     (x_pos, y_pos),
                     str(name),
-                    fill='black',
+                    fill=self.font_color,
                     font=self.replay.heading_font)
                 y_pos += self.replay.heading_font.getsize(name)[1]
             else:
                 draw.text(
                     (x_pos, y_pos),
                     "Runner Up",
-                    fill='black',
+                    fill=self.font_color,
                     font=self.replay.font)
                 y_pos += self.replay.font.getsize("Runner Up")[1]
                 draw.text(
                     (x_pos, y_pos),
                     str(name),
-                    fill='black',
+                    fill=self.font_color,
                     font=self.replay.font)
                 y_pos += self.replay.font.getsize(name)[1]
             draw.text(
                 (x_pos+self.replay.column_margin, y_pos),
                 team,
-                fill='black',
+                fill=self.font_color,
                 font=self.replay.font)
             y_pos += self.replay.font.getsize(team)[1]
             draw.text(
                 (x_pos+self.replay.column_margin, y_pos),
                 car,
-                fill='black',
+                fill=self.font_color,
                 font=self.replay.font)
             y_pos += self.replay.font.getsize(car)[1]+self.replay.margin
 

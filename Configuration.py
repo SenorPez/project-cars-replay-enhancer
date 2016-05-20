@@ -24,8 +24,10 @@ class Configuration:
     def __init__(self, previous_file=None):
         self.font = None
         self.font_size = None
+        self.font_color = None
         self.heading_font = None
         self.heading_font_size = None
+        self.heading_font_color = None
         self.heading_color = None
 
         self.backdrop = None
@@ -198,6 +200,33 @@ class Configuration:
                         print("Font size should be an integer value.")
                     else:
                         break
+
+            while True:
+                print("Enter font color.")
+                print("Color should be entered as three integers,",
+                      "separated by commas, representing Red, Green,",
+                      "and Blue values.")
+                prompt = "({}, {}, {})".format(*self.font_color) \
+                    if previous_file else (0, 0, 0)
+                font_color = input(prompt+"--> ")
+
+                if len(font_color) == 0 and previous_file:
+                    break
+                elif len(font_color) == 0:
+                    self.font_color = [0, 0, 0]
+                    break
+                else:
+                    try:
+                        font_color == [int(x) \
+                            for x in font_color.split(',')]
+                        if all([x >= and x <= 255 \
+                                for x in font_color]):
+                            self.font_color = font_color
+                            break
+                        else:
+                            raise ValueError
+                    except ValueError:
+                        print("Invalid color value.")
 
             while True:
                 print("Enter path to heading font.")
@@ -488,6 +517,33 @@ class Configuration:
                 '''
 
             #TODO: Move to module-specific configuration
+            while True:
+                print("Enter heading font color.")
+                print("Color should be entered as tree integers,",
+                      "separated by commas, representing Red, Green,",
+                      "and Blue values.")
+                prompt = "({}, {}, {})".format(*self.heading_font_color) \
+                    if previous_file else (255, 255, 255)
+                heading_font_color = input(prompt+"--> ")
+
+                if len(heading_font_color) == 0 and previous_file:
+                    break
+                elif len(heading_font_color) == 0:
+                    self.heading_font_color = [255, 255, 255]
+                    break
+                else:
+                    try:
+                        heading_font_color == [int(x) \
+                            for x in heading_font_color.split(',')]
+                        if all([x >= and x <= 255 \
+                                for x in heading_font_color]):
+                            self.heading_font_color = heading_font_color
+                            break
+                        else:
+                            raise ValueError
+                    except ValueError:
+                        print("Invalid color value.")
+
             while True:
                 print("Enter heading color.")
                 print("Color should be entered as three integers,",
@@ -1698,8 +1754,10 @@ class Configuration:
 
         output = {'font': self.font,
                   'font_size': self.font_size,
+                  'font_color': self.font_color,
                   'heading_font': self.heading_font,
                   'heading_font_size': self.heading_font_size,
+                  'heading_font_color': self.heading_font_color,
                   'heading_color': self.heading_color,
                   'backdrop': self.backdrop,
                   'logo': self.logo,
@@ -1907,8 +1965,10 @@ class Configuration:
 
         self.font = json_data['font']
         self.font_size = json_data['font_size']
+        self.font_color = tuple(json_data['font_color'])
         self.heading_font = json_data['heading_font']
         self.heading_font_size = json_data['heading_font_size']
+        self.heading_font_color = tuple(json_data['heading_font_color'])
         self.heading_color = tuple(json_data['heading_color'])
 
         self.backdrop = json_data['backdrop']

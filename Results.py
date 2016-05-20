@@ -45,7 +45,7 @@ class Results(StaticBase):
         draw.text(
             (20, y_pos),
             self.replay.heading_text,
-            fill='white',
+            fill=self.heading_font_color,
             font=self.replay.heading_font)
         y_pos += self.replay.heading_font.getsize(
             self.replay.heading_text)[1]
@@ -53,7 +53,7 @@ class Results(StaticBase):
         draw.text(
             (20, y_pos),
             self.replay.subheading_text,
-            fill='white',
+            fill=self.heading_font_color,
             font=self.replay.font)
         y_pos += self.replay.font.getsize(
             self.replay.subheading_text)[1]+self.replay.margin
@@ -74,70 +74,70 @@ class Results(StaticBase):
             draw.text(
                 (position[1], y_pos),
                 str(position[0]),
-                fill='black',
+                fill=self.font_color,
                 font=self.replay.font)
             draw.text(
                 (name[1], y_pos),
                 name[0],
-                fill='black',
+                fill=self.font_color,
                 font=self.replay.font)
             if team != "":
                 draw.text(
                     (team[1], y_pos),
                     str(team[0]),
-                    fill='black',
+                    fill=self.font_color,
                     font=self.replay.font)
             draw.text(
                 (car[1], y_pos),
                 str(car[0]),
-                fill='black',
+                fill=self.font_color,
                 font=self.replay.font)
             draw.text(
                 (laps[1]+(self.widths[4]-self.replay.font.getsize(
                     str(laps[0]))[0])/2, y_pos),
                 str(laps[0]),
-                fill='black',
+                fill=self.font_color,
                 font=self.replay.font)
             draw.text(
                 (elapsed_time[1]+(
                     self.widths[5]-self.replay.font.getsize(
                         str(elapsed_time[0]))[0])/2, y_pos),
                 str(elapsed_time[0]),
-                fill='black',
+                fill=self.font_color,
                 font=self.replay.font)
             draw.text(
                 (best_lap[1]+(self.widths[6]-self.replay.font.getsize(
                     str(best_lap[0]))[0])/2, y_pos),
                 str(best_lap[0]),
-                fill='black',
+                fill=self.font_color,
                 font=self.replay.font)
             draw.text(
                 (best_sector_1[1]+(
                     self.widths[7]-self.replay.font.getsize(
                         str(best_sector_1[0]))[0])/2, y_pos),
                 str(best_sector_1[0]),
-                fill='black',
+                fill=self.font_color,
                 font=self.replay.font)
             draw.text(
                 (best_sector_2[1]+(
                     self.widths[8]-self.replay.font.getsize(
                         str(best_sector_2[0]))[0])/2, y_pos),
                 str(best_sector_2[0]),
-                fill='black',
+                fill=self.font_color,
                 font=self.replay.font)
             draw.text(
                 (best_sector_3[1]+(
                     self.widths[9]-self.replay.font.getsize(
                         str(best_sector_3[0]))[0])/2, y_pos),
                 str(best_sector_3[0]),
-                fill='black',
+                fill=self.font_color,
                 font=self.replay.font)
             if points != "":
                 draw.text(
                     (points[1]+(self.widths[10]-self.replay.font.getsize(
                         str(points[0]))[0])/2, y_pos),
                     str(points[0]),
-                    fill='black',
+                    fill=self.font_color,
                     font=self.replay.font)
             y_pos += self.data_height+self.replay.margin
 

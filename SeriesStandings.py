@@ -38,7 +38,7 @@ class SeriesStandings(StaticBase):
         draw.text(
             (20, y_pos),
             self.replay.heading_text,
-            fill='white',
+            fill=self.heading_font_color,
             font=self.replay.heading_font)
         y_pos += self.replay.heading_font.getsize(
             self.replay.heading_text)[1]
@@ -46,7 +46,7 @@ class SeriesStandings(StaticBase):
         draw.text(
             (20, y_pos),
             self.replay.subheading_text,
-            fill='white',
+            fill=self.heading_font_color,
             font=self.replay.font)
         y_pos += self.replay.font.getsize(
             self.replay.subheading_text)[1]+int(self.replay.margin*1.5)
@@ -65,29 +65,29 @@ class SeriesStandings(StaticBase):
             draw.text(
                 (rank[1], y_pos),
                 str(rank[0]),
-                fill='black',
+                fill=self.font_color,
                 font=self.replay.font)
             draw.text(
                 (name[1], y_pos),
                 str(name[0]),
-                fill='black',
+                fill=self.font_color,
                 font=self.replay.font)
             draw.text(
                 (team[1], y_pos),
                 str(team[0]),
-                fill='black',
+                fill=self.font_color,
                 font=self.replay.font)
             draw.text(
                 (car[1], y_pos),
                 str(car[0]),
-                fill='black',
+                fill=self.font_color,
                 font=self.replay.font)
             if points != "":
                 draw.text(
                     (points[1]+(self.widths[4]-self.replay.font.getsize(
                         str(points[0]))[0])/2, y_pos),
                     str(points[0]),
-                    fill='black',
+                    fill=self.font_color,
                     font=self.replay.font)
             y_pos += self.row_height+self.replay.margin
         return self.material
