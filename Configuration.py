@@ -9,11 +9,14 @@ import re
 import os
 import json
 from glob import glob
+import readline
 from struct import unpack
 
 import moviepy.editor as mpy
 from natsort import natsorted
 from tqdm import tqdm
+
+readline.parse_and_bind('tab: complete')
 
 class Configuration:
     """
@@ -65,11 +68,11 @@ class Configuration:
 
         self.participant_config = None
 
-        self.participants = dict()
+        self.participants = list()
         self.participant_lookup = dict()
         self.participant_configurations = list()
 
-        self.additional_participants = dict()
+        self.additional_participants = list()
         self.additional_participant_configurations = list()
 
         self.previous_file = previous_file
@@ -1942,8 +1945,8 @@ class Configuration:
         self.participant_lookup = {
             value:key for key, lookup \
                 in self.participant_lookup.items() for value in lookup}
-        self.participants = {value for value \
-            in self.participant_lookup.values()}
+        self.participants = [value for value \
+            in self.participant_lookup.values()]
 
     @staticmethod
     def __finish_array(array, previous_array=None, length=0):
