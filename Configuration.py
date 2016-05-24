@@ -9,14 +9,11 @@ import re
 import os
 import json
 from glob import glob
-import readline
 from struct import unpack
 
 import moviepy.editor as mpy
 from natsort import natsorted
 from tqdm import tqdm
-
-readline.parse_and_bind('tab: complete')
 
 class Configuration:
     """
@@ -68,7 +65,7 @@ class Configuration:
 
         self.participant_config = None
 
-        self.participants = list()
+        self.participants = dict()
         self.participant_lookup = dict()
         self.participant_configurations = list()
 
@@ -210,7 +207,7 @@ class Configuration:
                       "separated by commas, representing Red, Green,",
                       "and Blue values.")
                 prompt = "({}, {}, {})".format(*self.font_color) \
-                    if previous_file else (0, 0, 0)
+                    if previous_file else "(0, 0, 0)"
                 font_color = input(prompt+"--> ")
 
                 if len(font_color) == 0 and previous_file:
@@ -222,7 +219,7 @@ class Configuration:
                     try:
                         font_color == [int(x) \
                             for x in font_color.split(',')]
-                        if all([x >= and x <= 255 \
+                        if all([x >= 0 and x <= 255 \
                                 for x in font_color]):
                             self.font_color = font_color
                             break
@@ -522,11 +519,11 @@ class Configuration:
             #TODO: Move to module-specific configuration
             while True:
                 print("Enter heading font color.")
-                print("Color should be entered as tree integers,",
+                print("Color should be entered as three integers,",
                       "separated by commas, representing Red, Green,",
                       "and Blue values.")
                 prompt = "({}, {}, {})".format(*self.heading_font_color) \
-                    if previous_file else (255, 255, 255)
+                    if previous_file else "(255, 255, 255)"
                 heading_font_color = input(prompt+"--> ")
 
                 if len(heading_font_color) == 0 and previous_file:
@@ -538,7 +535,7 @@ class Configuration:
                     try:
                         heading_font_color == [int(x) \
                             for x in heading_font_color.split(',')]
-                        if all([x >= and x <= 255 \
+                        if all([x >= 0 and x <= 255 \
                                 for x in heading_font_color]):
                             self.heading_font_color = heading_font_color
                             break
@@ -1860,8 +1857,6 @@ class Configuration:
                 csvdata2 = csv.reader(csv_file, encoding='utf-8')
                 for row in csvdata2:
                     index += 1
-                #for index, _ in enumerate(csv_file):
-                    #pass
             number_lines = index+1
             csvdata = csv.reader(tele_file, encoding='utf-8')
 
@@ -1945,8 +1940,8 @@ class Configuration:
         self.participant_lookup = {
             value:key for key, lookup \
                 in self.participant_lookup.items() for value in lookup}
-        self.participants = [value for value \
-            in self.participant_lookup.values()]
+        self.participants = {value for value \
+            in self.participant_lookup.values()}
 
     @staticmethod
     def __finish_array(array, previous_array=None, length=0):
@@ -1968,10 +1963,20 @@ class Configuration:
 
         self.font = json_data['font']
         self.font_size = json_data['font_size']
-        self.font_color = tuple(json_data['font_color'])
+
+        try:
+            self.font_color = tuple(json_data['font_color'])
+        except KeyError:
+            self.font_color = (0, 0, 0)
+
         self.heading_font = json_data['heading_font']
         self.heading_font_size = json_data['heading_font_size']
-        self.heading_font_color = tuple(json_data['heading_font_color'])
+
+        try:
+            self.heading_font_color = tuple(json_data['heading_font_color'])
+        except KeyError:
+            self.heading_font_color = (255, 255, 255)
+
         self.heading_color = tuple(json_data['heading_color'])
 
         self.backdrop = json_data['backdrop']

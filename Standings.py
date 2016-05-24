@@ -121,8 +121,8 @@ class Standings(DynamicBase):
 
         for p, n, r, i, s, l, et, lx, cl, loc, orig_name in self.standings[:10]+self.standings[self.current_group:self.current_group+6]:
             for pp, nn, ss, ll, rr in [list(zip((p, n, s, l, r), columnPositions+[0]))]:
-                draw.text((pp[1], yPos), str(pp[0]), fill=self.font_color, font=self.replay.font)
-                draw.text((nn[1], yPos), str(nn[0]), fill=self.font_color, font=self.replay.font)
+                draw.text((pp[1], yPos), str(pp[0]), fill=self.replay.font_color, font=self.replay.font)
+                draw.text((nn[1], yPos), str(nn[0]), fill=self.replay.font_color, font=self.replay.font)
 
                 if isinstance(self.last_lap_splits[orig_name], int) and self.last_lap_splits[orig_name] < 0:
                     last_lap_time = "{}".format('')
@@ -138,7 +138,7 @@ class Standings(DynamicBase):
 
                 tPos = int(materialWidth-self.replay.margin-timeWidth)
 
-                draw.text((tPos, yPos), str(last_lap_time), fill=self.font_color, font=self.replay.font)
+                draw.text((tPos, yPos), str(last_lap_time), fill=self.replay.font_color, font=self.replay.font)
 
                 draw.line([(self.replay.margin, yPos+self.dataHeight), (self.replay.margin+lineLength*rr[0], yPos+self.dataHeight)], fill=(255, 0, 0), width=2)
                 draw.line([(self.replay.margin+lineLength*rr[0], yPos+self.dataHeight), (materialWidth-self.replay.margin, yPos+self.dataHeight)], fill=(255, 192, 192), width=2)

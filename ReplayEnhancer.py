@@ -42,6 +42,9 @@ class ReplayEnhancer():
         self.heading_font = ImageFont.truetype(json_data['heading_font'], json_data['heading_font_size'])
         self.heading_color = tuple(json_data['heading_color'])
 
+        self.heading_font_color = tuple(json_data['heading_font_color'])
+        self.font_color = tuple(json_data['font_color'])
+
         self.backdrop = json_data['backdrop']
         self.logo = json_data['logo']
         self.logo_height = json_data['logo_height']
@@ -321,6 +324,7 @@ class ReplayEnhancer():
             for a in natsorted(glob(source_telemetry+'pdata*')):
                 with open(a, 'rb') as packFile:
                     packData = packFile.read()
+                    packString = None
                     if len(packData) == 1367:
                         packString  = "HB"
                         packString += "B"
@@ -357,9 +361,10 @@ class ReplayEnhancer():
 
                         packString += "64x"
 
-                    writer = csv.writer(csvfile, encoding='utf-8')
-                    data = [str(x, encoding='utf-8', errors='ignore').replace('\x00', '') if isinstance(x, bytes) else str(x).replace('\x00', '') for x in unpack(packString, packData)+(a,)]
-                    _ = writer.writerow(tuple(data))
+                    if packString is not None:
+                        writer = csv.writer(csvfile, encoding='utf-8')
+                        data = [str(x, encoding='utf-8', errors='ignore').replace('\x00', '') if isinstance(x, bytes) else str(x).replace('\x00', '') for x in unpack(packString, packData)+(a,)]
+                        _ = writer.writerow(tuple(data))
         
     def black_test(self):
         #Test file hash, because blackframe detection is slow, so we cache it.
