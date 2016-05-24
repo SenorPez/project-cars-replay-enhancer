@@ -42,8 +42,15 @@ class ReplayEnhancer():
         self.heading_font = ImageFont.truetype(json_data['heading_font'], json_data['heading_font_size'])
         self.heading_color = tuple(json_data['heading_color'])
 
-        self.heading_font_color = tuple(json_data['heading_font_color'])
-        self.font_color = tuple(json_data['font_color'])
+        try:
+            self.heading_font_color = tuple(json_data['heading_font_color'])
+        except KeyError:
+            self.heading_font_color = (255, 255, 255)
+
+        try:
+            self.font_color = tuple(json_data['font_color'])
+        except KeyError:
+            self.font_color = (0, 0, 0)
 
         self.backdrop = json_data['backdrop']
         self.logo = json_data['logo']
