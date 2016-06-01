@@ -41,7 +41,7 @@ class Title(StaticBase):
 
         draw.text((20, y_pos),
                   self.replay.heading_text,
-                  fill='white',
+                  fill=self.replay.heading_font_color,
                   font=self.replay.heading_font)
         y_pos += self.replay.heading_font.getsize(
             self.replay.heading_text
@@ -49,7 +49,7 @@ class Title(StaticBase):
 
         draw.text((20, y_pos),
                   self.replay.subheading_text,
-                  fill='white',
+                  fill=self.replay.heading_font_color,
                   font=self.replay.font)
         y_pos += self.replay.font.getsize(
             self.replay.subheading_text
@@ -70,19 +70,19 @@ class Title(StaticBase):
                     for x in self.starting_grid]:
             draw.text((position[1], y_pos),
                       str(position[0]),
-                      fill='black',
+                      fill=self.replay.font_color,
                       font=self.replay.font)
             draw.text((name[1], y_pos),
                       str(name[0]),
-                      fill='black',
+                      fill=self.replay.font_color,
                       font=self.replay.font)
             draw.text((team[1], y_pos),
                       str(team[0]),
-                      fill='black',
+                      fill=self.replay.font_color,
                       font=self.replay.font)
             draw.text((car[1], y_pos),
                       str(car[0]),
-                      fill='black',
+                      fill=self.replay.font_color,
                       font=self.replay.font)
             y_pos += self.data_height+self.replay.margin
 

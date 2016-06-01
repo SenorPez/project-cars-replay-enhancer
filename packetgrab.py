@@ -14,6 +14,7 @@ import socket
 
 # Create a new UDP socket.
 SOCKET = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+SOCKET.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
 # Bind the socket to the port
 SERVER_ADDRESS = ("", 5606)

@@ -38,7 +38,7 @@ class SeriesStandings(StaticBase):
         draw.text(
             (20, y_pos),
             self.replay.heading_text,
-            fill='white',
+            fill=self.replay.heading_font_color,
             font=self.replay.heading_font)
         y_pos += self.replay.heading_font.getsize(
             self.replay.heading_text)[1]
@@ -46,7 +46,7 @@ class SeriesStandings(StaticBase):
         draw.text(
             (20, y_pos),
             self.replay.subheading_text,
-            fill='white',
+            fill=self.replay.heading_font_color,
             font=self.replay.font)
         y_pos += self.replay.font.getsize(
             self.replay.subheading_text)[1]+int(self.replay.margin*1.5)
@@ -65,29 +65,29 @@ class SeriesStandings(StaticBase):
             draw.text(
                 (rank[1], y_pos),
                 str(rank[0]),
-                fill='black',
+                fill=self.replay.font_color,
                 font=self.replay.font)
             draw.text(
                 (name[1], y_pos),
                 str(name[0]),
-                fill='black',
+                fill=self.replay.font_color,
                 font=self.replay.font)
             draw.text(
                 (team[1], y_pos),
                 str(team[0]),
-                fill='black',
+                fill=self.replay.font_color,
                 font=self.replay.font)
             draw.text(
                 (car[1], y_pos),
                 str(car[0]),
-                fill='black',
+                fill=self.replay.font_color,
                 font=self.replay.font)
             if points != "":
                 draw.text(
                     (points[1]+(self.widths[4]-self.replay.font.getsize(
                         str(points[0]))[0])/2, y_pos),
                     str(points[0]),
-                    fill='black',
+                    fill=self.replay.font_color,
                     font=self.replay.font)
             y_pos += self.row_height+self.replay.margin
         return self.material
@@ -110,7 +110,7 @@ class SeriesStandings(StaticBase):
 
         #Get the telemetry data from P1 finish to race end.
         index = -1
-        participant_data = [self.replay.telemetry_data[-1][-1]]
+        participant_data = [sorted(self.replay.telemetry_data[-1][-1])]
         offset = [self.replay.telemetry_data[-1][2]]
         telemetry_data = [self.replay.telemetry_data[-1][0]]
 
@@ -166,6 +166,23 @@ class SeriesStandings(StaticBase):
                     finish_status[name]['dnf'] = False
                     finish_position += 1
                     finish_status[name]['position'] = finish_position
+
+            #The DNFs might have finished ahead of P1 (but after time
+            #expired) in a timed race.
+            if self.replay.race_mode == "Time":
+                finish_data = {(
+                    participant_data[i][1],
+                    int(x[184+participant_data[i][0]*9])) \
+                    for telemetry_index, x in enumerate(telemetry_data) \
+                    for i in range(int(x[4])) \
+                    if telemetry_index+offset > self.replay.time_expired}
+                for name, laps in finish_data:
+                    if laps < finish_status[name]['laps'] and \
+                           finish_status[name]['dnf']:
+                        finish_status[name]['dnf'] = False
+                        finish_position += 1
+                        finish_status[name]['position'] = finish_position
+                        finish_status[name]['laps'] = laps
 
             #Find the indexes when the last laps end.
             for index, name, *_ in participant_data:
@@ -368,6 +385,13 @@ class SeriesStandings(StaticBase):
             key=lambda x: x[-1], reverse=True)
         self.classification.extend(dnf_classification)
 
+        try:
+            for name, data in self.replay.additional_participant_config.items():
+                self.classification.append(
+                    ("DNF", name, data['team'], data['car'], 0))
+        except AttributeError:
+            pass
+
         column_headings = [(
             "Rank",
             "Driver",
@@ -379,6 +403,9 @@ class SeriesStandings(StaticBase):
                 len(self.replay.point_structure) < 17:
             self.replay.point_structure += [0] * \
                 (17-len(self.replay.point_structure))
+
+        self.replay.point_structure += [0]*(
+            len(self.classification)-len(self.replay.point_structure)+1)
 
         self.classification = [(
             name,
@@ -397,7 +424,7 @@ class SeriesStandings(StaticBase):
                 self.replay.points[name]+\
                 self.replay.point_structure[position])) \
             for position, name, team, car, laps \
-            in self.classification[:16]]
+            in self.classification]
 
         self.classification = sorted(
             self.classification,
@@ -406,6 +433,7 @@ class SeriesStandings(StaticBase):
             self.classification,
             key=lambda x: int(x[-1]),
             reverse=True)
+        self.classification = self.classification[:16]
 
         for rank, data in enumerate(self.classification):
             if rank == 0:
