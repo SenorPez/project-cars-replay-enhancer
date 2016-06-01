@@ -44,5 +44,14 @@ class DynamicBase(StaticBase, metaclass=abc.ABCMeta):
         return
 
     @abc.abstractmethod
-    def update(self):
-        """Update the simulation including updating clip_t"""
+    def update(self, force_process=False):
+        """
+        If force_process is False, only clip_t is updated. Use this to
+        advance through time without the overhead of rendering the
+        intervening frames. Note that this may cause errors in data
+        display, however, for data that rely on historical information.
+
+        If force_process is True, the data is read and clip_t
+        is updated.
+        """
+        
