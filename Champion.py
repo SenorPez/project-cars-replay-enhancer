@@ -29,7 +29,7 @@ class Champion(StaticBase):
         draw.text(
             (self.replay.margin, self.replay.margin),
             self.replay.heading_text,
-            fill='white',
+            fill=self.replay.heading_font_color,
             font=self.replay.heading_font)
 
         x_pos = 300+self.replay.margin
@@ -40,38 +40,38 @@ class Champion(StaticBase):
                 draw.text(
                     (x_pos, y_pos),
                     "Champion",
-                    fill='black',
+                    fill=self.replay.font_color,
                     font=self.replay.heading_font)
                 y_pos += self.replay.heading_font.getsize("Champion")[1]
                 draw.text(
                     (x_pos, y_pos),
                     str(name),
-                    fill='black',
+                    fill=self.replay.font_color,
                     font=self.replay.heading_font)
                 y_pos += self.replay.heading_font.getsize(name)[1]
             else:
                 draw.text(
                     (x_pos, y_pos),
                     "Runner Up",
-                    fill='black',
+                    fill=self.replay.font_color,
                     font=self.replay.font)
                 y_pos += self.replay.font.getsize("Runner Up")[1]
                 draw.text(
                     (x_pos, y_pos),
                     str(name),
-                    fill='black',
+                    fill=self.replay.font_color,
                     font=self.replay.font)
                 y_pos += self.replay.font.getsize(name)[1]
             draw.text(
                 (x_pos+self.replay.column_margin, y_pos),
                 team,
-                fill='black',
+                fill=self.replay.font_color,
                 font=self.replay.font)
             y_pos += self.replay.font.getsize(team)[1]
             draw.text(
                 (x_pos+self.replay.column_margin, y_pos),
                 car,
-                fill='black',
+                fill=self.replay.font_color,
                 font=self.replay.font)
             y_pos += self.replay.font.getsize(car)[1]+self.replay.margin
 
@@ -95,7 +95,7 @@ class Champion(StaticBase):
 
         #Get the telemetry data from P1 finish to race end.
         index = -1
-        participant_data = [self.replay.telemetry_data[-1][-1]]
+        participant_data = [sorted(self.replay.telemetry_data[-1][-1])]
         offset = [self.replay.telemetry_data[-1][2]]
         telemetry_data = [self.replay.telemetry_data[-1][0]]
 
@@ -151,6 +151,23 @@ class Champion(StaticBase):
                     finish_status[name]['dnf'] = False
                     finish_position += 1
                     finish_status[name]['position'] = finish_position
+
+            #The DNFs might have finished ahead of P1 (but after time
+            #expired) in a timed race.
+            if self.replay.race_mode == "Time":
+                finish_data = {(
+                    participant_data[i][1],
+                    int(x[184+participant_data[i][0]*9])) \
+                    for telemetry_index, x in enumerate(telemetry_data) \
+                    for i in range(int(x[4])) \
+                    if telemetry_index+offset > self.replay.time_expired}
+                for name, laps in finish_data:
+                    if laps < finish_status[name]['laps'] and \
+                           finish_status[name]['dnf']:
+                        finish_status[name]['dnf'] = False
+                        finish_position += 1
+                        finish_status[name]['position'] = finish_position
+                        finish_status[name]['laps'] = laps                    
 
             #Find the indexes when the last laps end.
             for index, name, *_ in participant_data:

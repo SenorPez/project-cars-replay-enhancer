@@ -45,7 +45,7 @@ class Results(StaticBase):
         draw.text(
             (20, y_pos),
             self.replay.heading_text,
-            fill='white',
+            fill=self.replay.heading_font_color,
             font=self.replay.heading_font)
         y_pos += self.replay.heading_font.getsize(
             self.replay.heading_text)[1]
@@ -53,7 +53,7 @@ class Results(StaticBase):
         draw.text(
             (20, y_pos),
             self.replay.subheading_text,
-            fill='white',
+            fill=self.replay.heading_font_color,
             font=self.replay.font)
         y_pos += self.replay.font.getsize(
             self.replay.subheading_text)[1]+self.replay.margin
@@ -74,70 +74,70 @@ class Results(StaticBase):
             draw.text(
                 (position[1], y_pos),
                 str(position[0]),
-                fill='black',
+                fill=self.replay.font_color,
                 font=self.replay.font)
             draw.text(
                 (name[1], y_pos),
                 name[0],
-                fill='black',
+                fill=self.replay.font_color,
                 font=self.replay.font)
             if team != "":
                 draw.text(
                     (team[1], y_pos),
                     str(team[0]),
-                    fill='black',
+                    fill=self.replay.font_color,
                     font=self.replay.font)
             draw.text(
                 (car[1], y_pos),
                 str(car[0]),
-                fill='black',
+                fill=self.replay.font_color,
                 font=self.replay.font)
             draw.text(
                 (laps[1]+(self.widths[4]-self.replay.font.getsize(
                     str(laps[0]))[0])/2, y_pos),
                 str(laps[0]),
-                fill='black',
+                fill=self.replay.font_color,
                 font=self.replay.font)
             draw.text(
                 (elapsed_time[1]+(
                     self.widths[5]-self.replay.font.getsize(
                         str(elapsed_time[0]))[0])/2, y_pos),
                 str(elapsed_time[0]),
-                fill='black',
+                fill=self.replay.font_color,
                 font=self.replay.font)
             draw.text(
                 (best_lap[1]+(self.widths[6]-self.replay.font.getsize(
                     str(best_lap[0]))[0])/2, y_pos),
                 str(best_lap[0]),
-                fill='black',
+                fill=self.replay.font_color,
                 font=self.replay.font)
             draw.text(
                 (best_sector_1[1]+(
                     self.widths[7]-self.replay.font.getsize(
                         str(best_sector_1[0]))[0])/2, y_pos),
                 str(best_sector_1[0]),
-                fill='black',
+                fill=self.replay.font_color,
                 font=self.replay.font)
             draw.text(
                 (best_sector_2[1]+(
                     self.widths[8]-self.replay.font.getsize(
                         str(best_sector_2[0]))[0])/2, y_pos),
                 str(best_sector_2[0]),
-                fill='black',
+                fill=self.replay.font_color,
                 font=self.replay.font)
             draw.text(
                 (best_sector_3[1]+(
                     self.widths[9]-self.replay.font.getsize(
                         str(best_sector_3[0]))[0])/2, y_pos),
                 str(best_sector_3[0]),
-                fill='black',
+                fill=self.replay.font_color,
                 font=self.replay.font)
             if points != "":
                 draw.text(
                     (points[1]+(self.widths[10]-self.replay.font.getsize(
                         str(points[0]))[0])/2, y_pos),
                     str(points[0]),
-                    fill='black',
+                    fill=self.replay.font_color,
                     font=self.replay.font)
             y_pos += self.data_height+self.replay.margin
 
@@ -161,7 +161,7 @@ class Results(StaticBase):
 
         #Get the telemetry data from P1 finish to race end.
         index = -1
-        participant_data = [self.replay.telemetry_data[-1][-1]]
+        participant_data = [sorted(self.replay.telemetry_data[-1][-1])]
         offset = [self.replay.telemetry_data[-1][2]]
         telemetry_data = [self.replay.telemetry_data[-1][0]]
 
@@ -217,6 +217,23 @@ class Results(StaticBase):
                     finish_status[name]['dnf'] = False
                     finish_position += 1
                     finish_status[name]['position'] = finish_position
+
+            #The DNFs might have finished ahead of P1 (but after time
+            #expired) in a timed race.
+            if self.replay.race_mode == "Time":
+                finish_data = {(
+                    participant_data[i][1],
+                    int(x[184+participant_data[i][0]*9])) \
+                    for telemetry_index, x in enumerate(telemetry_data) \
+                    for i in range(int(x[4])) \
+                    if telemetry_index+offset > self.replay.time_expired}
+                for name, laps in finish_data:
+                    if laps < finish_status[name]['laps'] and \
+                           finish_status[name]['dnf']:
+                        finish_status[name]['dnf'] = False
+                        finish_position += 1
+                        finish_status[name]['position'] = finish_position
+                        finish_status[name]['laps'] = laps
 
             #Find the indexes when the last laps end.
             for index, name, *_ in participant_data:

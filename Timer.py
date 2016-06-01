@@ -74,7 +74,7 @@ class Timer(DynamicBase):
                             self.time))[0]-self.replay.margin),
                 int(self.replay.column_margin)),
             self.format_time(self.time),
-            fill='black',
+            fill=self.replay.font_color,
             font=self.replay.font)
 
         if self.replay.race_mode == "Laps":
@@ -85,7 +85,7 @@ class Timer(DynamicBase):
                             self.lap)[0]-self.replay.margin),
                     self.data_height+int(self.replay.column_margin)*3),
                 self.lap,
-                fill='black',
+                fill=self.replay.font_color,
                 font=self.replay.font)
         elif self.replay.race_mode == "Time":
             if int(float(self.lap)) == -1:
@@ -99,7 +99,7 @@ class Timer(DynamicBase):
                                 self.lap))[0]-self.replay.margin),
                     self.data_height+int(self.replay.column_margin)*3),
                 self.format_time(self.lap),
-                fill='black',
+                fill=self.replay.font_color,
                 font=self.replay.font)
         
         return material
