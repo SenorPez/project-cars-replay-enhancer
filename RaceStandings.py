@@ -23,6 +23,16 @@ class ParticipantData():
             self._participants,
             key=lambda x: x.race_position)
 
+    @property
+    def max_name_dimensions(self, font):
+        height = max([
+            font.getsize(driver.name)[1] \
+            for driver in self._participants])
+        width = max([
+            font.getsize(driver.name)[0] \
+            for driver in self._participants])
+        return (width, height)
+
 class Driver():
     """
     Represents a race participant.
