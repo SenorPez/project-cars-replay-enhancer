@@ -5,7 +5,7 @@ from numpy import diff, where
 from PIL import Image, ImageDraw, ImageFont
 
 from DynamicBase import DynamicBase
-from RaceStandings import RaceStandings
+from RaceStandings import Driver, ParticipantData
 
 class Standings(DynamicBase):
     """
@@ -39,6 +39,8 @@ class Standings(DynamicBase):
         self.ups = ups
         self.process_data = process_data
 
+        self.participant_data = ParticipantData()
+
         self.material = None
         self.data_height = None
         self.column_widths = list()
@@ -69,8 +71,6 @@ class Standings(DynamicBase):
         self.pit_font = ImageFont.truetype(
             self.pit_font_path,
             self.pit_font_size)
-
-        self.standings = list()
 
         self.current_group = 10
         self.next_change_time = self.clip_t+5
@@ -174,10 +174,20 @@ class Standings(DynamicBase):
             for i, w in enumerate(self.column_widths)]
         y_position = self.replay.margin/2
 
+        """
         for position, name, progress, _, sector, last_sector_time, \
                 _, _, _, _, orig_name in \
-                self.standings[:10]+\
-                self.standings[self.current_group:self.current_group+6]:
+        """
+        for driver in \
+                self.participant_data.drivers_by_position[:10]+\
+                self.participant_data.drivers_by_position[self.current_group:self.current_group+6]:
+            position = driver.race_position
+            name = self.replay.short_name_display[driver.name]
+            progress = driver.progress
+            sector = driver.sector
+            last_sector_time = driver.last_sector_time
+            orig_name = driver.name
+
             for print_position, print_name, print_sector, _, \
                     print_progress in [list(zip(
                             (
@@ -297,8 +307,25 @@ class Standings(DynamicBase):
             size_string = "+00.00"
 
         #Remap to display names
+        """
         self.standings = [(p, self.replay.short_name_display[n]) + \
-            tuple(rest) + (n,) for p, n, *rest in self.standings]
+            tuple(rest) + (n,) for p, n, *rest \
+            in self.participant_data.drivers_by_position]
+        """
+
+        self.standings = [(
+            driver.race_position,
+            self.replay.short_name_display[driver.name],
+            driver.progress,
+            driver.participant_index,
+            driver.sector,
+            driver.last_sector_time,
+            driver.elapsed_time,
+            driver.laps_completed,
+            driver.current_lap,
+            driver.current_position,
+            driver.name) for driver \
+            in self.participant_data.drivers_by_position]
 
         widths = [(
             self.replay.font.getsize(str(p))[0],
@@ -372,9 +399,9 @@ class Standings(DynamicBase):
                 telemetry_data = self.replay.telemetry_data[0][0][0]
                 participant_data = self.replay.telemetry_data[0][-1]
 
-            self.standings = RaceStandings(
-                telemetry_data, 
-                participant_data).get_standings()
+            self.participant_data.update_drivers(
+                telemetry_data,
+                participant_data)
             """
             self.standings = sorted({(
                 int(telemetry_data[182+i*9]) & int('01111111', 2),
@@ -399,12 +426,19 @@ class Standings(DynamicBase):
 
             if self.clip_t > self.next_change_time:
                 self.current_group = self.current_group+6 if \
-                    self.current_group+6 < len(self.standings) else 10
+                    self.current_group+6 < len(self.participant_data.drivers_by_position) else 10
                 self.next_change_time = self.clip_t+5
 
-            for position, name, progress, _, sector, last_sector_time, \
-                    _, laps_complete, current_lap, location \
-                    in self.standings:
+            for standing in self.participant_data.drivers_by_position:
+                position = standing.race_position
+                name = standing.name
+                progress = standing.progress
+                sector = standing.sector
+                last_sector_time = standing.last_sector_time
+                laps_complete = standing.laps_completed
+                valid_lap = standing.valid_lap
+                current_lap = standing.current_lap
+                location = standing.current_position
                 """
                 Standings Data Structure
                     p 0: int Race Position (sorted)
@@ -586,7 +620,7 @@ class Standings(DynamicBase):
 
         self.clip_t += float(1/self.ups)
 
-        return self.standings
+        return self.participant_data.drivers_by_position
 
     def to_frame(self):
         return super(Standings, self).to_frame()
