@@ -30,6 +30,8 @@ from Title import Title
 from Track import Track
 from UpdatedVideoClip import UpdatedVideoClip
 
+from GTStandings import GTStandings
+
 class ReplayEnhancer():
     """
     ReplayEnhancer class to hold configuration and execution
@@ -768,11 +770,13 @@ class ReplayEnhancer():
                 print("Invalid JSON in configuration file: {}".format(
                     error))
             else:
-                output = mpy.ImageClip(
-                    Champion(replay).to_frame()).set_duration(
-                        20).set_position(
-                            ('center', 'center')).add_mask()
-                output.save_frame("outputs/results.png", 0)
+                output = replay.build_custom_video(False)
+                output = output.set_duration(
+                    output.duration).subclip(0, 15)
+                output.write_videofile(
+                    replay.output_video,
+                    fps=30,
+                    preset='superfast')
         except KeyboardInterrupt:
             raise
 
@@ -794,6 +798,43 @@ class ReplayEnhancer():
                 output.write_videofile(replay.output_video, fps=30)
         except KeyboardInterrupt:
             raise
+
+    def build_custom_video(self, process_data):
+        """
+        Builds a video with custom settings (used for testing).
+        """
+        if self.source_video is None:
+            video = mpy.ColorClip(
+                (1280, 720),
+                duration=self.telemetry_data[-1][0][-1][-1])
+        elif isinstance(self.video_skipstart, float) \
+                or isinstance(self.video_skipend, float):
+            video = mpy.VideoFileClip(
+                self.source_video).subclip(
+                    self.video_skipstart, self.video_skipend)
+        else:
+            raise ValueError(
+                "ValueError: Blackframe Detection disabled.")
+
+        video_width, video_height = video.size
+
+        standing = UpdatedVideoClip(GTStandings(
+            self,
+            process_data=process_data))
+        standing = standing.set_position(
+            (self.margin, self.margin)).set_duration(video.duration)
+        standing_mask = mpy.ImageClip(
+            GTStandings(
+                self,
+                process_data=process_data).make_mask(),
+            ismask=True, duration=video.duration)
+        standing = standing.set_mask(standing_mask)
+
+        mainevent = mpy.CompositeVideoClip(
+            [video, standing]).set_duration(video.duration)
+
+        output = mpy.concatenate_videoclips([mainevent])
+        return output
 
     def build_default_video(self, process_data):
         """
