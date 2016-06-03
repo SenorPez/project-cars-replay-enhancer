@@ -24,6 +24,16 @@ class ParticipantData():
             key=lambda x: x.race_position)
 
     @property
+    def drivers_by_index(self):
+        return sorted(
+            self._participants,
+            key=lambda x: x.participant_index)
+
+    @property
+    def last_place(self):
+        return max([driver.race_position \
+            for driver in self._participants])
+
     def max_name_dimensions(self, font):
         height = max([
             font.getsize(driver.name)[1] \
@@ -65,3 +75,5 @@ class Driver():
         self.current_position = (
             float(telemetry_data[178+offset]),
             float(telemetry_data[180+offset]))
+        self.viewed = \
+            self.participant_index == int(telemetry_data[3])
