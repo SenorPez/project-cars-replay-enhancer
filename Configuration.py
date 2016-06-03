@@ -217,7 +217,7 @@ class Configuration:
                     break
                 else:
                     try:
-                        font_color == [int(x) \
+                        font_color = [int(x) \
                             for x in font_color.split(',')]
                         if all([x >= 0 and x <= 255 \
                                 for x in font_color]):
@@ -533,7 +533,7 @@ class Configuration:
                     break
                 else:
                     try:
-                        heading_font_color == [int(x) \
+                        heading_font_color = [int(x) \
                             for x in heading_font_color.split(',')]
                         if all([x >= 0 and x <= 255 \
                                 for x in heading_font_color]):
