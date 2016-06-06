@@ -125,35 +125,22 @@ class GTStandings(DynamicBase):
                 material_width,
                 self.replay.margin+text_height*2*10+1*11)
             )
-
         y_position = self.replay.margin
         last_race_position = None
         for driver in self.__filter_drivers():
-            position_material_color = (255, 215, 0, 210) \
-                if driver.viewed \
-                else (0, 0, 0, 210)
-            name_material_color = (255, 215, 0, 210) \
-                if driver.viewed \
-                else (51, 51, 51, 210)
+            standings_line = Standing(
+                driver,
+                (text_width, text_height),
+                self.replay.font)
 
-            position_material = Image.new(
-                'RGBA',
-                (
-                    text_height*2,
-                    text_height*2),
-                position_material_color)
-            name_material = Image.new(
-                'RGBA',
-                (
-                    text_width+10*2,
-                    text_height*2),
-                name_material_color)
-            self.material.paste(
-                position_material,
-                (self.replay.margin, y_position))
-            self.material.paste(
-                name_material,
-                (self.replay.margin+text_height*2, y_position))
+            if bgOnly:
+                self.material.paste(
+                    standings_line.background,
+                    (self.replay.margin, y_position))
+            else:
+                self.material.paste(
+                    standings_line.render,
+                    (self.replay.margin, y_position))
 
             if last_race_position is None:
                 draw = ImageDraw.Draw(self.material)
@@ -194,8 +181,8 @@ class GTStandings(DynamicBase):
                     y_position)],
             fill='white',
             width=1)
-
-        return self.material if bgOnly else self._write_data()
+        #return self.material if bgOnly else self._write_data()
+        return self.material
 
     def update(self, force_process=False):
         if self.process_data or force_process:
@@ -236,3 +223,156 @@ class GTStandings(DynamicBase):
     def make_mask(self):
         return super(GTStandings, self).make_mask()
 
+class Standing():
+    """
+    Represents a single line in the standings display.
+    """
+
+    _position_color = (0, 0, 0, 210)
+    _name_color = (51, 51, 51, 210)
+    _viewed_position_color = (255, 215, 0, 210)
+    _viewed_name_color = (255, 215, 0, 210)
+
+    _position_text_color = (255, 255, 255)
+    _name_text_color = (255, 255, 255)
+    _viewed_position_text_color = (0, 0, 0)
+    _viewed_name_text_color = (0, 0, 0)
+
+    _ups = 30
+
+    @property
+    def position_color(self):
+        """
+        Gets the material color for the position, based on if it's the
+        viewed car or not.
+        """
+        return self._viewed_position_color \
+            if self.viewed \
+            else self._position_color
+
+    @property
+    def position_text_color(self):
+        """
+        Gets the text color for the position, based on if it's the
+        viewed car or not.
+        """
+        return self._viewed_position_text_color \
+            if self.viewed \
+            else self._position_text_color
+
+    @property
+    def name_color(self):
+        """
+        Gets the material color for a name, based on if it's the
+        viewed car or not.
+        """
+        return self._viewed_name_color \
+            if self.viewed \
+            else self._name_color
+
+    @property
+    def name_text_color(self):
+        """
+        Gets the text color for a name, based on if it's the
+        viewed car or not.
+        """
+        return self._viewed_name_text_color \
+            if self.viewed \
+            else self._name_text_color
+
+    @property
+    def ups(self):
+        """
+        Gets the number of updates per second, for animation timing.
+        """
+        return self._ups
+
+    @ups.setter
+    def ups(self, value):
+        self._ups = value
+
+    @property
+    def background(self):
+        """
+        Creates just the background material of the standings line.
+        """
+        return self.material
+
+    @property
+    def render(self):
+        """
+        Creates the standings line with the text included.
+        """
+        return self._write_data()
+
+    def __init__(self, driver, text_size, font, ups=None):
+        """
+        Creates a new Standings object.
+        """
+        self.position = driver.race_position
+        self.name = driver.name
+        self.viewed = driver.viewed
+
+        self.text_width, self.text_height = text_size
+        self.font = font
+        self.material_width = self.text_height*2+self.text_width+10*2
+
+        self.material = Image.new(
+            'RGBA',
+            (
+                self.material_width,
+                self.text_height*2))
+
+        position_material = Image.new(
+            'RGBA',
+            (
+                self.text_height*2,
+                self.text_height*2),
+            self.position_color)
+        name_material = Image.new(
+            'RGBA',
+            (
+                self.text_width+10*2,
+                self.text_height*2),
+            self.name_color)
+        self.material.paste(
+            position_material,
+            (0, 0))
+        self.material.paste(
+            name_material,
+            (self.text_height*2, 0))
+
+        if ups is not None:
+            self.ups = ups
+
+    def update(self, new_position):
+        """
+        Updates the line with new data.
+        """
+        self.position = new_position
+
+    def _write_data(self):
+        block_height = self.font.getsize("A")[1]
+        output = self.material.copy()
+        draw = ImageDraw.Draw(output)
+
+        position_width = self.font.getsize(str(self.position))[0]
+        x_position = int(
+            (self.text_height*2-position_width)/2)
+        y_position = int(
+            (self.text_height*2-block_height)/2)
+
+        draw.text(
+            (x_position, y_position),
+            str(self.position),
+            fill=self.position_text_color,
+            font=self.font)
+
+        x_position = self.text_height*2+10
+        draw.text(
+            (x_position, y_position),
+            str(self.name),
+            fill=self.name_text_color,
+            font=self.font)
+
+        return output
