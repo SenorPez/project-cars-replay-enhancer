@@ -771,12 +771,15 @@ class ReplayEnhancer():
                     error))
             else:
                 output = replay.build_custom_video(False)
+                """
                 output = output.set_duration(
-                    output.duration).subclip(0, 15)
+                    output.duration).subclip(0, 60)
                 output.write_videofile(
                     replay.output_video,
                     fps=30,
                     preset='superfast')
+                """
+                output.save_frame("outputs/custom.png", 20)
         except KeyboardInterrupt:
             raise
 
@@ -818,16 +821,19 @@ class ReplayEnhancer():
 
         video_width, video_height = video.size
 
-        standing = UpdatedVideoClip(GTStandings(
-            self,
-            process_data=process_data))
-        standing = standing.set_position(
-            (self.margin, self.margin)).set_duration(video.duration)
-        standing_mask = mpy.ImageClip(
+        standing = UpdatedVideoClip(
             GTStandings(
                 self,
-                process_data=process_data).make_mask(),
-            ismask=True, duration=video.duration)
+                process_data=process_data))
+        standing = standing.set_position(
+            (0, 0)).set_duration(video.duration)
+
+        standing_mask = UpdatedVideoClip(
+            GTStandings(
+                self,
+                process_data=process_data,
+                mask=True)).to_mask()
+
         standing = standing.set_mask(standing_mask)
 
         mainevent = mpy.CompositeVideoClip(

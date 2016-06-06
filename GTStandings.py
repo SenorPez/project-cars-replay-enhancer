@@ -40,7 +40,8 @@ class GTStandings(DynamicBase):
     def ups(self, value):
         self._ups = value
 
-    def __init__(self, replay, clip_t=0, ups=30, process_data=True):
+    def __init__(self, replay, clip_t=0, ups=30,
+                 process_data=True, mask=False):
         self.replay = replay
         self.clip_t = clip_t
         self.ups = ups
@@ -50,6 +51,40 @@ class GTStandings(DynamicBase):
         self.standings = None
 
         self.material = None
+        self.mask = mask
+
+    def update(self, force_process=False):
+        if self.process_data or force_process:
+            if self.clip_t > self.replay.sync_racestart:
+                try:
+                    telemetry_data, participant_data = \
+                        [(x[0], x[-1]) \
+                            for x in self.replay.telemetry_data \
+                            if x[0][-1][-1] > \
+                            self.clip_t-self.replay.sync_racestart][0]
+                    telemetry_data = \
+                        [x for x in telemetry_data \
+                        if x[-1] > \
+                            self.clip_t-self.replay.sync_racestart][0]
+                except IndexError:
+                    telemetry_data, participant_data, index_offset = \
+                        [(x[0], x[-1], x[2]) \
+                            for x in self.replay.telemetry_data \
+                            if x[2] < self.replay.race_finish][-1]
+                    telemetry_data = \
+                        telemetry_data[self.replay.race_finish-\
+                            index_offset]
+            else:
+                telemetry_data = self.replay.telemetry_data[0][0][0]
+                participant_data = self.replay.telemetry_data[0][-1]
+
+            self.participant_data.update_drivers(
+                telemetry_data,
+                participant_data)
+
+        self.clip_t += float(1/self.ups)
+
+        return self.participant_data.drivers_by_position
 
     def __filter_drivers(self):
         subject_position = self.participant_data.drivers_by_index[0].\
@@ -70,47 +105,6 @@ class GTStandings(DynamicBase):
                 self.participant_data.drivers_by_position[\
                     slice_start:slice_end]
 
-    def _write_data(self):
-        _, text_height = \
-            self.participant_data.max_name_dimensions(
-                self.replay.font)
-
-        #Determine the height without taking descenders into account.
-        block_height = self.replay.font.getsize("A")[1]
-
-        y_position = int(
-            (text_height*2-block_height)/2)+self.replay.margin
-
-        draw = ImageDraw.Draw(self.material)
-
-        for driver in self.__filter_drivers():
-            position_width = self.replay.font.getsize(
-                str(driver.race_position))[0]
-            x_position = int(
-                (text_height*2-position_width)/2)+self.replay.margin
-
-            text_color = (0, 0, 0) \
-                if driver.viewed \
-                else (255, 255, 255)
-
-            draw.text(
-                (x_position, y_position),
-                str(driver.race_position),
-                fill=text_color,
-                font=self.replay.font)
-
-            x_position = text_height*2+10+self.replay.margin
-
-            draw.text(
-                (x_position, y_position),
-                str(driver.name),
-                fill=text_color,
-                font=self.replay.font)
-
-            y_position += text_height*2+1
-
-        return self.material
-
     def _make_material(self, bgOnly):
         self.standings = self.update(force_process=True)
 
@@ -123,24 +117,20 @@ class GTStandings(DynamicBase):
             'RGBA',
             (
                 material_width,
-                self.replay.margin+text_height*2*10+1*11)
-            )
+                self.replay.margin+text_height*2*10+1*11))
         y_position = self.replay.margin
         last_race_position = None
+
         for driver in self.__filter_drivers():
             standings_line = Standing(
                 driver,
                 (text_width, text_height),
-                self.replay.font)
+                self.replay.font,
+                self.mask)
 
-            if bgOnly:
-                self.material.paste(
-                    standings_line.background,
-                    (self.replay.margin, y_position))
-            else:
-                self.material.paste(
-                    standings_line.render,
-                    (self.replay.margin, y_position))
+            self.material.paste(
+                standings_line.render(),
+                (self.replay.margin, y_position))
 
             if last_race_position is None:
                 draw = ImageDraw.Draw(self.material)
@@ -181,41 +171,12 @@ class GTStandings(DynamicBase):
                     y_position)],
             fill='white',
             width=1)
-        #return self.material if bgOnly else self._write_data()
+
+        return self.material if self.mask else self._write_data()
+
+    def _write_data(self):
+        #Do nothing. Data writing is handled by the Standing row class.
         return self.material
-
-    def update(self, force_process=False):
-        if self.process_data or force_process:
-            if self.clip_t > self.replay.sync_racestart:
-                try:
-                    telemetry_data, participant_data = \
-                        [(x[0], x[-1]) \
-                            for x in self.replay.telemetry_data \
-                            if x[0][-1][-1] > \
-                            self.clip_t-self.replay.sync_racestart][0]
-                    telemetry_data = \
-                        [x for x in telemetry_data \
-                        if x[-1] > \
-                            self.clip_t-self.replay.sync_racestart][0]
-                except IndexError:
-                    telemetry_data, participant_data, index_offset = \
-                        [(x[0], x[-1], x[2]) \
-                            for x in self.replay.telemetry_data \
-                            if x[2] < self.replay.race_finish][-1]
-                    telemetry_data = \
-                        telemetry_data[self.replay.race_finish-\
-                            index_offset]
-            else:
-                telemetry_data = self.replay.telemetry_data[0][0][0]
-                participant_data = self.replay.telemetry_data[0][-1]
-
-            self.participant_data.update_drivers(
-                telemetry_data,
-                participant_data)
-
-        self.clip_t += float(1/self.ups)
-
-        return self.participant_data.drivers_by_position
 
     def to_frame(self):
         return super(GTStandings, self).to_frame()
@@ -228,10 +189,12 @@ class Standing():
     Represents a single line in the standings display.
     """
 
-    _position_color = (0, 0, 0, 210)
-    _name_color = (51, 51, 51, 210)
-    _viewed_position_color = (255, 215, 0, 210)
-    _viewed_name_color = (255, 215, 0, 210)
+    _position_color = (0, 0, 0)
+    _name_color = (51, 51, 51)
+    _viewed_position_color = (255, 215, 0)
+    _viewed_name_color = (255, 215, 0)
+    _mask_position_color = (210, 210, 210)
+    _mask_name_color = (210, 210, 210)
 
     _position_text_color = (255, 255, 255)
     _name_text_color = (255, 255, 255)
@@ -246,8 +209,8 @@ class Standing():
         Gets the material color for the position, based on if it's the
         viewed car or not.
         """
-        return self._viewed_position_color \
-            if self.viewed \
+        return self._viewed_position_color if self.viewed \
+            else self._mask_position_color if self.mask \
             else self._position_color
 
     @property
@@ -266,8 +229,8 @@ class Standing():
         Gets the material color for a name, based on if it's the
         viewed car or not.
         """
-        return self._viewed_name_color \
-            if self.viewed \
+        return self._viewed_name_color if self.viewed \
+            else self._mask_name_color if self.mask \
             else self._name_color
 
     @property
@@ -291,32 +254,31 @@ class Standing():
     def ups(self, value):
         self._ups = value
 
-    @property
-    def background(self):
-        """
-        Creates just the background material of the standings line.
-        """
-        return self.material
-
-    @property
     def render(self):
         """
-        Creates the standings line with the text included.
+        Returns the material background.
         """
-        return self._write_data()
+        return self._make_material()
 
-    def __init__(self, driver, text_size, font, ups=None):
+    def __init__(self, driver, text_size, font, mask=False, ups=None):
         """
         Creates a new Standings object.
         """
         self.position = driver.race_position
         self.name = driver.name
         self.viewed = driver.viewed
+        self.mask = mask
 
         self.text_width, self.text_height = text_size
         self.font = font
         self.material_width = self.text_height*2+self.text_width+10*2
 
+        self.material = None
+
+        if ups is not None:
+            self.ups = ups
+
+    def _make_material(self):
         self.material = Image.new(
             'RGBA',
             (
@@ -342,14 +304,7 @@ class Standing():
             name_material,
             (self.text_height*2, 0))
 
-        if ups is not None:
-            self.ups = ups
-
-    def update(self, new_position):
-        """
-        Updates the line with new data.
-        """
-        self.position = new_position
+        return self.material if self.mask else self._write_data()
 
     def _write_data(self):
         block_height = self.font.getsize("A")[1]
