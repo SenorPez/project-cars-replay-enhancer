@@ -50,8 +50,34 @@ class GTStandings(DynamicBase):
         self.participant_data = ParticipantData()
         self.standings = None
 
-        self.material = None
+        telemetry_data = self.replay.telemetry_data[0][0][0]
+        participant_data = self.replay.telemetry_data[0][-1]
+        self.participant_data.update_drivers(
+            telemetry_data,
+            participant_data)
+
+        text_width, text_height = \
+            self.participant_data.max_name_dimensions(
+                self.replay.font)
+        material_width = self.replay.margin+\
+            text_height*2+text_width+10*2
+        self.material = Image.new(
+            'RGBA',
+            (
+                material_width,
+                self.replay.margin+text_height*2*10+1*11))
+        y_position = self.replay.margin
+        last_race_position = None
+
+        self.standings_lines = list()
         self.mask = mask
+
+        for driver in self.participant_data.drivers_by_position:
+            self.standings_lines.append(Standing(
+                driver,
+                (text_width, text_height),
+                self.replay.font,
+                self.mask))
 
     def update(self, force_process=False):
         if self.process_data or force_process:
@@ -86,7 +112,7 @@ class GTStandings(DynamicBase):
 
         return self.participant_data.drivers_by_position
 
-    def __filter_drivers(self):
+    def __standings_filter(self):
         subject_position = self.participant_data.drivers_by_index[0].\
             race_position
         last_place = self.participant_data.last_place
@@ -121,15 +147,16 @@ class GTStandings(DynamicBase):
         y_position = self.replay.margin
         last_race_position = None
 
-        for driver in self.__filter_drivers():
-            standings_line = Standing(
-                driver,
-                (text_width, text_height),
-                self.replay.font,
-                self.mask)
+        for driver in self.__standings_filter():
+            try:
+                standings_line = next(
+                    line for line in self.standings_lines \
+                    if line.driver.name == driver.name)
+            except StopIteration:
+                raise
 
             self.material.paste(
-                standings_line.render(),
+                standings_line.render(driver),
                 (self.replay.margin, y_position))
 
             if last_race_position is None:
@@ -144,7 +171,7 @@ class GTStandings(DynamicBase):
                             self.replay.margin)],
                     fill='white',
                     width=1)
-            elif last_race_position+1 != driver.race_position:
+            elif last_race_position+1 != standings_line.driver.race_position:
                 draw = ImageDraw.Draw(self.material)
                 draw.line(
                     [
@@ -157,7 +184,7 @@ class GTStandings(DynamicBase):
                     fill='white',
                     width=1)
 
-            last_race_position = driver.race_position
+            last_race_position = standings_line.driver.race_position
             y_position += text_height*2+1
 
         draw = ImageDraw.Draw(self.material)
@@ -209,7 +236,7 @@ class Standing():
         Gets the material color for the position, based on if it's the
         viewed car or not.
         """
-        return self._viewed_position_color if self.viewed \
+        return self._viewed_position_color if self.driver.viewed \
             else self._mask_position_color if self.mask \
             else self._position_color
 
@@ -220,7 +247,7 @@ class Standing():
         viewed car or not.
         """
         return self._viewed_position_text_color \
-            if self.viewed \
+            if self.driver.viewed \
             else self._position_text_color
 
     @property
@@ -229,7 +256,7 @@ class Standing():
         Gets the material color for a name, based on if it's the
         viewed car or not.
         """
-        return self._viewed_name_color if self.viewed \
+        return self._viewed_name_color if self.driver.viewed \
             else self._mask_name_color if self.mask \
             else self._name_color
 
@@ -240,7 +267,7 @@ class Standing():
         viewed car or not.
         """
         return self._viewed_name_text_color \
-            if self.viewed \
+            if self.driver.viewed \
             else self._name_text_color
 
     @property
@@ -254,19 +281,22 @@ class Standing():
     def ups(self, value):
         self._ups = value
 
-    def render(self):
+    def render(self, driver, force_same_name=True):
         """
-        Returns the material background.
+        Determines if data has changed and renders line.
         """
+        if driver.name != self.driver.name \
+                and force_same_name:
+            raise ValueError("ValueError: Names do not match.")
+
+        self.driver = driver
         return self._make_material()
 
     def __init__(self, driver, text_size, font, mask=False, ups=None):
         """
         Creates a new Standings object.
         """
-        self.position = driver.race_position
-        self.name = driver.name
-        self.viewed = driver.viewed
+        self.driver = driver
         self.mask = mask
 
         self.text_width, self.text_height = text_size
@@ -274,6 +304,8 @@ class Standing():
         self.material_width = self.text_height*2+self.text_width+10*2
 
         self.material = None
+
+        self.animations = list()
 
         if ups is not None:
             self.ups = ups
@@ -311,7 +343,7 @@ class Standing():
         output = self.material.copy()
         draw = ImageDraw.Draw(output)
 
-        position_width = self.font.getsize(str(self.position))[0]
+        position_width = self.font.getsize(str(self.driver.race_position))[0]
         x_position = int(
             (self.text_height*2-position_width)/2)
         y_position = int(
@@ -319,14 +351,14 @@ class Standing():
 
         draw.text(
             (x_position, y_position),
-            str(self.position),
+            str(self.driver.race_position),
             fill=self.position_text_color,
             font=self.font)
 
         x_position = self.text_height*2+10
         draw.text(
             (x_position, y_position),
-            str(self.name),
+            str(self.driver.name),
             fill=self.name_text_color,
             font=self.font)
 
