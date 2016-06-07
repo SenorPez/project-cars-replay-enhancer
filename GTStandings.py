@@ -2,7 +2,7 @@
 Provides classes for the creation of a GT Sport style
 Standings overlay.
 """
-
+import time
 from PIL import Image, ImageDraw
 
 from DynamicBase import DynamicBase
@@ -145,9 +145,12 @@ class GTStandings(DynamicBase):
                 material_width,
                 self.replay.margin+text_height*2*10+1*11))
         y_position = self.replay.margin
+        x_position = self.replay.margin
         last_race_position = None
 
         for driver in self.__standings_filter():
+            x_offset = 0
+            y_offset = 0
             try:
                 standings_line = next(
                     line for line in self.standings_lines \
@@ -155,9 +158,16 @@ class GTStandings(DynamicBase):
             except StopIteration:
                 raise
 
+            standings_line_output = standings_line.render(driver)
+
+            for animation in standings_line.animations:
+                x_adj, y_adj = animation.offset 
+                x_offset += x_adj
+                y_offset += y_adj
+
             self.material.paste(
-                standings_line.render(driver),
-                (self.replay.margin, y_position))
+                standings_line_output,
+                (x_position+x_offset, y_position+y_offset))
 
             if last_race_position is None:
                 draw = ImageDraw.Draw(self.material)
@@ -289,7 +299,22 @@ class Standing():
                 and force_same_name:
             raise ValueError("ValueError: Names do not match.")
 
+        drop_position = None
+        if driver.race_position != self.driver.race_position:
+            #TODO: Should probably be its own module.
+            #Determine the difference.
+            position_diff = self.driver.race_position - driver.race_position
+            drop_position = driver.race_position+1
+
+            #For each position gained, we need to animate upward
+            #one position.
+            offset = self.text_height*2*position_diff+1*position_diff
+            self.animations.append(
+                GTAnimation(
+                    (0, offset),
+                    self.ups))
         self.driver = driver
+
         return self._make_material()
 
     def __init__(self, driver, text_size, font, mask=False, ups=None):
@@ -363,3 +388,58 @@ class Standing():
             font=self.font)
 
         return output
+
+class GTAnimation():
+    def __init__(
+            self, 
+            position_offset, 
+            duration):
+        """
+        Defines an animation action.
+        position_offset = (x, y) defining the position offset for the
+            object. Initial setting of this determines the starting
+            position of the object.
+        ticks = Number of ticks remaining on the animation.
+
+        The object will animate to an offset of (0, 0) over the
+        number of ticks initially provided.
+        
+        Note that the coordinate system is non-standard, to match
+        the system used by MoviePy and Pillow. (0, 0) is located at
+        the TOP-LEFT of the image.
+        """
+        self.position_offset = position_offset
+        self.ticks_remaining = duration
+        self.offset_adjustment = tuple(x/y for x, y in zip(
+            self.position_offset,
+            (duration, duration)))
+
+    @property
+    def offset(self):
+        """
+        Returns the offset, and then updates the offset and the ticks
+        remaining.
+        Use offset_static to not update.
+        """
+        return_value = tuple(map(int, self.position_offset))
+
+        self.ticks_remaining -= 1
+
+        if self.ticks_remaining <= 0:
+            self.position_offset = (0, 0)
+            self.offset_adjustment = (0, 0)
+        else:
+            self.position_offset = tuple(x-y for x, y in zip(
+                self.position_offset,
+                self.offset_adjustment))
+            self.position_offset = tuple([(
+                0 if abs(x) <= y else x) \
+                for x, y in zip(
+                    self.position_offset,
+                    self.offset_adjustment)])
+
+        return return_value
+
+    @property
+    def offset_static(self):
+        return tuple(map(int, self.position_offset))
