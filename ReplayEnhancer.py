@@ -773,6 +773,7 @@ class ReplayEnhancer():
                 output = replay.build_custom_video(True)
                 output = output.set_duration(
                     output.duration).subclip(0, 30)
+                
                 output.write_videofile(
                     replay.output_video,
                     fps=30,
@@ -819,24 +820,23 @@ class ReplayEnhancer():
 
         video_width, video_height = video.size
 
-        standing = UpdatedVideoClip(
-            GTStandings(
-                self,
-                process_data=process_data),
-            )
-        standing = standing.set_position(
+        standing = GTStandings(
+            self,
+            process_data=process_data)
+
+        standing_clip = UpdatedVideoClip(
+            standing)
+        standing_clip = standing_clip.set_position(
             (0, 0)).set_duration(video.duration)
 
-        standing_mask = UpdatedVideoClip(
-            GTStandings(
-                self,
-                process_data=process_data,
-                mask=True)).to_mask()
+        standing_clip_mask = mpy.VideoClip(
+            make_frame=standing.get_mask,
+            ismask=True)
 
-        standing = standing.set_mask(standing_mask)
+        standing_clip = standing_clip.set_mask(standing_clip_mask)
 
         mainevent = mpy.CompositeVideoClip(
-            [video, standing]).set_duration(video.duration)
+            [video, standing_clip]).set_duration(video.duration)
 
         output = mpy.concatenate_videoclips([mainevent])
         return output

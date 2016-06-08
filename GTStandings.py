@@ -2,7 +2,6 @@
 Provides classes for the creation of a GT Sport style
 Standings overlay.
 """
-import time
 from PIL import Image, ImageDraw
 
 from DynamicBase import DynamicBase
@@ -40,6 +39,15 @@ class GTStandings(DynamicBase):
     def ups(self, value):
         self._ups = value
 
+    def get_mask(self, _):
+        """
+        Gets the mask. Drops the time argument from the
+        caller.
+        """
+        out = super(GTStandings, self).make_mask()
+        out = out[:, :, 0]/255
+        return out
+
     def __init__(self, replay, clip_t=0, ups=30,
                  process_data=True, mask=False):
         self.replay = replay
@@ -59,15 +67,7 @@ class GTStandings(DynamicBase):
         text_width, text_height = \
             self.participant_data.max_name_dimensions(
                 self.replay.font)
-        material_width = self.replay.margin+\
-            text_height*2+text_width+10*2
-        self.material = Image.new(
-            'RGBA',
-            (
-                material_width,
-                self.replay.margin+text_height*2*10+1*11))
-        y_position = self.replay.margin
-        last_race_position = None
+        self.material = None
 
         self.standings_lines = list()
         self.mask = mask
@@ -131,8 +131,9 @@ class GTStandings(DynamicBase):
                 self.participant_data.drivers_by_position[\
                     slice_start:slice_end]
 
-    def _make_material(self, bgOnly):
-        self.standings = self.update(force_process=True)
+    def _make_material(self, bg_only):
+        if not bg_only:
+            self.standings = self.update(force_process=True)
 
         text_width, text_height = \
             self.participant_data.max_name_dimensions(
@@ -158,10 +159,12 @@ class GTStandings(DynamicBase):
             except StopIteration:
                 raise
 
-            standings_line_output = standings_line.render(driver)
+            standings_line_output = standings_line.render(
+                driver,
+                bg_only)
 
             for animation in standings_line.animations:
-                x_adj, y_adj = animation.offset 
+                x_adj, y_adj = animation.offset
                 x_offset += x_adj
                 y_offset += y_adj
 
@@ -181,7 +184,8 @@ class GTStandings(DynamicBase):
                             self.replay.margin)],
                     fill='white',
                     width=1)
-            elif last_race_position+1 != standings_line.driver.race_position:
+            elif last_race_position+1 != \
+                    standings_line.driver.race_position:
                 draw = ImageDraw.Draw(self.material)
                 draw.line(
                     [
@@ -209,7 +213,7 @@ class GTStandings(DynamicBase):
             fill='white',
             width=1)
 
-        return self.material if self.mask else self._write_data()
+        return self.material if bg_only else self._write_data()
 
     def _write_data(self):
         #Do nothing. Data writing is handled by the Standing row class.
@@ -226,12 +230,12 @@ class Standing():
     Represents a single line in the standings display.
     """
 
-    _position_color = (0, 0, 0)
-    _name_color = (51, 51, 51)
-    _viewed_position_color = (255, 215, 0)
-    _viewed_name_color = (255, 215, 0)
-    _mask_position_color = (210, 210, 210)
-    _mask_name_color = (210, 210, 210)
+    _position_color = (0, 0, 0, 200)
+    _name_color = (51, 51, 51, 200)
+    _viewed_position_color = (255, 215, 0, 200)
+    _viewed_name_color = (255, 215, 0, 200)
+    _mask_position_color = (210, 210, 210, 200)
+    _mask_name_color = (210, 210, 210, 200)
 
     _position_text_color = (255, 255, 255)
     _name_text_color = (255, 255, 255)
@@ -291,20 +295,19 @@ class Standing():
     def ups(self, value):
         self._ups = value
 
-    def render(self, driver, force_same_name=True):
+    def render(self, driver, bg_only, force_same_name=True):
         """
         Determines if data has changed and renders line.
         """
+        self.mask = bg_only
         if driver.name != self.driver.name \
                 and force_same_name:
             raise ValueError("ValueError: Names do not match.")
 
-        drop_position = None
         if driver.race_position != self.driver.race_position:
-            #TODO: Should probably be its own module.
             #Determine the difference.
-            position_diff = self.driver.race_position - driver.race_position
-            drop_position = driver.race_position+1
+            position_diff = \
+                self.driver.race_position - driver.race_position
 
             #For each position gained, we need to animate upward
             #one position.
@@ -368,7 +371,8 @@ class Standing():
         output = self.material.copy()
         draw = ImageDraw.Draw(output)
 
-        position_width = self.font.getsize(str(self.driver.race_position))[0]
+        position_width = self.font.getsize(
+            str(self.driver.race_position))[0]
         x_position = int(
             (self.text_height*2-position_width)/2)
         y_position = int(
@@ -390,9 +394,12 @@ class Standing():
         return output
 
 class GTAnimation():
+    """
+    Class representing animations for objects.
+    """
     def __init__(
-            self, 
-            position_offset, 
+            self,
+            position_offset,
             duration):
         """
         Defines an animation action.
@@ -403,7 +410,7 @@ class GTAnimation():
 
         The object will animate to an offset of (0, 0) over the
         number of ticks initially provided.
-        
+
         Note that the coordinate system is non-standard, to match
         the system used by MoviePy and Pillow. (0, 0) is located at
         the TOP-LEFT of the image.
@@ -421,7 +428,8 @@ class GTAnimation():
         remaining.
         Use offset_static to not update.
         """
-        return_value = tuple(map(int, self.position_offset))
+        #return_value = tuple(map(int, self.position_offset))
+        return_value = tuple([int(x) for x in self.position_offset])
 
         self.ticks_remaining -= 1
 
@@ -442,4 +450,8 @@ class GTAnimation():
 
     @property
     def offset_static(self):
-        return tuple(map(int, self.position_offset))
+        """
+        Returns the offset without updating anything.
+        """
+        #return tuple(map(int, self.position_offset))
+        return tuple([int(x) for x in self.position_offset])
