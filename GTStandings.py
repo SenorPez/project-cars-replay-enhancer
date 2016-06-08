@@ -140,11 +140,12 @@ class GTStandings(DynamicBase):
                 self.replay.font)
         material_width = self.replay.margin+\
             text_height*2+text_width+10*2
-        self.material = Image.new(
+        base_material = Image.new(
             'RGBA',
             (
                 material_width,
                 self.replay.margin+text_height*2*10+1*11))
+        self.material = base_material.copy()
         y_position = self.replay.margin
         x_position = self.replay.margin
         last_race_position = None
@@ -168,9 +169,14 @@ class GTStandings(DynamicBase):
                 x_offset += x_adj
                 y_offset += y_adj
 
-            self.material.paste(
+            base_material.paste(
                 standings_line_output,
                 (x_position+x_offset, y_position+y_offset))
+            base_material.paste(
+                self.material,
+                mask=self.material)
+
+            self.material = base_material.copy()
 
             if last_race_position is None:
                 draw = ImageDraw.Draw(self.material)

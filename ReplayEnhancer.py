@@ -772,8 +772,11 @@ class ReplayEnhancer():
             else:
                 output = replay.build_custom_video(True)
                 output = output.set_duration(
+                    output.duration)
+                """
+                output = output.set_duration(
                     output.duration).subclip(0, 30)
-                
+                """
                 output.write_videofile(
                     replay.output_video,
                     fps=30,
