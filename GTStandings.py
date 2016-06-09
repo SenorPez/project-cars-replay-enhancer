@@ -140,17 +140,24 @@ class GTStandings(DynamicBase):
                 self.replay.font)
         material_width = self.replay.margin+\
             text_height*2+text_width+10*2
+        subject_position = self.participant_data.drivers_by_index[0].\
+            race_position
+        last_position = self.participant_data.last_place
+        subject_y = None
+        draw_middle_line = False
+
         base_material = Image.new(
             'RGBA',
             (
                 material_width,
-                self.replay.margin+text_height*2*10+1*11))
-        self.material = base_material.copy()
-        y_position = self.replay.margin
+                self.replay.margin+\
+                    text_height*2*last_position+\
+                    1*(last_position+1)))
+        composite_material = base_material.copy()
+        y_position = self.replay.margin+1
         x_position = self.replay.margin
-        last_race_position = None
 
-        for driver in self.__standings_filter():
+        for driver in self.participant_data.drivers_by_position:
             x_offset = 0
             y_offset = 0
             try:
@@ -169,55 +176,104 @@ class GTStandings(DynamicBase):
                 x_offset += x_adj
                 y_offset += y_adj
 
+            if driver.viewed:
+                subject_y = y_position+y_offset
+
             base_material.paste(
                 standings_line_output,
                 (x_position+x_offset, y_position+y_offset))
             base_material.paste(
-                self.material,
-                mask=self.material)
+                composite_material,
+                mask=composite_material)
 
-            self.material = base_material.copy()
-
-            if last_race_position is None:
-                draw = ImageDraw.Draw(self.material)
-                draw.line(
-                    [
-                        (
-                            0,
-                            self.replay.margin),
-                        (
-                            material_width,
-                            self.replay.margin)],
-                    fill='white',
-                    width=1)
-            elif last_race_position+1 != \
-                    standings_line.driver.race_position:
-                draw = ImageDraw.Draw(self.material)
-                draw.line(
-                    [
-                        (
-                            0,
-                            y_position),
-                        (
-                            material_width,
-                            y_position)],
-                    fill='white',
-                    width=1)
-
-            last_race_position = standings_line.driver.race_position
+            composite_material = base_material.copy()
             y_position += text_height*2+1
+
+        top_five = composite_material.crop((
+            0,
+            self.replay.margin+1*1,
+            material_width,
+            self.replay.margin+text_height*2*5+1*5))
+        if subject_position <= 8:
+            window_top = self.replay.margin+text_height*2*5+1*6
+            window_bottom = self.replay.margin+text_height*2*10+1*11
+            window_five = composite_material.crop((
+                0, window_top,
+                material_width, window_bottom))
+            draw_middle_line = False
+        elif last_position-subject_position <= 3:
+            adjust_y = last_position-5
+            window_top = self.replay.margin+\
+                text_height*2*adjust_y+\
+                1*(adjust_y+1)
+            window_bottom = self.replay.margin+\
+                text_height*2*last_position+\
+                1*last_position
+            window_five = composite_material.crop((
+                0,
+                window_top,
+                material_width,
+                window_bottom))
+            draw_middle_line = True
+        else:
+            window_top = subject_y-(text_height*2*2+1*2)
+            window_bottom = subject_y+(text_height*2*3+1*2)
+            window_five = composite_material.crop((
+                0,
+                window_top,
+                material_width,
+                window_bottom))
+            draw_middle_line = True
+
+        self.material = Image.new(
+            'RGBA',
+            (
+                material_width,
+                self.replay.margin+text_height*2*10+1*11))
+        self.material.paste(
+            top_five,
+            (0, self.replay.margin+1*1))
+
+        self.material.paste(
+            window_five,
+            (0, self.replay.margin+text_height*2*5+1*6))
 
         draw = ImageDraw.Draw(self.material)
         draw.line(
             [
                 (
                     0,
-                    y_position),
+                    self.replay.margin),
                 (
                     material_width,
-                    y_position)],
+                    self.replay.margin)],
             fill='white',
             width=1)
+
+        draw = ImageDraw.Draw(self.material)
+        draw.line(
+            [
+                (
+                    0,
+                    self.replay.margin+text_height*2*10+1*10),
+                (
+                    material_width,
+                    self.replay.margin+text_height*2*10+1*10)],
+            fill='white',
+            width=1)
+
+        if draw_middle_line:
+            draw = ImageDraw.Draw(self.material)
+            draw.line(
+                [
+                    (
+                        0,
+                        self.replay.margin+text_height*2*5+1*5),
+                    (
+                        material_width,
+                        self.replay.margin+text_height*2*5+1*5)],
+                fill='white',
+                width=1)
 
         return self.material if bg_only else self._write_data()
 
@@ -243,10 +299,10 @@ class Standing():
     _mask_position_color = (210, 210, 210, 200)
     _mask_name_color = (210, 210, 210, 200)
 
-    _position_text_color = (255, 255, 255)
-    _name_text_color = (255, 255, 255)
-    _viewed_position_text_color = (0, 0, 0)
-    _viewed_name_text_color = (0, 0, 0)
+    _position_text_color = (255, 255, 255, 255)
+    _name_text_color = (255, 255, 255, 255)
+    _viewed_position_text_color = (0, 0, 0, 255)
+    _viewed_name_text_color = (0, 0, 0, 255)
 
     _ups = 30
 
