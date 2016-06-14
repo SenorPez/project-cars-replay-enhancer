@@ -153,7 +153,7 @@ class GTStandings(DynamicBase):
                 self.replay.margin+\
                     text_height*2*last_position+\
                     1*(last_position+1)))
-        composite_material = base_material.copy()
+        output_material = None
         y_position = self.replay.margin+1
         x_position = self.replay.margin
 
@@ -179,25 +179,31 @@ class GTStandings(DynamicBase):
             if driver.viewed:
                 subject_y = y_position+y_offset
 
-            base_material.paste(
+            previous_material = base_material.copy() \
+                if output_material is None \
+                else output_material.copy()
+
+            output_material.paste(
                 standings_line_output,
                 (x_position+x_offset, y_position+y_offset))
-            base_material.paste(
-                composite_material,
-                mask=composite_material)
 
-            composite_material = base_material.copy()
+            output_material.paste(
+                previous_material,
+                mask=Image.eval(
+                    previous_material.split()[-1],
+                    lambda px: 0 if px == 0 else 255))
+
             y_position += text_height*2+1
 
-        top_five = composite_material.crop((
+        top_five = output_material.crop((
             0,
             self.replay.margin+1*1,
             material_width,
-            self.replay.margin+text_height*2*5+1*5))
+            self.replay.margin+text_height*2*5+1*6))
         if subject_position <= 8:
             window_top = self.replay.margin+text_height*2*5+1*6
             window_bottom = self.replay.margin+text_height*2*10+1*11
-            window_five = composite_material.crop((
+            window_five = output_material.crop((
                 0, window_top,
                 material_width, window_bottom))
             draw_middle_line = False
@@ -209,7 +215,7 @@ class GTStandings(DynamicBase):
             window_bottom = self.replay.margin+\
                 text_height*2*last_position+\
                 1*last_position
-            window_five = composite_material.crop((
+            window_five = output_material.crop((
                 0,
                 window_top,
                 material_width,
@@ -218,7 +224,7 @@ class GTStandings(DynamicBase):
         else:
             window_top = subject_y-(text_height*2*2+1*2)
             window_bottom = subject_y+(text_height*2*3+1*2)
-            window_five = composite_material.crop((
+            window_five = output_material.crop((
                 0,
                 window_top,
                 material_width,
