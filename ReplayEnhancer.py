@@ -145,9 +145,11 @@ class ReplayEnhancer():
 
         self.sync_racestart = json_data['sync_racestart']
 
-        self.participant_data = list()
-        self.participant_configurations = list()
-        self.participant_lookup = dict()
+        self.race_data = RaceData()
+        #self.participant_data = ParticipantData()
+        #self.participant_data = list()
+        #self.participant_configurations = list()
+        #self.participant_lookup = dict()
 
         try:
             self.additional_participants = \
@@ -159,7 +161,7 @@ class ReplayEnhancer():
         except KeyError:
             pass
 
-        self.telemetry_data = list()
+        #self.telemetry_data = list()
         self.config_version = 4
 
         self.race_start = -1
@@ -167,9 +169,34 @@ class ReplayEnhancer():
         self.race_p1_finish = -1
         self.race_end = -1
 
-        self.get_telemetry()
+        #self.get_telemetry()
+        self.__process_telemetry_directory(
+            self.source_telemetry_self)
 
         self.track = Track(self.telemetry_data[0][0][0][-7])
+
+    def __process_telemetry_directory(self, telemetry_directory):
+        with tqdm(desc="Processing telemetry",
+                total=len([x for x in os.listdir(
+                    telemetry_directory)])) as progress_bar:
+            for packet in natsorted(globa(telemetry_directory+'/pdata*')):
+                with open(packet, 'rb') as packet_file:
+                    packet_data =packet_file.read()
+
+                self.__process_telemetry_packet(packet(data)
+                progress_bar.update()
+
+    def __process_telemetry_packet(self, packet):
+        if len(packet) == 1347:
+            self.__dispatch(ParticipantPacket(packet))
+        elif len(packet) == 1028:
+            self.__dispatch(AdditionalParticipantPacket(
+                packet))
+        elif len(packet) == 1367:
+            self.__dispatch(TelemetryDataPacket(packet))
+
+    def __dispatch(self, packet):
+        self.race_data.add(packet)
 
     def get_telemetry(self):
         """
@@ -771,17 +798,15 @@ class ReplayEnhancer():
                     error))
             else:
                 output = replay.build_custom_video(True)
-                output = output.set_duration(
-                    output.duration)
                 """
                 output = output.set_duration(
-                    output.duration).subclip(0, 30)
+                    output.duration).subclip(0, 10)
                 """
                 output.write_videofile(
                     replay.output_video,
                     fps=30,
                     preset='superfast')
-                #output.save_frame("outputs/custom.png", 8)
+                #output.save_frame("outputs/custom.png", 7)
         except KeyboardInterrupt:
             raise
 
