@@ -182,6 +182,7 @@ class GTStandings(DynamicBase):
             previous_material = base_material.copy() \
                 if output_material is None \
                 else output_material.copy()
+            output_material = base_material.copy()
 
             output_material.paste(
                 standings_line_output,
