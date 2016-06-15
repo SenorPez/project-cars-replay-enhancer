@@ -1,23 +1,34 @@
+"""
+Provides classes for testing new custom classes
+for the Project CARS Replay Enhancer.
+"""
+from glob import glob
+import os
+
+from natsort import natsorted
+from tqdm import tqdm
+
 from AdditionalParticipantPacket import AdditionalParticipantPacket
 from ParticipantPacket import ParticipantPacket
 from RaceData import RaceData
-from TelemetryDataPacket import TelemetryDataPacket
-
-from tqdm import tqdm
-import os
-from natsort import natsorted
-from glob import glob
+from RETelemetryDataPacket \
+    import RETelemetryDataPacket as TelemetryDataPacket
 
 class TestHarness():
+    """
+    Represents a test harness.
+    """
     def __init__(self):
         self.race_data = RaceData()
         self.__process_telemetry_directory('assets/race1/')
 
     def __process_telemetry_directory(self, telemetry_directory):
-        with tqdm(desc="Processing telemetry",
-                total=len([x for x in os.listdir(
-                    telemetry_directory)])) as progress_bar:
-            for packet in natsorted(glob(telemetry_directory+'/pdata*')):
+        with tqdm(
+            desc="Processing telemetry",
+            total=len([x for x in os.listdir(
+                telemetry_directory)])) as progress_bar:
+            for packet in natsorted(
+                    glob(telemetry_directory+'/pdata*')):
                 with open(packet, 'rb') as packet_file:
                     packet_data = packet_file.read()
 
@@ -36,5 +47,5 @@ class TestHarness():
     def __dispatch(self, packet):
         self.race_data.add(packet)
 
-output = TestHarness()
-print(output.race_data)
+OUTPUT = TestHarness()
+print(OUTPUT.race_data)
