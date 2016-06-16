@@ -92,8 +92,11 @@ class RaceData():
         if at_time is None:
             output = self.telemetry_data[0]
         else:
-            output = [x for x in self.telemetry_data \
-                if x.elapsed_time > at_time][0]
+            try:
+                output = [x for x in self.telemetry_data \
+                    if x.elapsed_time > at_time][0]
+            except IndexError:
+                output = self.telemetry_data[-1]
 
         return output
 

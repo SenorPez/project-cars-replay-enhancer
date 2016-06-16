@@ -61,7 +61,7 @@ class GTStandings(DynamicBase):
         self.replay.race_data.trim_data()
         self.telemetry_data = self.replay.race_data.get_data()
 
-        text_width, text_height = \
+        self.text_width, self.text_height = \
             self.replay.race_data.max_name_dimensions(
                 self.replay.font)
 
@@ -69,7 +69,7 @@ class GTStandings(DynamicBase):
         for driver in self.telemetry_data.drivers_by_position:
             self.standings_lines.append(Standing(
                 driver,
-                (text_width, text_height),
+                (self.text_width, self.text_height),
                 self.replay.font,
                 self.mask))
 
@@ -89,11 +89,8 @@ class GTStandings(DynamicBase):
         if not bg_only:
             self.telemetry_data = self.update(force_process=True)
 
-        text_width, text_height = \
-            self.replay.race_data.max_name_dimensions(
-                self.replay.font)
         material_width = self.replay.margin+\
-            text_height*2+text_width+10*2
+            self.text_height*2+self.text_width+10*2
         subject_position = \
             self.telemetry_data.drivers_by_index[0].race_position
         last_position = self.telemetry_data.last_place
@@ -105,7 +102,7 @@ class GTStandings(DynamicBase):
             (
                 material_width,
                 self.replay.margin+\
-                    text_height*2*last_position+\
+                    self.text_height*2*last_position+\
                     1*(last_position+1)))
         output_material = None
         y_position = self.replay.margin+1
@@ -148,16 +145,17 @@ class GTStandings(DynamicBase):
                     previous_material.split()[-1],
                     lambda px: 0 if px == 0 else 255))
 
-            y_position += text_height*2+1
+            y_position += self.text_height*2+1
 
         top_five = output_material.crop((
             0,
             self.replay.margin+1*1,
             material_width,
-            self.replay.margin+text_height*2*5+1*6))
+            self.replay.margin+self.text_height*2*5+1*6))
         if subject_position <= 8:
-            window_top = self.replay.margin+text_height*2*5+1*6
-            window_bottom = self.replay.margin+text_height*2*10+1*11
+            window_top = self.replay.margin+self.text_height*2*5+1*6
+            window_bottom = \
+                self.replay.margin+self.text_height*2*10+1*11
             window_five = output_material.crop((
                 0, window_top,
                 material_width, window_bottom))
@@ -165,10 +163,10 @@ class GTStandings(DynamicBase):
         elif last_position-subject_position <= 3:
             adjust_y = last_position-5
             window_top = self.replay.margin+\
-                text_height*2*adjust_y+\
+                self.text_height*2*adjust_y+\
                 1*(adjust_y+1)
             window_bottom = self.replay.margin+\
-                text_height*2*last_position+\
+                self.text_height*2*last_position+\
                 1*last_position
             window_five = output_material.crop((
                 0,
@@ -177,8 +175,8 @@ class GTStandings(DynamicBase):
                 window_bottom))
             draw_middle_line = True
         else:
-            window_top = subject_y-(text_height*2*2+1*2)
-            window_bottom = subject_y+(text_height*2*3+1*2)
+            window_top = subject_y-(self.text_height*2*2+1*2)
+            window_bottom = subject_y+(self.text_height*2*3+1*2)
             window_five = output_material.crop((
                 0,
                 window_top,
@@ -190,14 +188,14 @@ class GTStandings(DynamicBase):
             'RGBA',
             (
                 material_width,
-                self.replay.margin+text_height*2*10+1*11))
+                self.replay.margin+self.text_height*2*10+1*11))
         self.material.paste(
             top_five,
             (0, self.replay.margin+1*1))
 
         self.material.paste(
             window_five,
-            (0, self.replay.margin+text_height*2*5+1*6))
+            (0, self.replay.margin+self.text_height*2*5+1*6))
 
         draw = ImageDraw.Draw(self.material)
         draw.line(
@@ -216,10 +214,10 @@ class GTStandings(DynamicBase):
             [
                 (
                     0,
-                    self.replay.margin+text_height*2*10+1*10),
+                    self.replay.margin+self.text_height*2*10+1*10),
                 (
                     material_width,
-                    self.replay.margin+text_height*2*10+1*10)],
+                    self.replay.margin+self.text_height*2*10+1*10)],
             fill='white',
             width=1)
 
@@ -229,10 +227,10 @@ class GTStandings(DynamicBase):
                 [
                     (
                         0,
-                        self.replay.margin+text_height*2*5+1*5),
+                        self.replay.margin+self.text_height*2*5+1*5),
                     (
                         material_width,
-                        self.replay.margin+text_height*2*5+1*5)],
+                        self.replay.margin+self.text_height*2*5+1*5)],
                 fill='white',
                 width=1)
 
