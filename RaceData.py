@@ -11,7 +11,8 @@ class RaceData():
     """
 
     _missing_participants = 0
-    _participant_list = list()
+    _participant_list = dict()
+    _update_indexes = set()
 
     def __init__(self):
         self.telemetry_data = list()
@@ -119,25 +120,34 @@ class RaceData():
 
             if self.telemetry_data[-1].num_participants == \
                     packet.num_participants:
-                participant_names = \
-                    [x.name for x \
-                    in self.telemetry_data[-1].participant_info]
                 self.telemetry_data.append(packet)
+                if len(self._participant_list) >= \
+                        packet.num_participants:
+                    for index, name in self._participant_list.items():
+                        self.telemetry_data[-1].\
+                            participant_info[index].name = name
 
-                for i, name in enumerate(participant_names):
-                    self.telemetry_data[-1].set_name(name, i)
+                        for telemetry_index in self._update_indexes:
+                            self.telemetry_data[telemetry_index].\
+                                participant_info[index].name = name
+                    self._update_indexes = set()
+
+                else:
+                    self._update_indexes.add(len(self.telemetry_data))
             else:
                 self.telemetry_data.append(packet)
+                self._participant_list = dict()
         else:
             self.telemetry_data.append(packet)
 
     def __add_participant_packet(self, packet):
         if packet.packet_type == 1:
             for i, name in enumerate(packet.name):
-                self.telemetry_data[-1].set_name(name, i)
+                self._participant_list[i] = name
+
         elif packet.packet_type == 2:
             for i, name in enumerate(packet.name, packet.offset):
-                self.telemetry_data[-1].set_name(name, i)
+                self._participant_list[i] = name
 
     def __str__(self):
         return str([(x.current_time, x.elapsed_time) \

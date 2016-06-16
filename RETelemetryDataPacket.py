@@ -59,6 +59,8 @@ class RETelemetryDataPacket(Packet):
             for _ in range(56):
                 self.participant_info.append(ParticipantInfo(
                     unpacked_data))
+            self.participant_info[self.viewed_participant_index].\
+                viewed = True
 
             self.track_length = float(unpacked_data.popleft())
 
