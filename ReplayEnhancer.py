@@ -20,11 +20,16 @@ from PIL import Image, ImageFont
 from tqdm import tqdm
 import unicodecsv as csv
 
+from AdditionalParticipantPacket import AdditionalParticipantPacket
 from Champion import Champion
 from Configuration import Configuration
+#from ParticipantPacket import ParticipantPacket
+from REParticipantPacket import REParticipantPacket as ParticipantPacket
 from Results import Results
 from SeriesStandings import SeriesStandings
 from Standings import Standings
+from RaceData import RaceData
+from RETelemetryDataPacket import RETelemetryDataPacket as TelemetryDataPacket
 from Timer import Timer
 from Title import Title
 from Track import Track
@@ -171,19 +176,20 @@ class ReplayEnhancer():
 
         #self.get_telemetry()
         self.__process_telemetry_directory(
-            self.source_telemetry_self)
+            self.source_telemetry)
 
-        self.track = Track(self.telemetry_data[0][0][0][-7])
+        #self.track = Track(self.telemetry_data[0][0][0][-7])
+        self.track = Track(self.race_data.track_length)
 
     def __process_telemetry_directory(self, telemetry_directory):
         with tqdm(desc="Processing telemetry",
                 total=len([x for x in os.listdir(
                     telemetry_directory)])) as progress_bar:
-            for packet in natsorted(globa(telemetry_directory+'/pdata*')):
+            for packet in natsorted(glob(telemetry_directory+'/pdata*')):
                 with open(packet, 'rb') as packet_file:
                     packet_data =packet_file.read()
 
-                self.__process_telemetry_packet(packet(data)
+                self.__process_telemetry_packet(packet_data)
                 progress_bar.update()
 
     def __process_telemetry_packet(self, packet):
@@ -591,6 +597,7 @@ class ReplayEnhancer():
             except ValueError as error:
                 print("Invalid JSON in configuration file: {}".format(
                     error))
+                import pdb; pdb.set_trace()
             else:
                 start_video = replay.build_default_video(False)
                 end_video = replay.build_default_video(False)
@@ -798,10 +805,8 @@ class ReplayEnhancer():
                     error))
             else:
                 output = replay.build_custom_video(True)
-                """
                 output = output.set_duration(
                     output.duration).subclip(0, 10)
-                """
                 output.write_videofile(
                     replay.output_video,
                     fps=30,

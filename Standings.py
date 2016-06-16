@@ -5,7 +5,7 @@ from numpy import diff, where
 from PIL import Image, ImageDraw, ImageFont
 
 from DynamicBase import DynamicBase
-from RaceStandings import Driver, ParticipantData
+from ParticipantData import Driver, ParticipantData
 
 class Standings(DynamicBase):
     """

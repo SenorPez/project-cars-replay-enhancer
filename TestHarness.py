@@ -9,7 +9,7 @@ from natsort import natsorted
 from tqdm import tqdm
 
 from AdditionalParticipantPacket import AdditionalParticipantPacket
-from ParticipantPacket import ParticipantPacket
+from REParticipantPacket import REParticipantPacket as ParticipantPacket
 from RaceData import RaceData
 from RETelemetryDataPacket \
     import RETelemetryDataPacket as TelemetryDataPacket
@@ -39,10 +39,14 @@ class TestHarness():
         if len(packet) == 1347:
             self.__dispatch(ParticipantPacket(packet))
         elif len(packet) == 1028:
+            pass
+            """
             self.__dispatch(AdditionalParticipantPacket(
                 packet))
+            """
         elif len(packet) == 1367:
-            self.__dispatch(TelemetryDataPacket(packet))
+            #self.__dispatch(TelemetryDataPacket(packet))
+            pass
 
     def __dispatch(self, packet):
         self.race_data.add(packet)

@@ -5,7 +5,7 @@ Standings overlay.
 from PIL import Image, ImageDraw
 
 from DynamicBase import DynamicBase
-from RaceStandings import ParticipantData
+#from ParticipantData import ParticipantData
 
 class GTStandings(DynamicBase):
     """
@@ -54,25 +54,19 @@ class GTStandings(DynamicBase):
         self.clip_t = clip_t
         self.ups = ups
         self.process_data = process_data
-
-        self.participant_data = ParticipantData()
-        self.standings = None
-
-        telemetry_data = self.replay.telemetry_data[0][0][0]
-        participant_data = self.replay.telemetry_data[0][-1]
-        self.participant_data.update_drivers(
-            telemetry_data,
-            participant_data)
-
-        text_width, text_height = \
-            self.participant_data.max_name_dimensions(
-                self.replay.font)
-        self.material = None
-
-        self.standings_lines = list()
         self.mask = mask
 
-        for driver in self.participant_data.drivers_by_position:
+        self.material = None
+
+        self.replay.race_data.trim_data()
+        self.telemetry_data = self.replay.race_data.get_data()
+
+        text_width, text_height = \
+            self.replay.race_data.max_name_dimensions(
+                self.replay.font)
+
+        self.standings_lines = list()
+        for driver in self.telemetry_data.drivers_by_position:
             self.standings_lines.append(Standing(
                 driver,
                 (text_width, text_height),
@@ -82,67 +76,27 @@ class GTStandings(DynamicBase):
     def update(self, force_process=False):
         if self.process_data or force_process:
             if self.clip_t > self.replay.sync_racestart:
-                try:
-                    telemetry_data, participant_data = \
-                        [(x[0], x[-1]) \
-                            for x in self.replay.telemetry_data \
-                            if x[0][-1][-1] > \
-                            self.clip_t-self.replay.sync_racestart][0]
-                    telemetry_data = \
-                        [x for x in telemetry_data \
-                        if x[-1] > \
-                            self.clip_t-self.replay.sync_racestart][0]
-                except IndexError:
-                    telemetry_data, participant_data, index_offset = \
-                        [(x[0], x[-1], x[2]) \
-                            for x in self.replay.telemetry_data \
-                            if x[2] < self.replay.race_finish][-1]
-                    telemetry_data = \
-                        telemetry_data[self.replay.race_finish-\
-                            index_offset]
+                self.telemetry_data = self.replay.race_data.get_data(
+                    self.clip_t-self.replay.sync_racestart)
             else:
-                telemetry_data = self.replay.telemetry_data[0][0][0]
-                participant_data = self.replay.telemetry_data[0][-1]
-
-            self.participant_data.update_drivers(
-                telemetry_data,
-                participant_data)
+                self.telemetry_data = self.replay.race_data.get_data()
 
         self.clip_t += float(1/self.ups)
 
-        return self.participant_data.drivers_by_position
-
-    def __standings_filter(self):
-        subject_position = self.participant_data.drivers_by_index[0].\
-            race_position
-        last_place = self.participant_data.last_place
-
-        if subject_position <= 8:
-            return self.participant_data.drivers_by_position[:10]
-        elif subject_position == last_place \
-                or subject_position+1 == last_place:
-            return self.participant_data.drivers_by_position[:5] + \
-                self.participant_data.drivers_by_position[-5:]
-        else:
-            #Remember that python is 0-indexed.
-            slice_start = subject_position-3
-            slice_end = subject_position+2
-            return self.participant_data.drivers_by_position[:5] + \
-                self.participant_data.drivers_by_position[\
-                    slice_start:slice_end]
+        return self.telemetry_data
 
     def _make_material(self, bg_only):
         if not bg_only:
-            self.standings = self.update(force_process=True)
+            self.telemetry_data = self.update(force_process=True)
 
         text_width, text_height = \
-            self.participant_data.max_name_dimensions(
+            self.replay.race_data.max_name_dimensions(
                 self.replay.font)
         material_width = self.replay.margin+\
             text_height*2+text_width+10*2
-        subject_position = self.participant_data.drivers_by_index[0].\
-            race_position
-        last_position = self.participant_data.last_place
+        subject_position = \
+            self.telemetry_data.drivers_by_index[0].race_position
+        last_position = self.telemetry_data.last_place
         subject_y = None
         draw_middle_line = False
 
@@ -157,7 +111,7 @@ class GTStandings(DynamicBase):
         y_position = self.replay.margin+1
         x_position = self.replay.margin
 
-        for driver in self.participant_data.drivers_by_position:
+        for driver in self.telemetry_data.drivers_by_position:
             x_offset = 0
             y_offset = 0
             try:
