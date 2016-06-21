@@ -53,7 +53,10 @@ class RETelemetryDataPacket(Packet):
 
             self._race_state_flags = int(unpacked_data.popleft())
 
+            self.laps_in_event = int(unpacked_data.popleft())
+
             self.current_time = float(unpacked_data.popleft())
+            self.event_time_remaining = float(unpacked_data.popleft())
 
             self.participant_info = list()
             for _ in range(56):
@@ -101,6 +104,11 @@ class RETelemetryDataPacket(Packet):
         return [x for x in self.participant_info if x.is_active]
 
     @property
+    def leader_lap(self):
+        """Returns the leader's current lap."""
+        return self.drivers_by_position[0].race_position
+
+    @property
     def last_place(self):
         """Returns the last place race position."""
         return max(
@@ -141,17 +149,22 @@ class RETelemetryDataPacket(Packet):
         packet_string += "fBBB"
         """
         packet_string = "HB"
-        packet_string += "B"
-        packet_string += "bb"
-        packet_string += "4x"
-        packet_string += "B"
-        packet_string += "x"
-        packet_string += "8x"
-        packet_string += "f"
-        packet_string += "440x"
-        packet_string += "2x2x2x2xBxxx4x"*56
-        packet_string += "f"
-        packet_string += "xxx"
+        packet_string += "B" #Game states
+        packet_string += "bb" #Participant info
+        packet_string += "4xB" #Unfiltered infput
+        packet_string += "B" #Event Information
+        packet_string += "8xf12xf56x" #Timings
+        packet_string += "2x" #Joypad
+        packet_string += "x" #Flags
+        packet_string += "x" #Pit info
+        packet_string += "10x6x8x4x4x" #Car state
+        packet_string += "88x"
+        packet_string += "228x" #Wheels / tyres
+        packet_string += "8x" #Extras
+        packet_string += "2x" #Car damage
+        packet_string += "6x" #Weather
+        packet_string += "2x2x2x2xBxxx4x"*56 #Participant info
+        packet_string += "fxxx"
 
         return packet_string
 

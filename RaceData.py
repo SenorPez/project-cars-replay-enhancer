@@ -23,6 +23,11 @@ class RaceData():
         """Returns the track length."""
         return self.telemetry_data[-1].track_length
 
+    @property
+    def event_duration(self):
+        """Returns the event duration."""
+        return self.telemetry_data[-1].laps_in_event
+
     def add(self, packet):
         """
         Adds a new packet to the data set.

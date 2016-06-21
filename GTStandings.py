@@ -72,6 +72,11 @@ class GTStandings(DynamicBase):
                 (self.text_width, self.text_height),
                 self.replay.font,
                 self.mask))
+        self.timer = Timer(
+            self.replay.race_data,
+            (self.text_width, self.text_height),
+            self.replay.font,
+            self.mask)
 
     def update(self, force_process=False):
         if self.process_data or force_process:
@@ -89,8 +94,7 @@ class GTStandings(DynamicBase):
         if not bg_only:
             self.telemetry_data = self.update(force_process=True)
 
-        material_width = self.replay.margin+\
-            self.text_height*2+self.text_width+10*2
+        material_width = self.text_height*2+self.text_width+10*2
         subject_position = \
             self.telemetry_data.drivers_by_index[0].race_position
         last_position = self.telemetry_data.last_place
@@ -101,12 +105,11 @@ class GTStandings(DynamicBase):
             'RGBA',
             (
                 material_width,
-                self.replay.margin+\
-                    self.text_height*2*last_position+\
+                self.text_height*2*last_position+\
                     1*(last_position+1)))
-        output_material = None
-        y_position = self.replay.margin+1
-        x_position = self.replay.margin
+        output_material = base_material.copy()
+        y_position = 0
+        x_position = 0
 
         for driver in self.telemetry_data.drivers_by_position:
             x_offset = 0
@@ -149,24 +152,23 @@ class GTStandings(DynamicBase):
 
         top_five = output_material.crop((
             0,
-            self.replay.margin+1*1,
+            0,
             material_width,
-            self.replay.margin+self.text_height*2*5+1*6))
+            self.text_height*2*5+1*5))
         if subject_position <= 8:
-            window_top = self.replay.margin+self.text_height*2*5+1*6
-            window_bottom = \
-                self.replay.margin+self.text_height*2*10+1*11
+            window_top = self.text_height*2*5+1*5
+            window_bottom = self.text_height*2*10+1*10
             window_five = output_material.crop((
-                0, window_top,
-                material_width, window_bottom))
+                0,
+                window_top,
+                material_width,
+                window_bottom))
             draw_middle_line = False
         elif last_position-subject_position <= 3:
             adjust_y = last_position-5
-            window_top = self.replay.margin+\
-                self.text_height*2*adjust_y+\
-                1*(adjust_y+1)
-            window_bottom = self.replay.margin+\
-                self.text_height*2*last_position+\
+            window_top = self.text_height*2*adjust_y+\
+                1*adjust_y
+            window_bottom = self.text_height*2*last_position+\
                 1*last_position
             window_five = output_material.crop((
                 0,
@@ -187,25 +189,34 @@ class GTStandings(DynamicBase):
         self.material = Image.new(
             'RGBA',
             (
-                material_width,
-                self.replay.margin+self.text_height*2*10+1*11))
+                self.replay.margin+material_width,
+                self.replay.margin+self.text_height*2*11+1*12))
+
+        #Composite the timer and the top and bottom standings blocks.
+        self.material.paste(
+            self.timer.render(self.telemetry_data, bg_only),
+            (self.replay.margin, self.replay.margin))
         self.material.paste(
             top_five,
-            (0, self.replay.margin+1*1))
-
+            (
+                self.replay.margin,
+                self.replay.margin+self.text_height*2*1+1*1))
         self.material.paste(
             window_five,
-            (0, self.replay.margin+self.text_height*2*5+1*6))
+            (
+                self.replay.margin,
+                self.replay.margin+self.text_height*2*6+1*6))
 
+        #Draw separator lines as needed.
         draw = ImageDraw.Draw(self.material)
         draw.line(
             [
                 (
                     0,
-                    self.replay.margin),
+                    self.replay.margin+self.text_height*2),
                 (
-                    material_width,
-                    self.replay.margin)],
+                    self.replay.margin+material_width,
+                    self.replay.margin+self.text_height*2)],
             fill='white',
             width=1)
 
@@ -214,10 +225,10 @@ class GTStandings(DynamicBase):
             [
                 (
                     0,
-                    self.replay.margin+self.text_height*2*10+1*10),
+                    self.replay.margin+self.text_height*2*11+1*10),
                 (
-                    material_width,
-                    self.replay.margin+self.text_height*2*10+1*10)],
+                    self.replay.margin+material_width,
+                    self.replay.margin+self.text_height*2*11+1*10)],
             fill='white',
             width=1)
 
@@ -227,13 +238,12 @@ class GTStandings(DynamicBase):
                 [
                     (
                         0,
-                        self.replay.margin+self.text_height*2*5+1*5),
+                        self.replay.margin+self.text_height*2*6+1*5),
                     (
-                        material_width,
-                        self.replay.margin+self.text_height*2*5+1*5)],
+                        self.replay.margin+material_width,
+                        self.replay.margin+self.text_height*2*6+1*5)],
                 fill='white',
                 width=1)
-
         return self.material if bg_only else self._write_data()
 
     def _write_data(self):
@@ -245,6 +255,128 @@ class GTStandings(DynamicBase):
 
     def make_mask(self):
         return super(GTStandings, self).make_mask()
+
+class Timer():
+    """
+    Represents a timer line in the standings display.
+    """
+
+    _background_color = (51, 51, 51, 200)
+    _mask_background_color = (210, 210, 210, 200)
+
+    _background_text_color = (255, 255, 255, 255)
+
+    _ups = 30
+
+    @property
+    def background_color(self):
+        """
+        Gets the material color for the line.
+        """
+        return self._background_color
+
+    @property
+    def background_text_color(self):
+        """
+        Gets the text color for the line.
+        """
+        return self._background_text_color
+
+    @property
+    def ups(self):
+        """
+        Gets the number of updates per second, for animation timing.
+        """
+        return self._ups
+
+    @ups.setter
+    def ups(self, value):
+        self._ups = value
+
+    def render(self, telemetry_data, bg_only):
+        """
+        Renders the line.
+        """
+        self.mask = bg_only
+        self.telemetry_data = telemetry_data
+
+        return self._make_material()
+
+    def __init__(self, race_data, text_size, font,
+                 mask=False, ups=None):
+        """
+        Creates a new Timer object.
+        """
+        self.race_data = race_data
+        self.telemetry_data = race_data.get_data()
+        self.mask = mask
+
+        self.text_width, self.text_height = text_size
+        self.font = font
+        self.material_width = self.text_height*2+self.text_width+10*2
+
+        self.material = None
+
+        if ups is not None:
+            self.ups = ups
+
+    def _make_material(self):
+        self.material = Image.new(
+            'RGBA',
+            (
+                self.material_width,
+                self.text_height*2),
+            self.background_color)
+
+        return self.material if self.mask else self._write_data()
+
+    def _write_data(self):
+        block_height = self.font.getsize("A")[1]
+        output = self.material.copy()
+        draw = ImageDraw.Draw(output)
+
+        y_position = int(
+            (self.text_height*2-block_height)/2)
+
+        lap_display_width, _ = self.font.getsize(
+            "Lap {total}/{total}".format(
+                total=self.race_data.event_duration))
+
+        current_time = 0 if self.telemetry_data.current_time == -1 \
+            else self.telemetry_data.current_time
+        draw.text(
+            (10, y_position),
+            "{time}".format(
+                time=self.format_time(current_time)),
+            fill=self.background_text_color,
+            font=self.font)
+        draw.text(
+            (self.material_width-10-lap_display_width, y_position),
+            "Lap {current}/{total}".format(
+                current=str(self.telemetry_data.leader_lap),
+                total=str(self.race_data.event_duration)),
+            fill=self.background_text_color,
+            font=self.font)
+
+        return output
+
+    @staticmethod
+    def format_time(seconds):
+        """
+        Converts seconds into seconds, minutes:seconds, or
+        hours:minutes:seconds as appropriate
+        """
+        minutes, seconds = divmod(float(seconds), 60)
+        hours, minutes = divmod(minutes, 60)
+
+        return_value = (int(hours), int(minutes), float(seconds))
+
+        if hours:
+            return "{0:d}:{1:0>2d}:{2:0>6.3f}".format(*return_value)
+        elif minutes:
+            return "{1:d}:{2:0>6.3f}".format(*return_value)
+        else:
+            return "{2:.3f}".format(*return_value)
 
 class Standing():
     """
