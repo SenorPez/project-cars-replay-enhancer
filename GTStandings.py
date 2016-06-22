@@ -2,10 +2,11 @@
 Provides classes for the creation of a GT Sport style
 Standings overlay.
 """
+import abc
+
 from PIL import Image, ImageDraw
 
 from DynamicBase import DynamicBase
-#from ParticipantData import ParticipantData
 
 class GTStandings(DynamicBase):
     """
@@ -104,7 +105,7 @@ class GTStandings(DynamicBase):
         base_material = Image.new(
             'RGBA',
             (
-                material_width,
+                material_width*2,
                 self.text_height*2*last_position+\
                     1*(last_position+1)))
         output_material = base_material.copy()
@@ -153,7 +154,7 @@ class GTStandings(DynamicBase):
         top_five = output_material.crop((
             0,
             0,
-            material_width,
+            material_width*2,
             self.text_height*2*5+1*5))
         if subject_position <= 8:
             window_top = self.text_height*2*5+1*5
@@ -161,7 +162,7 @@ class GTStandings(DynamicBase):
             window_five = output_material.crop((
                 0,
                 window_top,
-                material_width,
+                material_width*2,
                 window_bottom))
             draw_middle_line = False
         elif last_position-subject_position <= 3:
@@ -173,7 +174,7 @@ class GTStandings(DynamicBase):
             window_five = output_material.crop((
                 0,
                 window_top,
-                material_width,
+                material_width*2,
                 window_bottom))
             draw_middle_line = True
         else:
@@ -182,15 +183,13 @@ class GTStandings(DynamicBase):
             window_five = output_material.crop((
                 0,
                 window_top,
-                material_width,
+                material_width*2,
                 window_bottom))
             draw_middle_line = True
 
         self.material = Image.new(
             'RGBA',
-            (
-                self.replay.margin+material_width,
-                self.replay.margin+self.text_height*2*11+1*12))
+            self.replay.size)
 
         #Composite the timer and the top and bottom standings blocks.
         self.material.paste(
@@ -467,8 +466,19 @@ class Standing():
             offset = self.text_height*2*position_diff+1*position_diff
             self.animations.append(
                 GTAnimation(
-                    (0, offset),
-                    self.ups))
+                    self.ups,
+                    (0, offset)))
+
+        if self.flyout is not None and \
+                all([x.complete for x in self.flyout.animations]):
+            self.flyout = None
+
+        if driver.current_lap != self.driver.current_lap:
+            self.flyout = LapTimeFlyout(
+                self.font,
+                "1:30:00",
+                (200, self.text_height*2))
+
         self.driver = driver
 
         return self._make_material()
@@ -485,6 +495,7 @@ class Standing():
         self.material_width = self.text_height*2+self.text_width+10*2
 
         self.material = None
+        self.flyout = None
 
         self.animations = list()
 
@@ -495,8 +506,34 @@ class Standing():
         self.material = Image.new(
             'RGBA',
             (
-                self.material_width,
+                self.material_width*2,
                 self.text_height*2))
+
+        if self.flyout is not None:
+            x_offset = 0
+            y_offset = 0
+
+            for animation in self.flyout.animations:
+                x_adj, y_adj = animation.offset
+                x_offset += x_adj
+                y_offset += y_adj
+
+            flyout_material = Image.new(
+                'RGBA',
+                (
+                    self.material_width,
+                    self.text_height*2))
+            flyout_material.paste(
+                self.flyout.render(self.mask),
+                (
+                    0+x_offset,
+                    0+y_offset))
+
+            self.material.paste(
+                flyout_material,
+                (
+                    self.material_width,
+                    0))
 
         position_material = Image.new(
             'RGBA',
@@ -522,6 +559,33 @@ class Standing():
     def _write_data(self):
         block_height = self.font.getsize("A")[1]
         output = self.material.copy()
+
+        if self.flyout is not None:
+            x_offset = 0
+            y_offset = 0
+
+            for animation in self.flyout.animations:
+                x_adj, y_adj = animation.offset
+                x_offset += x_adj
+                y_offset += y_adj
+
+            flyout_material = Image.new(
+                'RGBA',
+                (
+                    self.material_width,
+                    self.text_height*2))
+            flyout_material.paste(
+                self.flyout.render(self.mask),
+                (
+                    0+x_offset,
+                    0+y_offset))
+
+            output.paste(
+                flyout_material,
+                (
+                    self.material_width,
+                    0))
+
         draw = ImageDraw.Draw(output)
 
         position_width = self.font.getsize(
@@ -546,33 +610,156 @@ class Standing():
 
         return output
 
+class Flyout():
+    """
+    Class representing standings flyouts.
+    """
+
+    _ups = 30
+
+    @abc.abstractmethod
+    def _make_material(self):
+        """Create material used as a canvas."""
+
+    @abc.abstractmethod
+    def _write_data(self):
+        """Write data to the material."""
+
+    @property
+    def ups(self):
+        """
+        Gets the number of updates per second, for animation timing.
+        """
+        return self._ups
+
+    @ups.setter
+    def ups(self, value):
+        self._ups = value
+
+class LapTimeFlyout(Flyout):
+    """
+    Class representing a flyout for the last lap's time.
+    """
+    _color = (0, 0, 0, 200)
+    _mask_color = (210, 210, 210, 200)
+
+    _text_color = (255, 255, 255, 255)
+
+    @property
+    def color(self):
+        """
+        Gets the material color for the line.
+        """
+        return self._mask_color if self.mask \
+            else self._color
+
+    @property
+    def text_color(self):
+        """
+        Gets the text color for the line.
+        """
+        return self._text_color
+
+    def __init__(self, font, lap_time, mask=False, ups=None, size=None):
+        self.lap_time = str(lap_time)
+        self.font = font
+        self.mask = mask
+
+        if size is None:
+            width, _ = self.font.getsize("99:99:999")
+            _, height = self.font.getsize("Srp")
+            self.size = (width+10*2, height*2)
+        else:
+            self.size = size
+
+        self.animations = list()
+        """
+        self.animations.append(
+            GTAnimation(
+                300000,
+                (0, 0)))
+        """
+        self.animations.append(
+            GTAnimation(
+                duration=30,
+                position_from=(-self.size[0], 0)))
+        self.animations.append(
+            GTAnimation(
+                duration=30,
+                position_from=(0, 0),
+                position_to=(-self.size[0], 0),
+                delay=300))
+        self.material = None
+
+        if ups is not None:
+            self.ups = ups
+
+    def render(self, bg_only):
+        """
+        Renders the flyout.
+        """
+        self.mask = bg_only
+        return self._make_material()
+
+    def _make_material(self):
+        self.material = Image.new(
+            'RGBA',
+            self.size,
+            self.color)
+
+        return self.material if self.mask else self._write_data()
+
+    def _write_data(self):
+        block_height = self.font.getsize("A")[1]
+        block_width = self.font.getsize(self.lap_time)[0]
+        output = self.material.copy()
+        draw = ImageDraw.Draw(output)
+
+        x_position = self.size[0]-10-block_width
+        y_position = int(
+            (self.size[1]-block_height)/2)
+
+        draw.text(
+            (x_position, y_position),
+            str(self.lap_time),
+            fill=self.text_color,
+            font=self.font)
+
+        return output
+
 class GTAnimation():
     """
     Class representing animations for objects.
     """
     def __init__(
             self,
-            position_offset,
-            duration):
+            duration,
+            position_from,
+            position_to=(0, 0),
+            delay=0):
         """
         Defines an animation action.
-        position_offset = (x, y) defining the position offset for the
-            object. Initial setting of this determines the starting
-            position of the object.
-        ticks = Number of ticks remaining on the animation.
-
-        The object will animate to an offset of (0, 0) over the
-        number of ticks initially provided.
+        duration = The duration, in frames, of the animation.
+        position_from = (x, y) defining the starting position for the
+            object.
+        position_to = (x, y) defining the ending position for the
+            object.
+        delay = The number of frames to wait until starting the
+            animation.
 
         Note that the coordinate system is non-standard, to match
         the system used by MoviePy and Pillow. (0, 0) is located at
         the TOP-LEFT of the image.
         """
-        self.position_offset = position_offset
+        self.position_from = position_from
+        self.position_to = position_to
         self.ticks_remaining = duration
-        self.offset_adjustment = tuple(x/y for x, y in zip(
-            self.position_offset,
-            (duration, duration)))
+        self.offset_adjustment = tuple((p_from-p_to)/dur \
+            for p_from, p_to, dur in zip(
+                self.position_from,
+                self.position_to,
+                (duration, duration)))
+        self.delay = delay
 
     @property
     def offset(self):
@@ -581,30 +768,40 @@ class GTAnimation():
         remaining.
         Use offset_static to not update.
         """
-        #return_value = tuple(map(int, self.position_offset))
-        return_value = tuple([int(x) for x in self.position_offset])
-
-        self.ticks_remaining -= 1
-
-        if self.ticks_remaining <= 0:
-            self.position_offset = (0, 0)
-            self.offset_adjustment = (0, 0)
+        if self.delay > 0:
+            self.delay -= 1
+            return (0, 0)
         else:
-            self.position_offset = tuple(x-y for x, y in zip(
-                self.position_offset,
-                self.offset_adjustment))
-            self.position_offset = tuple([(
-                0 if abs(x) <= y else x) \
-                for x, y in zip(
-                    self.position_offset,
-                    self.offset_adjustment)])
+            return_value = tuple([int(x) for x in self.position_from])
 
-        return return_value
+            self.ticks_remaining -= 1
+
+            if self.ticks_remaining <= 0:
+                self.position_from = self.position_to
+                self.offset_adjustment = (0, 0)
+            else:
+                self.position_from = tuple(x-y for x, y in zip(
+                    self.position_from,
+                    self.offset_adjustment))
+                self.position_from = tuple([(
+                    y if abs(x-y) <= z else x) \
+                    for x, y, z in zip(
+                        self.position_from,
+                        self.position_to,
+                        self.offset_adjustment)])
+
+            return return_value
 
     @property
     def offset_static(self):
         """
         Returns the offset without updating anything.
         """
-        #return tuple(map(int, self.position_offset))
-        return tuple([int(x) for x in self.position_offset])
+        return tuple([int(x) for x in self.position_from])
+
+    @property
+    def complete(self):
+        """
+        Returns if the animation is complete.
+        """
+        return False if self.ticks_remaining else True

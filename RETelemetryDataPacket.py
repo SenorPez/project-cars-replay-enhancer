@@ -14,6 +14,8 @@ class ParticipantInfo():
             self.name = None
             self.viewed = False
             self._race_position = int(unpacked_data.popleft())
+            self.current_lap = int(unpacked_data.popleft())
+            self.last_sector_time = float(unpacked_data.popleft())
         except ValueError:
             raise
 
@@ -163,7 +165,7 @@ class RETelemetryDataPacket(Packet):
         packet_string += "8x" #Extras
         packet_string += "2x" #Car damage
         packet_string += "6x" #Weather
-        packet_string += "2x2x2x2xBxxx4x"*56 #Participant info
+        packet_string += "2x2x2x2xBxBxf"*56 #Participant info
         packet_string += "fxxx"
 
         return packet_string
