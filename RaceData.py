@@ -16,17 +16,7 @@ class RaceData():
 
     def __init__(self):
         self.telemetry_data = list()
-        #self.participant_data = list()
-
-    @property
-    def track_length(self):
-        """Returns the track length."""
-        return self.telemetry_data[-1].track_length
-
-    @property
-    def event_duration(self):
-        """Returns the event duration."""
-        return self.telemetry_data[-1].laps_in_event
+        self.sector_times = [list() for _ in range(56)]
 
     def add(self, packet):
         """
@@ -144,6 +134,21 @@ class RaceData():
                 self._participant_list = dict()
         else:
             self.telemetry_data.append(packet)
+
+        last_packet = self.telemetry_data[-1]
+        for index, participant in enumerate(
+                last_packet.participant_info):
+            sector_times = self.sector_times[index]
+            try:
+                if sector_times[-1] != \
+                        participant.last_sector_time and \
+                        len(sector_times) % 3 != \
+                            participant.sector and \
+                        participant.last_sector_time != -123:
+                    sector_times.append(participant.last_sector_time)
+            except IndexError:
+                if participant.last_sector_time != -123:
+                    sector_times.append(participant.last_sector_time)
 
     def __add_participant_packet(self, packet):
         if packet.packet_type == 1:

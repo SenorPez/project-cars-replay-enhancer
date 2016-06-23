@@ -23,10 +23,10 @@ import unicodecsv as csv
 from AdditionalParticipantPacket import AdditionalParticipantPacket
 from Champion import Champion
 from Configuration import Configuration
-#from ParticipantPacket import ParticipantPacket
 from REParticipantPacket import REParticipantPacket as ParticipantPacket
 from Results import Results
 from SeriesStandings import SeriesStandings
+from ParticipantData import ParticipantData
 from Standings import Standings
 from RaceData import RaceData
 from RETelemetryDataPacket import RETelemetryDataPacket as TelemetryDataPacket
@@ -151,10 +151,10 @@ class ReplayEnhancer():
         self.sync_racestart = json_data['sync_racestart']
 
         self.race_data = RaceData()
-        #self.participant_data = ParticipantData()
-        #self.participant_data = list()
-        #self.participant_configurations = list()
-        #self.participant_lookup = dict()
+        self.participant_data = ParticipantData()
+        self.participant_data = list()
+        self.participant_configurations = list()
+        self.participant_lookup = dict()
 
         try:
             self.additional_participants = \
@@ -166,7 +166,7 @@ class ReplayEnhancer():
         except KeyError:
             pass
 
-        #self.telemetry_data = list()
+        self.telemetry_data = list()
         self.config_version = 4
 
         self.race_start = -1
@@ -174,12 +174,15 @@ class ReplayEnhancer():
         self.race_p1_finish = -1
         self.race_end = -1
 
-        #self.get_telemetry()
+        self.size = None
+
+        self.get_telemetry()
         self.__process_telemetry_directory(
             self.source_telemetry)
 
         #self.track = Track(self.telemetry_data[0][0][0][-7])
-        self.track = Track(self.race_data.track_length)
+        self.track = Track(
+            self.race_data.telemetry_data[-1].track_length)
 
     def __process_telemetry_directory(self, telemetry_directory):
         with tqdm(desc="Processing telemetry",
@@ -805,13 +808,15 @@ class ReplayEnhancer():
                     error))
             else:
                 output = replay.build_custom_video(True)
+                """
                 output = output.set_duration(
-                    output.duration).subclip(0, 10)
+                    output.duration).subclip(0, 105)
+                """
                 output.write_videofile(
                     replay.output_video,
                     fps=30,
                     preset='superfast')
-                #output.save_frame("outputs/custom.png", 7)
+                #output.save_frame("outputs/custom.png", 110)
         except KeyboardInterrupt:
             raise
 
@@ -852,6 +857,38 @@ class ReplayEnhancer():
                 "ValueError: Blackframe Detection disabled.")
 
         video_width, video_height = video.size
+        self.size = video.size
+
+        if self.backdrop != "":
+            backdrop = Image.open(self.backdrop).resize(
+                (video_width, video_height))
+            if self.logo != "":
+                logo = Image.open(self.logo).resize(
+                    (self.logo_width, self.logo_height))
+                backdrop.paste(
+                    logo,
+                    (
+                        backdrop.width-logo.width,
+                        backdrop.height-logo.height),
+                    logo)
+        else:
+            backdrop = Image.new(
+                'RGBA',
+                (video_width, video_height),
+                (0, 0, 0))
+            if self.logo != "":
+                logo = Image.open(self.logo).resize(
+                    (self.logo_width, self.logo_height))
+                backdrop.paste(
+                    logo,
+                    (
+                        backdrop.width-logo.width,
+                        backdrop.height-logo.height),
+                    logo)
+
+        backdrop_clip = mpy.ImageClip(PIL_to_npimage(backdrop))
+        title = mpy.ImageClip(Title(self).to_frame()).set_duration(
+            5).set_position(('center', 'center'))
 
         standing = GTStandings(
             self,
@@ -868,10 +905,54 @@ class ReplayEnhancer():
 
         standing_clip = standing_clip.set_mask(standing_clip_mask)
 
+        result = mpy.ImageClip(
+            Results(self).to_frame()).set_duration(
+                20).set_position(('center', 'center')).add_mask()
+
+        if self.point_structure is not None:
+            result.mask = result.mask.fx(vfx.fadeout, 1)
+            series_standings = mpy.ImageClip(
+                SeriesStandings(self).to_frame()).set_start(
+                    20).set_duration(20).set_position(
+                        ('center', 'center')).add_mask()
+
+            if self.show_champion:
+                series_standings.mask = series_standings.mask.fx(
+                    vfx.fadein, 1).fx(vfx.fadeout, 1)
+                champion = mpy.ImageClip(
+                    Champion(self).to_frame()).set_start(
+                        40).set_duration(20).set_position(
+                            ('center', 'center')).add_mask()
+                champion.mask = champion.mask.fx(vfx.fadein, 1)
+            else:
+                series_standings.mask = series_standings.mask.fx(
+                    vfx.fadein, 1)
+        else:
+            if self.show_champion:
+                result.mask = result.mask.fx(vfx.fadeout, 1)
+                champion = mpy.ImageClip(
+                    Champion(self).to_frame()).set_start(
+                        20).set_duration(20).set_position(
+                            ('center', 'center')).add_mask()
+                champion.mask = champion.mask.fx(vfx.fadein, 1)
+
+
+        intro = mpy.CompositeVideoClip(
+            [backdrop_clip, title]).set_duration(5).fx(vfx.fadeout, 1)
         mainevent = mpy.CompositeVideoClip(
             [video, standing_clip]).set_duration(video.duration)
 
-        output = mpy.concatenate_videoclips([mainevent])
+        outro_videos = [backdrop_clip, result]
+        if self.point_structure is not None:
+            outro_videos.append(series_standings)
+        if self.show_champion:
+            outro_videos.append(champion)
+
+        outro = mpy.CompositeVideoClip(outro_videos).set_duration(
+            sum([x.duration for x in outro_videos[1:]])).fx(
+                vfx.fadein, 1)
+
+        output = mpy.concatenate_videoclips([intro, mainevent, outro])
         return output
 
     def build_default_video(self, process_data):

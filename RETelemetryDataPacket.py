@@ -9,12 +9,14 @@ class ParticipantInfo():
     """
     Represents the participant info from the telemetry data.
     """
-    def __init__(self, unpacked_data):
+    def __init__(self, index, unpacked_data):
         try:
+            self.index = index
             self.name = None
             self.viewed = False
             self._race_position = int(unpacked_data.popleft())
             self.current_lap = int(unpacked_data.popleft())
+            self._sector = int(unpacked_data.popleft())
             self.last_sector_time = float(unpacked_data.popleft())
         except ValueError:
             raise
@@ -28,6 +30,11 @@ class ParticipantInfo():
     def race_position(self):
         """Determines the Participant's race position."""
         return self._race_position & int('01111111', 2)
+
+    @property
+    def sector(self):
+        """Determines the Participant's sector."""
+        return self._sector & int('00000111', 2)
 
 class RETelemetryDataPacket(Packet):
     """
@@ -61,8 +68,9 @@ class RETelemetryDataPacket(Packet):
             self.event_time_remaining = float(unpacked_data.popleft())
 
             self.participant_info = list()
-            for _ in range(56):
+            for index in range(56):
                 self.participant_info.append(ParticipantInfo(
+                    index,
                     unpacked_data))
             self.participant_info[self.viewed_participant_index].\
                 viewed = True
@@ -77,6 +85,12 @@ class RETelemetryDataPacket(Packet):
         self.participant_info[index].name = name
         self.participant_info[index].viewed = \
             index == self.viewed_participant_index
+
+    @property
+    def event_duration(self):
+        """Returns the event duration, in laps or time."""
+        #TODO: Time
+        return self.laps_in_event
 
     @property
     def game_state(self):
@@ -165,7 +179,7 @@ class RETelemetryDataPacket(Packet):
         packet_string += "8x" #Extras
         packet_string += "2x" #Car damage
         packet_string += "6x" #Weather
-        packet_string += "2x2x2x2xBxBxf"*56 #Participant info
+        packet_string += "2x2x2x2xBxBBf"*56 #Participant info
         packet_string += "fxxx"
 
         return packet_string

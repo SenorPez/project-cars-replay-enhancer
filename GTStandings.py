@@ -69,6 +69,7 @@ class GTStandings(DynamicBase):
         self.standings_lines = list()
         for driver in self.telemetry_data.drivers_by_position:
             self.standings_lines.append(Standing(
+                self.replay.race_data,
                 driver,
                 (self.text_width, self.text_height),
                 self.replay.font,
@@ -339,7 +340,7 @@ class Timer():
 
         lap_display_width, _ = self.font.getsize(
             "Lap {total}/{total}".format(
-                total=self.race_data.event_duration))
+                total=self.telemetry_data.event_duration))
 
         current_time = 0 if self.telemetry_data.current_time == -1 \
             else self.telemetry_data.current_time
@@ -353,7 +354,7 @@ class Timer():
             (self.material_width-10-lap_display_width, y_position),
             "Lap {current}/{total}".format(
                 current=str(self.telemetry_data.leader_lap),
-                total=str(self.race_data.event_duration)),
+                total=str(self.telemetry_data.event_duration)),
             fill=self.background_text_color,
             font=self.font)
 
@@ -474,19 +475,26 @@ class Standing():
             self.flyout = None
 
         if driver.current_lap != self.driver.current_lap:
+            sector_times = \
+                self.race_data.sector_times[self.driver.index]
+            lap_times = [sum(sector_times[i:i+3]) \
+                for i in range(0, len(sector_times), 3)]
+            lap_time = lap_times[self.driver.current_lap-1]
             self.flyout = LapTimeFlyout(
                 self.font,
-                "1:30:00",
+                lap_time,
                 (200, self.text_height*2))
 
         self.driver = driver
 
         return self._make_material()
 
-    def __init__(self, driver, text_size, font, mask=False, ups=None):
+    def __init__(self, race_data, driver, text_size,
+                 font, mask=False, ups=None):
         """
         Creates a new Standings object.
         """
+        self.race_data = race_data
         self.driver = driver
         self.mask = mask
 
@@ -661,7 +669,7 @@ class LapTimeFlyout(Flyout):
         return self._text_color
 
     def __init__(self, font, lap_time, mask=False, ups=None, size=None):
-        self.lap_time = str(lap_time)
+        self.lap_time = self.format_time(lap_time)
         self.font = font
         self.mask = mask
 
@@ -721,11 +729,29 @@ class LapTimeFlyout(Flyout):
 
         draw.text(
             (x_position, y_position),
-            str(self.lap_time),
+            self.lap_time,
             fill=self.text_color,
             font=self.font)
 
         return output
+
+    @staticmethod
+    def format_time(seconds):
+        """
+        Converts seconds into seconds, minutes:seconds, or
+        hours:minutes.seconds as appropriate.
+        """
+        minutes, seconds = divmod(float(seconds), 60)
+        hours, minutes = divmod(minutes, 60)
+
+        return_value = (int(hours), int(minutes), float(seconds))
+
+        if hours:
+            return "{0:d}:{1:0>2d}:{2:0>6.3f}".format(*return_value)
+        elif minutes:
+            return "{1:d}:{2:0>6.3f}".format(*return_value)
+        else:
+            return "{2:.3f}".format(*return_value)
 
 class GTAnimation():
     """
