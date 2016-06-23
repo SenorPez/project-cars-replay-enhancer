@@ -122,7 +122,9 @@ class RETelemetryDataPacket(Packet):
     @property
     def leader_lap(self):
         """Returns the leader's current lap."""
-        return self.drivers_by_position[0].race_position
+        return min(
+            self.drivers_by_position[0].current_lap,
+            self.event_duration)
 
     @property
     def last_place(self):
