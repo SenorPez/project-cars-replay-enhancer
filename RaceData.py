@@ -17,6 +17,38 @@ class RaceData():
     def __init__(self):
         self.telemetry_data = list()
         self.sector_times = [list() for _ in range(56)]
+        self.invalid_laps = [set() for _ in range(56)]
+
+    def lap_time(self, driver_index, lap_number=None):
+        """
+        Returns lap times for a driver, specified by driver_index.
+
+        Pass lap_number to limit the list to that lap or earlier.
+        """
+        lap_times = [sum(self.sector_times[driver_index][i:i+3]) \
+            for i in range(0, len(self.sector_times[driver_index]), 3)]
+        if lap_number is None:
+            return lap_times
+        else:
+            return lap_times[lap_number-1]
+
+    def best_lap_time(self, driver_index=None, lap_number=None):
+        """
+        Returns the best lap time or times in the race.
+
+        Pass driver_index to return the best time or times for 
+            that index.
+        Pass lap_number to return the best time or times for that lap
+            or earlier.
+        """
+        best_laps = list()
+        for index, _ in enumerate(self.sector_times):
+            best_laps.append(min(self.lap_time(index)[:lap_number]))
+
+        if driver_index is None:
+            return min([x for x in best_laps if x != 0])
+        else:
+            return best_laps[driver_index]
 
     def add(self, packet):
         """
@@ -138,6 +170,11 @@ class RaceData():
         last_packet = self.telemetry_data[-1]
         for index, participant in enumerate(
                 last_packet.participant_info):
+            if participant.invalid_lap and \
+                    participant.last_sector_time != -123:
+                self.invalid_laps[index].add(
+                    participant.current_lap)
+
             sector_times = self.sector_times[index]
             try:
                 if sector_times[-1] != \

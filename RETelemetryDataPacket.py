@@ -15,6 +15,7 @@ class ParticipantInfo():
             self.name = None
             self.viewed = False
             self._race_position = int(unpacked_data.popleft())
+            self._laps_completed = int(unpacked_data.popleft())
             self.current_lap = int(unpacked_data.popleft())
             self._sector = int(unpacked_data.popleft())
             self.last_sector_time = float(unpacked_data.popleft())
@@ -30,6 +31,16 @@ class ParticipantInfo():
     def race_position(self):
         """Determines the Participant's race position."""
         return self._race_position & int('01111111', 2)
+
+    @property
+    def laps_completed(self):
+        """Extracts number of laps compelted by Participant."""
+        return self._laps_completed & int('01111111', 2)
+
+    @property
+    def invalid_lap(self):
+        """Extracts if the Participant's lap is invalid."""
+        return self._laps_completed & int('10000000', 2)
 
     @property
     def sector(self):
@@ -181,7 +192,7 @@ class RETelemetryDataPacket(Packet):
         packet_string += "8x" #Extras
         packet_string += "2x" #Car damage
         packet_string += "6x" #Weather
-        packet_string += "2x2x2x2xBxBBf"*56 #Participant info
+        packet_string += "2x2x2x2xBBBBf"*56 #Participant info
         packet_string += "fxxx"
 
         return packet_string

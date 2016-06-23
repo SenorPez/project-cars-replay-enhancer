@@ -467,14 +467,10 @@ class Standing():
             self.flyout = None
 
         if driver.current_lap != self.driver.current_lap:
-            sector_times = \
-                self.race_data.sector_times[self.driver.index]
-            lap_times = [sum(sector_times[i:i+3]) \
-                for i in range(0, len(sector_times), 3)]
-            lap_time = lap_times[self.driver.current_lap-1]
             self.flyout = LapTimeFlyout(
+                self.race_data,
+                self.driver,
                 self.font,
-                lap_time,
                 (200, self.text_height*2))
 
         self.driver = driver
@@ -609,7 +605,10 @@ class LapTimeFlyout(Flyout):
     _color = (0, 0, 0, 200)
     _mask_color = (210, 210, 210, 200)
 
+    _session_best_text_color = (255, 0, 255, 255)
+    _personal_best_text_color = (0, 255, 0, 255)
     _text_color = (255, 255, 255, 255)
+    _invalid_text_color = (255, 0, 0, 255)
 
     @property
     def color(self):
@@ -624,10 +623,26 @@ class LapTimeFlyout(Flyout):
         """
         Gets the text color for the line.
         """
-        return self._text_color
+        if self.driver.current_lap in \
+                self.race_data.invalid_laps[self.driver.index]:
+            return self._invalid_text_color
+        elif self.lap_time == self.race_data.best_lap_time(
+                lap_number=self.driver.current_lap):
+            return self._session_best_text_color
+        elif self.lap_time == self.race_data.best_lap_time(
+                self.driver.index,
+                lap_number=self.driver.current_lap):
+            return self._personal_best_text_color
+        else:
+            return self._text_color
 
-    def __init__(self, font, lap_time, mask=False, ups=None, size=None):
-        self.lap_time = self.format_time(lap_time)
+    def __init__(self, race_data, driver,
+                 font, mask=False, ups=None, size=None):
+        self.race_data = race_data
+        self.driver = driver
+        self.lap_time = self.race_data.lap_time(
+            self.driver.index,
+            self.driver.current_lap)
         self.font = font
         self.mask = mask
 
@@ -639,12 +654,6 @@ class LapTimeFlyout(Flyout):
             self.size = size
 
         self.animations = list()
-        """
-        self.animations.append(
-            GTAnimation(
-                300000,
-                (0, 0)))
-        """
         self.animations.append(
             GTAnimation(
                 duration=30,
@@ -677,7 +686,8 @@ class LapTimeFlyout(Flyout):
 
     def _write_data(self):
         block_height = self.font.getsize("A")[1]
-        block_width = self.font.getsize(self.lap_time)[0]
+        block_width = self.font.getsize(self.format_time(
+            self.lap_time))[0]
         output = self.material.copy()
         draw = ImageDraw.Draw(output)
 
@@ -687,7 +697,7 @@ class LapTimeFlyout(Flyout):
 
         draw.text(
             (x_position, y_position),
-            self.lap_time,
+            self.format_time(self.lap_time),
             fill=self.text_color,
             font=self.font)
 
