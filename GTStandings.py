@@ -110,10 +110,13 @@ class GTStandings(DynamicBase):
                 self.text_height*2*last_position+\
                     1*(last_position+1)))
         output_material = base_material.copy()
-        y_position = 0
+        y_position = (self.telemetry_data.num_participants-1)*\
+            self.text_height*2+\
+            (self.telemetry_data.num_participants-1)*\
+            1
         x_position = 0
 
-        for driver in self.telemetry_data.drivers_by_position:
+        for driver in reversed(self.telemetry_data.drivers_by_position):
             x_offset = 0
             y_offset = 0
             try:
@@ -135,22 +138,11 @@ class GTStandings(DynamicBase):
             if driver.viewed:
                 subject_y = y_position+y_offset
 
-            previous_material = base_material.copy() \
-                if output_material is None \
-                else output_material.copy()
-            output_material = base_material.copy()
-
             output_material.paste(
                 standings_line_output,
                 (x_position+x_offset, y_position+y_offset))
 
-            output_material.paste(
-                previous_material,
-                mask=Image.eval(
-                    previous_material.split()[-1],
-                    lambda px: 0 if px == 0 else 255))
-
-            y_position += self.text_height*2+1
+            y_position -= self.text_height*2+1
 
         top_five = output_material.crop((
             0,
@@ -526,74 +518,40 @@ class Standing():
                 x_offset += x_adj
                 y_offset += y_adj
 
-            flyout_material = Image.new(
-                'RGBA',
-                (
-                    self.material_width,
-                    self.text_height*2))
-            flyout_material.paste(
-                self.flyout.render(self.mask),
-                (
-                    0+x_offset,
-                    0+y_offset))
+            flyout = self.flyout.render(self.mask)
+            flyout = flyout.crop((
+                0-x_offset,
+                0-y_offset,
+                self.material_width,
+                self.text_height*2))
 
             self.material.paste(
-                flyout_material,
+                flyout,
                 (
                     self.material_width,
                     0))
 
-        position_material = Image.new(
-            'RGBA',
+        draw = ImageDraw.Draw(self.material)
+        draw.rectangle(
+            (
+                0,
+                0,
+                self.text_height*2+1,
+                self.text_height*2+1),
+            fill=self.position_color)
+        draw.rectangle(
             (
                 self.text_height*2,
-                self.text_height*2),
-            self.position_color)
-        name_material = Image.new(
-            'RGBA',
-            (
-                self.text_width+10*2,
-                self.text_height*2),
-            self.name_color)
-        self.material.paste(
-            position_material,
-            (0, 0))
-        self.material.paste(
-            name_material,
-            (self.text_height*2, 0))
+                0,
+                self.text_height*2+self.text_width+10*2+1,
+                self.text_height*2+1),
+            fill=self.name_color)
 
         return self.material if self.mask else self._write_data()
 
     def _write_data(self):
         block_height = self.font.getsize("A")[1]
         output = self.material.copy()
-
-        if self.flyout is not None:
-            x_offset = 0
-            y_offset = 0
-
-            for animation in self.flyout.animations:
-                x_adj, y_adj = animation.offset
-                x_offset += x_adj
-                y_offset += y_adj
-
-            flyout_material = Image.new(
-                'RGBA',
-                (
-                    self.material_width,
-                    self.text_height*2))
-            flyout_material.paste(
-                self.flyout.render(self.mask),
-                (
-                    0+x_offset,
-                    0+y_offset))
-
-            output.paste(
-                flyout_material,
-                (
-                    self.material_width,
-                    0))
-
         draw = ImageDraw.Draw(output)
 
         position_width = self.font.getsize(
