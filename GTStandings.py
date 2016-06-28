@@ -624,7 +624,7 @@ class LapTimeFlyout(Flyout):
         Gets the text color for the line.
         """
         if self.driver.current_lap in \
-                self.race_data.invalid_laps[self.driver.index]:
+                self.race_data.invalid_laps[0]:
             return self._invalid_text_color
         elif self.lap_time == self.race_data.best_lap_time(
                 lap_number=self.driver.current_lap):
@@ -640,9 +640,7 @@ class LapTimeFlyout(Flyout):
                  font, mask=False, ups=None, size=None):
         self.race_data = race_data
         self.driver = driver
-        self.lap_time = self.race_data.lap_time(
-            self.driver.index,
-            self.driver.current_lap)
+        self.lap_time = 0.0
         self.font = font
         self.mask = mask
 

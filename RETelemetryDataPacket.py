@@ -1,57 +1,41 @@
 """
-Provides a class for a Telemetry Data Packet, customized for use by
-the Project CARS Replay Enhancer.
+Provides a class for the Telemetry Data packets output by
+Project CARS.
+
+Customized for use by the Project CARS Replay Enhancer.
 """
 
-from Packet import Packet
+from TelemetryDataPacket import ParticipantInfo, TelemetryDataPacket
 
-class ParticipantInfo():
+class REParticipantInfo(ParticipantInfo):
+    # pylint: disable=super-init-not-called
     """
-    Represents the participant info from the telemetry data.
+    Creates an object containing the participant info from the
+    telemetry data.
+
+    Customized for use by the Project CARS Replay Enhancer.
+    We do not call the parent constructor.
     """
-    def __init__(self, index, unpacked_data):
-        try:
-            self.index = index
-            self.name = None
-            self.viewed = False
-            self._race_position = int(unpacked_data.popleft())
-            self._laps_completed = int(unpacked_data.popleft())
-            self.current_lap = int(unpacked_data.popleft())
-            self._sector = int(unpacked_data.popleft())
-            self.last_sector_time = float(unpacked_data.popleft())
-        except ValueError:
-            raise
+    def __init__(self, unpacked_data):
+        self.name = None
+        self.viewed = False
 
-    @property
-    def is_active(self):
-        """Determines if the Participant is active."""
-        return self._race_position & int('10000000', 2)
+        self._race_position = int(unpacked_data.popleft())
+        self._laps_completed = int(unpacked_data.popleft())
+        self.current_lap = int(unpacked_data.popleft())
+        self._sector = int(unpacked_data.popleft())
+        self.last_sector_time = float(unpacked_data.popleft())
 
-    @property
-    def race_position(self):
-        """Determines the Participant's race position."""
-        return self._race_position & int('01111111', 2)
-
-    @property
-    def laps_completed(self):
-        """Extracts number of laps compelted by Participant."""
-        return self._laps_completed & int('01111111', 2)
-
-    @property
-    def invalid_lap(self):
-        """Extracts if the Participant's lap is invalid."""
-        return self._laps_completed & int('10000000', 2)
-
-    @property
-    def sector(self):
-        """Determines the Participant's sector."""
-        return self._sector & int('00000111', 2)
-
-class RETelemetryDataPacket(Packet):
+class RETelemetryDataPacket(TelemetryDataPacket):
+    # pylint: disable=super-init-not-called
     """
-    Represents a trimmed TelemetryDataPacket for use by the Project
-    CARS Replay Enhancer. We trim out unwanted data in order to save
-    time and memory.
+    Creates an object from a telemetry data packet.
+
+    The telemetry data packet has a length of 1367 and is packet type
+    0.
+
+    Customized for use by the Project CARS Replay Enhancer.
+    We do not call the parent constructor.
     """
 
     _last_time = None
@@ -59,99 +43,35 @@ class RETelemetryDataPacket(Packet):
     _add_time = 0.0
 
     def __init__(self, packet_data):
+        # pylint: disable=too-many-instance-attributes
+        # pylint: disable=too-many-branches
+        # pylint: disable=too-many-statements
         unpacked_data = self.unpack_data(packet_data)
 
-        try:
-            self.build_version_number = int(unpacked_data.popleft())
+        self.build_version_number = int(unpacked_data.popleft())
 
-            self.test_packet_type(unpacked_data.popleft())
+        self.test_packet_type(unpacked_data.popleft())
 
-            self._game_session_state = int(unpacked_data.popleft())
+        self._game_session_state = int(unpacked_data.popleft())
 
-            self.viewed_participant_index = int(unpacked_data.popleft())
-            self.num_participants = int(unpacked_data.popleft())
+        self.viewed_participant_index = int(unpacked_data.popleft())
+        self.num_participants = int(unpacked_data.popleft())
 
-            self._race_state_flags = int(unpacked_data.popleft())
+        self._race_state_flags = int(unpacked_data.popleft())
 
-            self.laps_in_event = int(unpacked_data.popleft())
+        self.laps_in_event = int(unpacked_data.popleft())
 
-            self.current_time = float(unpacked_data.popleft())
-            self.event_time_remaining = float(unpacked_data.popleft())
+        self.current_time = float(unpacked_data.popleft())
+        self.event_time_remaining = float(unpacked_data.popleft())
 
-            self.participant_info = list()
-            for index in range(56):
-                self.participant_info.append(ParticipantInfo(
-                    index,
-                    unpacked_data))
-            self.participant_info[self.viewed_participant_index].\
-                viewed = True
+        self.participant_info = list()
+        for _ in range(56):
+            self.participant_info.append(REParticipantInfo(
+                unpacked_data))
+        self.participant_info[self.viewed_participant_index].\
+            viewed = True
 
-            self.track_length = float(unpacked_data.popleft())
-
-        except ValueError:
-            raise
-
-    def set_name(self, name, index):
-        """Sets the name for the specified index."""
-        self.participant_info[index].name = name
-        self.participant_info[index].viewed = \
-            index == self.viewed_participant_index
-
-    @property
-    def event_duration(self):
-        """Returns the event duration, in laps or time."""
-        #TODO: Time
-        return self.laps_in_event
-
-    @property
-    def game_state(self):
-        """Extracts and returns the game state."""
-        return self._game_session_state & int('00001111', 2)
-
-    @property
-    def session_state(self):
-        """Extracts and returns the session state."""
-        return (self._game_session_state & int('11110000', 2)) >> 4
-
-    @property
-    def race_state(self):
-        """Extracts and returns the race state."""
-        return self._race_state_flags & int('00000111', 2)
-
-    @property
-    def drivers_by_position(self):
-        """Returns drivers, srted by race position."""
-        return sorted(
-            [x for x in self.participant_info if x.is_active],
-            key=lambda x: x.race_position)
-
-    @property
-    def drivers_by_index(self):
-        """Returns drivers, sorted by their index."""
-        return [x for x in self.participant_info if x.is_active]
-
-    @property
-    def leader_lap(self):
-        """Returns the leader's current lap."""
-        return min(
-            self.drivers_by_position[0].current_lap,
-            self.event_duration)
-
-    @property
-    def last_place(self):
-        """Returns the last place race position."""
-        return max(
-            [x.race_position \
-                for x in self.participant_info \
-                if x.is_active])
-
-    @property
-    def packet_type(self):
-        return 0
-
-    @property
-    def packet_length(self):
-        return 1367
+        self.track_length = float(unpacked_data.popleft())
 
     @property
     def packet_string(self):
@@ -197,6 +117,49 @@ class RETelemetryDataPacket(Packet):
 
         return packet_string
 
+    def __str__(self):
+        return "RETelemetryData"
+
+    def set_name(self, name, index):
+        """Sets the name for the specified index."""
+        self.participant_info[index].name = name
+        self.participant_info[index].viewed = \
+            index == self.viewed_participant_index
+
+    @property
+    def event_duration(self):
+        """Returns the event duration, in laps or time."""
+        #TODO: Time
+        return self.laps_in_event
+
+    @property
+    def drivers_by_position(self):
+        """Returns drivers, srted by race position."""
+        return sorted(
+            [x for x in self.participant_info if x.is_active],
+            key=lambda x: x.race_position)
+
+    @property
+    def drivers_by_index(self):
+        """Returns drivers, sorted by their index."""
+        return [x for x in self.participant_info if x.is_active]
+
+    @property
+    def leader_lap(self):
+        """Returns the leader's current lap."""
+        return min(
+            self.drivers_by_position[0].current_lap,
+            self.event_duration)
+
+    @property
+    def last_place(self):
+        """Returns the last place race position."""
+        return max(
+            [x.race_position \
+                for x in self.participant_info \
+                if x.is_active])
+
+
     def previous_packet(self, packet):
         """
         Takes the previous packet, to calculate the elapsed time.
@@ -225,6 +188,3 @@ class RETelemetryDataPacket(Packet):
     def elapsed_time(self):
         """Returns the calculated elapsed time."""
         return self._elapsed_time
-
-    def __str__(self):
-        return "RETelemetryData"

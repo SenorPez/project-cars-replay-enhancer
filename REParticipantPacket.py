@@ -1,44 +1,39 @@
 """
-Provides a class for a Participant Info Packet, customized for use by
-the Project CARS Replay Enhancer.
+Provides a class for the Participant Info Strings output by
+Project CARS.
+
+Customized for use by the Project CARS Replay Enhancer.
 """
 
-from Packet import Packet
+from ParticipantPacket import ParticipantPacket
 
-class REParticipantPacket(Packet):
+class REParticipantPacket(ParticipantPacket):
+    # pylint: disable=super-init-not-called
     """
-    Represents a trimmed ParticipantPacket for use by the Project
-    CARS Replay Enhancers. We trim out unwanted data in order to save
-    time and memory.
+    Creates an object from a participant info string packet.
+
+    The participant info string packet has a length of 1347, and is
+    packet type 1.
+
+    Customized for use by the Project CARS Replay Enhancer.
+    We do not call the parent constructor.
     """
     def __init__(self, packet_data):
         unpacked_data = self.unpack_data(packet_data)
 
-        try:
-            self.build_version_number = int(unpacked_data.popleft())
+        self.build_version_number = int(unpacked_data.popleft())
 
-            self.test_packet_type(unpacked_data.popleft())
+        self.test_packet_type(unpacked_data.popleft())
 
-            self.name = list()
-            for _ in range(16):
-                self.name.append(
-                    str(
-                        unpacked_data.popleft(),
-                        encoding='utf-8',
-                        errors='strict').replace(
-                            '\x00',
-                            ''))
-
-        except ValueError:
-            raise
-
-    @property
-    def packet_type(self):
-        return 1
-
-    @property
-    def packet_length(self):
-        return 1347
+        self.name = list()
+        for _ in range(16):
+            self.name.append(
+                str(
+                    unpacked_data.popleft(),
+                    encoding='utf-8',
+                    errors='strict').replace(
+                        '\x00',
+                        ''))
 
     @property
     def packet_string(self):
