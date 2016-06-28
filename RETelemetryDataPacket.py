@@ -17,6 +17,7 @@ class REParticipantInfo(ParticipantInfo):
     We do not call the parent constructor.
     """
     def __init__(self, unpacked_data):
+        self.index = None
         self.name = None
         self.viewed = False
 

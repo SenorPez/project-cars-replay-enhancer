@@ -153,10 +153,14 @@ class RaceData():
                     for index, name in self._participant_list.items():
                         self.telemetry_data[-1].\
                             participant_info[index].name = name
+                        self.telemetry_data[-1].\
+                            participant_info[index].index = index
 
                         for telemetry_index in self._update_indexes:
                             self.telemetry_data[telemetry_index].\
                                 participant_info[index].name = name
+                            self.telemetry_data[telemetry_index].\
+                                participant_info[index].index = index
                     self._update_indexes = set()
 
                 else:
