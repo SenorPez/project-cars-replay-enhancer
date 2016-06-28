@@ -59,7 +59,7 @@ class GTStandings(DynamicBase):
 
         self.material = None
 
-        self.replay.race_data.trim_data()
+        self.replay.race_data.prepare_data()
         self.telemetry_data = self.replay.race_data.get_data()
 
         self.text_width, self.text_height = \

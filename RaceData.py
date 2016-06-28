@@ -3,6 +3,8 @@ Provides a class for the storing and management of
 race data.
 """
 
+from collections import OrderedDict
+
 from tqdm import tqdm
 
 class RaceData():
@@ -61,10 +63,9 @@ class RaceData():
         elif packet.packet_type == 2:
             self.__add_participant_packet(packet)
 
-    def trim_data(self):
+    def prepare_data(self):
         """
-        Trims the data to the extent of the race start, finish,
-        and end.
+        Prepares data for use.
         """
         try:
             race_end = [i for i, data in tqdm(
@@ -110,6 +111,19 @@ class RaceData():
                     self.telemetry_data[i].\
                         participant_info[index].name = name
             saved_names = [x.name for x in data.participant_info]
+
+        for participant_index in tqdm(
+                range(56),
+                desc="Updating Time"):
+            time_dict = OrderedDict()
+            sector_times = [sector_time.participant_info[participant_index].last_sector_time for sector_time in \
+                self.telemetry_data \
+                if sector_time.participant_info[participant_index].last_sector_time != -123]
+
+            for time in sector_times:
+                time_dict[time] = None
+
+            self.sector_times[participant_index] = list(time_dict.keys())
 
     def get_data(self, at_time=None):
         """
@@ -170,26 +184,6 @@ class RaceData():
                 self._participant_list = dict()
         else:
             self.telemetry_data.append(packet)
-
-        last_packet = self.telemetry_data[-1]
-        for index, participant in enumerate(
-                last_packet.participant_info):
-            if participant.invalid_lap and \
-                    participant.last_sector_time != -123:
-                self.invalid_laps[index].add(
-                    participant.current_lap)
-
-            sector_times = self.sector_times[index]
-            try:
-                if sector_times[-1] != \
-                        participant.last_sector_time and \
-                        len(sector_times) % 3 != \
-                            participant.sector and \
-                        participant.last_sector_time != -123:
-                    sector_times.append(participant.last_sector_time)
-            except IndexError:
-                if participant.last_sector_time != -123:
-                    sector_times.append(participant.last_sector_time)
 
     def __add_participant_packet(self, packet):
         if packet.packet_type == 1:
