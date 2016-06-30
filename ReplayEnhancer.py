@@ -811,11 +811,14 @@ class ReplayEnhancer():
                 """
                 output = output.set_duration(
                     output.duration).subclip(0, 105)
+                output.write_videofile(
+                    replay.output_video,
+                    fps=10,
+                    preset='superfast')
                 """
                 output.write_videofile(
                     replay.output_video,
-                    fps=30,
-                    preset='superfast')
+                    fps=30)
                 #output.save_frame("outputs/custom.png", 110)
         except KeyboardInterrupt:
             raise
