@@ -807,15 +807,16 @@ class ReplayEnhancer():
                 print("Invalid JSON in configuration file: {}".format(
                     error))
             else:
-                output = replay.build_custom_video(True)
                 """
+                output = replay.build_custom_video(True, 10)
                 output = output.set_duration(
-                    output.duration).subclip(0, 105)
+                    output.duration).subclip("00:15:30.00")
                 output.write_videofile(
                     replay.output_video,
                     fps=10,
                     preset='superfast')
                 """
+                output = replay.build_custom_video(True)
                 output.write_videofile(
                     replay.output_video,
                     fps=30)
@@ -842,7 +843,7 @@ class ReplayEnhancer():
         except KeyboardInterrupt:
             raise
 
-    def build_custom_video(self, process_data):
+    def build_custom_video(self, process_data, ups=30):
         """
         Builds a video with custom settings (used for testing).
         """
@@ -895,7 +896,8 @@ class ReplayEnhancer():
 
         standing = GTStandings(
             self,
-            process_data=process_data)
+            process_data=process_data,
+            ups=ups)
 
         standing_clip = UpdatedVideoClip(
             standing)

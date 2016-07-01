@@ -626,12 +626,10 @@ class LapTimeFlyout(Flyout):
         if self.driver.current_lap in \
                 self.race_data.invalid_laps[self.driver.index]:
             return self._invalid_text_color
-        elif self.lap_time == self.race_data.best_lap_time(
-                lap_number=self.driver.current_lap):
+        elif self.lap_time == self.race_data.best_lap_time():
             return self._session_best_text_color
         elif self.lap_time == self.race_data.best_lap_time(
-                self.driver.index,
-                lap_number=self.driver.current_lap):
+                self.driver.index):
             return self._personal_best_text_color
         else:
             return self._text_color

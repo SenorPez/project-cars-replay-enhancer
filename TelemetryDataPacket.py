@@ -33,8 +33,25 @@ class ParticipantInfo():
 
     @property
     def invalid_lap(self):
-        """Determines if the Participant's lap is valid."""
-        return self._laps_completed & int('10000000', 2)
+        """
+        Determines if the Participant's lap is valid.
+
+        Project CARS flags the start of the race (Sector 3, before you
+        reach the start-finish line to begin the 'first lap proper')
+        as invalid, so we need to deal with that. Dumb.
+
+        That will have sector equal to 3 (since you start the race
+        in Sector 3) and a previous sector time of -123 (since you
+        don't have a previous sector time).
+        """
+        invalid_lap = self._laps_completed & int('10000000', 2)
+
+        if invalid_lap and \
+                self.sector != 3 and \
+                self.last_sector_time != -123:
+            return invalid_lap
+        else:
+            return 0
 
     @property
     def laps_completed(self):

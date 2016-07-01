@@ -3,8 +3,6 @@ Provides a class for the storing and management of
 race data.
 """
 
-from collections import OrderedDict
-
 from tqdm import tqdm
 
 class RaceData():
@@ -19,36 +17,40 @@ class RaceData():
     def __init__(self):
         self.telemetry_data = list()
         self.sector_times = [list() for _ in range(56)]
+        self.valid_laps = [set() for _ in range(56)]
         self.invalid_laps = [set() for _ in range(56)]
 
     def lap_time(self, driver_index, lap_number=None):
         """
         Returns lap times for a driver, specified by driver_index.
 
-        Pass lap_number to limit the list to that lap or earlier.
+        Pass lap_number to return a specific lap.
         """
-        lap_times = [sum(self.sector_times[driver_index][i:i+3]) \
-            for i in range(0, len(self.sector_times[driver_index]), 3)]
+        sector_times = [time for time, _ in \
+            self.sector_times[driver_index]]
+        lap_times = [sum(times) for times in zip(
+            *[iter(sector_times)]*3)]
+
         if lap_number is None:
             return lap_times
         else:
             return lap_times[lap_number-1]
 
-    def best_lap_time(self, driver_index=None, lap_number=None):
+    def best_lap_time(self, driver_index=None):
         """
         Returns the best lap time or times in the race.
 
-        Pass driver_index to return the best time or times for 
+        Pass driver_index to return the best time or times for
             that index.
-        Pass lap_number to return the best time or times for that lap
-            or earlier.
         """
-        best_laps = list()
-        for index, _ in enumerate(self.sector_times):
-            best_laps.append(min(self.lap_time(index)[:lap_number]))
+        best_laps = [None if len(sector_times) < 3 \
+            else min(self.lap_time(driver_index)) \
+            for driver_index, sector_times \
+            in enumerate(self.sector_times)]
 
         if driver_index is None:
-            return min([x for x in best_laps if x != 0])
+            return min([time for time in best_laps \
+                if time is not None])
         else:
             return best_laps[driver_index]
 
@@ -112,19 +114,6 @@ class RaceData():
                         participant_info[index].name = name
             saved_names = [x.name for x in data.participant_info]
 
-        for participant_index in tqdm(
-                range(56),
-                desc="Updating Time"):
-            time_dict = OrderedDict()
-            sector_times = [sector_time.participant_info[participant_index].last_sector_time for sector_time in \
-                self.telemetry_data \
-                if sector_time.participant_info[participant_index].last_sector_time != -123]
-
-            for time in sector_times:
-                time_dict[time] = None
-
-            self.sector_times[participant_index] = list(time_dict.keys())
-
     def get_data(self, at_time=None):
         """
         Returns the telemetry data. If at_time is provided, the
@@ -132,15 +121,47 @@ class RaceData():
         If no index is provided, the first data is provided.
         """
         if at_time is None:
-            output = self.telemetry_data[0]
+            return self.telemetry_data[0]
+            #telemetry_data = self.telemetry_data[0]
         else:
             try:
-                output = [x for x in self.telemetry_data \
-                    if x.elapsed_time > at_time][0]
-            except IndexError:
-                output = self.telemetry_data[-1]
+                telemetry_data = [x for x in self.telemetry_data \
+                    if x.elapsed_time >= at_time][0]
 
-        return output
+            except IndexError:
+                telemetry_data = [x for x in self.telemetry_data \
+                    if x.elapsed_time == \
+                    self.telemetry_data[-1].elapsed_time][0]
+
+            for participant_index in range(56):
+                participant_info = telemetry_data.\
+                    participant_info[participant_index]
+                sector_time = (
+                    participant_info.last_sector_time,
+                    participant_info.sector)
+
+                try:
+                    if sector_time != \
+                            self.sector_times[participant_index][-1] \
+                            and \
+                            participant_info.last_sector_time != -123:
+                        self.sector_times[participant_index].append(
+                            sector_time)
+                except IndexError:
+                    if participant_info.last_sector_time != -123:
+                        self.sector_times[participant_index].append(
+                            sector_time)
+
+                if participant_info.invalid_lap:
+                    self.invalid_laps[participant_index].add(
+                        participant_info.current_lap)
+                    self.valid_laps[participant_index].discard(
+                        participant_info.current_lap)
+                else:
+                    self.valid_laps[participant_index].add(
+                        participant_info.current_lap)
+
+            return telemetry_data
 
     def max_name_dimensions(self, font):
         """
@@ -182,6 +203,7 @@ class RaceData():
             else:
                 self.telemetry_data.append(packet)
                 self._participant_list = dict()
+
         else:
             self.telemetry_data.append(packet)
 

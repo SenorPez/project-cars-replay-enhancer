@@ -9,6 +9,9 @@ from TelemetryDataPacket import ParticipantInfo, TelemetryDataPacket
 
 class REParticipantInfo(ParticipantInfo):
     # pylint: disable=super-init-not-called
+    # pylint: disable=too-many-branches
+    # pylint: disable=too-many-instance-attributes
+    # pylint: disable=too-many-statements
     """
     Creates an object containing the participant info from the
     telemetry data.
@@ -29,6 +32,9 @@ class REParticipantInfo(ParticipantInfo):
 
 class RETelemetryDataPacket(TelemetryDataPacket):
     # pylint: disable=super-init-not-called
+    # pylint: disable=too-many-branches
+    # pylint: disable=too-many-instance-attributes
+    # pylint: disable=too-many-statements
     """
     Creates an object from a telemetry data packet.
 
@@ -40,13 +46,11 @@ class RETelemetryDataPacket(TelemetryDataPacket):
     """
 
     _last_time = None
-    _elapsed_time = 0.0
-    _add_time = 0.0
 
     def __init__(self, packet_data):
-        # pylint: disable=too-many-instance-attributes
-        # pylint: disable=too-many-branches
-        # pylint: disable=too-many-statements
+        self.elapsed_time = 0.0
+        self.add_time = 0.0
+
         unpacked_data = self.unpack_data(packet_data)
 
         self.build_version_number = int(unpacked_data.popleft())
@@ -167,25 +171,12 @@ class RETelemetryDataPacket(TelemetryDataPacket):
         This is a set-only property.
         """
         if self.current_time == -1.0:
-            self._elapsed_time = 0.0
-            self._add_time = 0.0
+            self.elapsed_time = 0.0
+            self.add_time = 0.0
         else:
-            self._add_time = packet.add_time
+            self.add_time = packet.add_time
             if packet.current_time > self.current_time:
-                self._add_time += packet.current_time
+                self.add_time += packet.current_time
 
-            self._elapsed_time = self._add_time + self.current_time
+            self.elapsed_time = self.add_time + self.current_time
     previous_packet = property(None, previous_packet)
-
-    @property
-    def add_time(self):
-        """
-        Returns the time adjustment, used for calculating elapsed
-        time.
-        """
-        return self._add_time
-
-    @property
-    def elapsed_time(self):
-        """Returns the calculated elapsed time."""
-        return self._elapsed_time
