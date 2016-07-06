@@ -663,16 +663,26 @@ class LapTimeFlyout(Flyout):
                 position_to=(-self.size[0], 0),
                 delay=300))
         self.material = None
+        self.material_with_data = None
 
         if ups is not None:
             self.ups = ups
 
     def render(self, bg_only):
         """
-        Renders the flyout.
+        Determines if the flyout needs to be updated, and returns a
+        rendering.
         """
         self.mask = bg_only
-        return self._make_material()
+
+        if any([any(animation.offset_static) for animation \
+            in self.animations]):
+            self.mask = bg_only
+            return self._make_material()
+        elif self.mask:
+            return self.material
+        else:
+            return self.material_with_data
 
     def _make_material(self):
         self.material = Image.new(
@@ -686,8 +696,8 @@ class LapTimeFlyout(Flyout):
         block_height = self.font.getsize("A")[1]
         block_width = self.font.getsize(self.format_time(
             self.lap_time))[0]
-        output = self.material.copy()
-        draw = ImageDraw.Draw(output)
+        self.material_with_data = self.material.copy()
+        draw = ImageDraw.Draw(self.material_with_data)
 
         x_position = self.size[0]-10-block_width
         y_position = int(
@@ -699,7 +709,7 @@ class LapTimeFlyout(Flyout):
             fill=self.text_color,
             font=self.font)
 
-        return output
+        return self.material_with_data
 
     @staticmethod
     def format_time(seconds):
