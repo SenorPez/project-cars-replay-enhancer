@@ -449,6 +449,28 @@ class Standing():
                 and force_same_name:
             raise ValueError("ValueError: Names do not match.")
 
+        if driver.race_position == self.driver.race_position and \
+                driver.current_lap == self.driver.current_lap and \
+                self.material is not None and (
+                        self.flyout is None or \
+                        not any([any(animation.offset_static) \
+                            for animation \
+                            in self.flyout.animations])):
+            if self.mask:
+                #If there's a flyout but it's static, it's delayed.
+                #Grab the offset to advance the delay.
+                if self.flyout is not None:
+                    _ = [animation.offset for animation \
+                        in self.flyout.animations]
+                return self.material
+            else:
+                #If there's a flyout but it's static, it's delayed.
+                #Grab the offset to advance the delay.
+                if self.flyout is not None:
+                    _ = [animation.offset for animation \
+                        in self.flyout.animations]
+                return self.material_with_data
+
         if driver.race_position != self.driver.race_position:
             #Determine the difference.
             position_diff = \
@@ -491,12 +513,36 @@ class Standing():
         self.material_width = self.text_height*2+self.text_width+10*2
 
         self.material = None
+        self.material_with_data = None
         self.flyout = None
 
         self.animations = list()
 
         if ups is not None:
             self.ups = ups
+
+    def _attach_flyout(self):
+        x_offset = 0
+        y_offset = 0
+
+        for animation in self.flyout.animations:
+            x_adj, y_adj = animation.offset
+            x_offset += x_adj
+            y_offset += y_adj
+
+        flyout = self.flyout.render(self.mask)
+        flyout = flyout.crop((
+            0-x_offset,
+            0-y_offset,
+            self.material_width,
+            self.text_height*2))
+
+        self.material.paste(
+            flyout,
+            (
+                self.material_width,
+                0))
+        return self.material
 
     def _make_material(self):
         self.material = Image.new(
@@ -506,26 +552,7 @@ class Standing():
                 self.text_height*2))
 
         if self.flyout is not None:
-            x_offset = 0
-            y_offset = 0
-
-            for animation in self.flyout.animations:
-                x_adj, y_adj = animation.offset
-                x_offset += x_adj
-                y_offset += y_adj
-
-            flyout = self.flyout.render(self.mask)
-            flyout = flyout.crop((
-                0-x_offset,
-                0-y_offset,
-                self.material_width,
-                self.text_height*2))
-
-            self.material.paste(
-                flyout,
-                (
-                    self.material_width,
-                    0))
+            self.material = self._attach_flyout()
 
         draw = ImageDraw.Draw(self.material)
         draw.rectangle(
@@ -547,8 +574,8 @@ class Standing():
 
     def _write_data(self):
         block_height = self.font.getsize("A")[1]
-        output = self.material.copy()
-        draw = ImageDraw.Draw(output)
+        self.material_with_data = self.material.copy()
+        draw = ImageDraw.Draw(self.material_with_data)
 
         position_width = self.font.getsize(
             str(self.driver.race_position))[0]
@@ -570,7 +597,7 @@ class Standing():
             fill=self.name_text_color,
             font=self.font)
 
-        return output
+        return self.material_with_data
 
 class Flyout():
     """
@@ -776,7 +803,9 @@ class GTAnimation():
         else:
             return_value = tuple([int(x) for x in self.position_from])
 
-            self.ticks_remaining -= 1
+            self.ticks_remaining = max(
+                self.ticks_remaining-1,
+                0)
 
             if self.ticks_remaining <= 0:
                 self.position_from = self.position_to
