@@ -16,6 +16,8 @@ class RaceData():
 
     def __init__(self):
         self.telemetry_data = list()
+        self.leader_index = None
+
         self.sector_times = [list() for _ in range(56)]
         self.valid_laps = [set() for _ in range(56)]
         self.invalid_laps = [set() for _ in range(56)]
@@ -136,6 +138,10 @@ class RaceData():
             for participant_index in range(56):
                 participant_info = telemetry_data.\
                     participant_info[participant_index]
+
+                if participant_info.race_position == 1:
+                    self.leader_index = participant_index
+
                 sector_time = (
                     participant_info.last_sector_time,
                     participant_info.sector)

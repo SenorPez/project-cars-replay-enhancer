@@ -449,26 +449,43 @@ class Standing():
                 and force_same_name:
             raise ValueError("ValueError: Names do not match.")
 
+        #TODO: This is ugly as hell. Clean it up.
         if driver.race_position == self.driver.race_position and \
                 driver.current_lap == self.driver.current_lap and \
                 self.material is not None and (
                         self.flyout is None or \
-                        not any([any(animation.offset_static) \
-                            for animation \
-                            in self.flyout.animations])):
+                    not any([any(animation.offset_static) \
+                        for animation \
+                        in self.flyout.animations])) and (
+                            self.flyout is None or (
+                                self.flyout.session_best and \
+                                self.flyout.lap_time == \
+                                    self.flyout.race_data.\
+                                        best_lap_time()) or (
+                                            not self.flyout.\
+                                                session_best and \
+                        self.flyout.lap_time != \
+                            self.flyout.race_data.best_lap_time())):
             if self.mask:
                 #If there's a flyout but it's static, it's delayed.
                 #Grab the offset to advance the delay.
-                if self.flyout is not None:
+                if self.flyout is not None and \
+                        not any([any(animation.offset_static) \
+                            for animation \
+                            in self.flyout.animations]):
                     _ = [animation.offset for animation \
                         in self.flyout.animations]
                 return self.material
             else:
                 #If there's a flyout but it's static, it's delayed.
                 #Grab the offset to advance the delay.
-                if self.flyout is not None:
+                if self.flyout is not None and \
+                        not any([any(animation.offset_static) \
+                            for animation \
+                            in self.flyout.animations]):
                     _ = [animation.offset for animation \
                         in self.flyout.animations]
+
                 return self.material_with_data
 
         if driver.race_position != self.driver.race_position:
@@ -489,11 +506,18 @@ class Standing():
             self.flyout = None
 
         if driver.current_lap != self.driver.current_lap:
-            self.flyout = LapTimeFlyout(
-                self.race_data,
-                self.driver,
-                self.font,
-                (200, self.text_height*2))
+            if driver.race_position == 1:
+                self.flyout = LapTimeFlyout(
+                    self.race_data,
+                    self.driver,
+                    self.font,
+                    (200, self.text_height*2))
+            else:
+                self.flyout = GapTimeFlyout(
+                    self.race_data,
+                    self.driver,
+                    self.font,
+                    (200, self.text_height*2))
 
         self.driver = driver
 
@@ -603,7 +627,6 @@ class Flyout():
     """
     Class representing standings flyouts.
     """
-
     _ups = 30
 
     @abc.abstractmethod
@@ -637,6 +660,8 @@ class LapTimeFlyout(Flyout):
     _text_color = (255, 255, 255, 255)
     _invalid_text_color = (255, 0, 0, 255)
 
+    _ups = 30
+
     @property
     def color(self):
         """
@@ -652,13 +677,17 @@ class LapTimeFlyout(Flyout):
         """
         if self.driver.current_lap in \
                 self.race_data.invalid_laps[self.driver.index]:
+            self.session_best = False
             return self._invalid_text_color
         elif self.lap_time == self.race_data.best_lap_time():
+            self.session_best = True
             return self._session_best_text_color
         elif self.lap_time == self.race_data.best_lap_time(
                 self.driver.index):
+            self.session_best = False
             return self._personal_best_text_color
         else:
+            self.session_best = False
             return self._text_color
 
     def __init__(self, race_data, driver,
@@ -678,6 +707,9 @@ class LapTimeFlyout(Flyout):
         else:
             self.size = size
 
+        if ups is not None:
+            self.ups = ups
+
         self.animations = list()
         self.animations.append(
             GTAnimation(
@@ -691,9 +723,7 @@ class LapTimeFlyout(Flyout):
                 delay=300))
         self.material = None
         self.material_with_data = None
-
-        if ups is not None:
-            self.ups = ups
+        self.session_best = False
 
     def render(self, bg_only):
         """
@@ -702,9 +732,11 @@ class LapTimeFlyout(Flyout):
         """
         self.mask = bg_only
 
-        if any([any(animation.offset_static) for animation \
-            in self.animations]):
-            self.mask = bg_only
+        if self.material is None:
+            return self._make_material()
+        elif self.session_best and \
+                not self.mask and \
+                self.lap_time != self.race_data.best_lap_time():
             return self._make_material()
         elif self.mask:
             return self.material
@@ -733,6 +765,172 @@ class LapTimeFlyout(Flyout):
         draw.text(
             (x_position, y_position),
             self.format_time(self.lap_time),
+            fill=self.text_color,
+            font=self.font)
+
+        return self.material_with_data
+
+    @staticmethod
+    def format_time(seconds):
+        """
+        Converts seconds into seconds, minutes:seconds, or
+        hours:minutes.seconds as appropriate.
+        """
+        minutes, seconds = divmod(float(seconds), 60)
+        hours, minutes = divmod(minutes, 60)
+
+        return_value = (int(hours), int(minutes), float(seconds))
+
+        if hours:
+            return "{0:d}:{1:0>2d}:{2:0>6.3f}".format(*return_value)
+        elif minutes:
+            return "{1:d}:{2:0>6.3f}".format(*return_value)
+        else:
+            return "{2:.3f}".format(*return_value)
+
+class GapTimeFlyout(Flyout):
+    """
+    Class representing a flyout for the gap time.
+    """
+    _color = (0, 0, 0, 200)
+    _mask_color = (210, 210, 210, 200)
+
+    _session_best_text_color = (255, 0, 255, 255)
+    _personal_best_text_color = (0, 255, 0, 255)
+    _text_color = (255, 255, 255, 255)
+    _invalid_text_color = (255, 0, 0, 255)
+
+    _ups = 30
+
+    @property
+    def color(self):
+        """
+        Gets the material color for the line.
+        """
+        return self._mask_color if self.mask \
+            else self._color
+
+    @property
+    def text_color(self):
+        """
+        Gets the text color for the line.
+        """
+        if self.driver.current_lap in \
+                self.race_data.invalid_laps[self.driver.index]:
+            self.session_best = False
+            return self._invalid_text_color
+        elif self.lap_time == self.race_data.best_lap_time():
+            self.session_best = True
+            return self._session_best_text_color
+        elif self.lap_time == self.race_data.best_lap_time(
+                self.driver.index):
+            self.session_best = False
+            return self._personal_best_text_color
+        else:
+            self.session_best = False
+            return self._text_color
+
+    def __init__(self, race_data, driver,
+                 font, mask=False, ups=None, size=None):
+        self.race_data = race_data
+        self.driver = driver
+
+        self.lap_time = self.race_data.lap_time(
+            self.driver.index,
+            self.driver.current_lap)
+
+        if len(self.race_data.lap_time(
+                self.race_data.leader_index)) != len(
+                    self.race_data.lap_time(
+                        driver.index)):
+            self.gap = int(len(self.race_data.lap_time(
+                self.race_data.leader_index))-\
+                len(self.race_data.lap_time(
+                    driver.index)))
+        else:
+            self.gap = float(
+                sum(
+                    self.race_data.lap_time(
+                        driver.index))-sum(
+                            self.race_data.lap_time(
+                                self.race_data.leader_index)))
+
+        self.font = font
+        self.mask = mask
+
+        if size is None:
+            width, _ = self.font.getsize("99:99:999")
+            _, height = self.font.getsize("Srp")
+            self.size = (width+10*2, height*2)
+        else:
+            self.size = size
+
+        self.animations = list()
+        self.animations.append(
+            GTAnimation(
+                duration=30,
+                position_from=(-self.size[0], 0)))
+        self.animations.append(
+            GTAnimation(
+                duration=30,
+                position_from=(0, 0),
+                position_to=(-self.size[0], 0),
+                delay=300))
+        self.material = None
+        self.material_with_data = None
+        self.session_best = False
+
+        if ups is not None:
+            self.ups = ups
+
+    def render(self, bg_only):
+        """
+        Determines if the flyout needs to be updated, and returns a
+        rendering.
+        """
+        self.mask = bg_only
+
+        if self.material is None:
+            return self._make_material()
+        elif self.session_best and \
+                not self.mask and \
+                self.lap_time != self.race_data.best_lap_time():
+            return self._make_material()
+        elif self.mask:
+            return self.material
+        else:
+            return self.material_with_data
+
+    def _make_material(self):
+        self.material = Image.new(
+            'RGBA',
+            self.size,
+            self.color)
+
+        return self.material if self.mask else self._write_data()
+
+    def _write_data(self):
+        block_height = self.font.getsize("A")[1]
+
+        if isinstance(self.gap, int) and self.gap == 1:
+            gap = "+"+str(self.gap)+" lap"
+        elif isinstance(self.gap, int):
+            gap = "+"+str(self.gap)+" laps"
+        else:
+            gap = "+"+self.format_time(self.gap)
+
+        block_width = self.font.getsize(gap)[0]
+
+        self.material_with_data = self.material.copy()
+        draw = ImageDraw.Draw(self.material_with_data)
+
+        x_position = self.size[0]-10-block_width
+        y_position = int(
+            (self.size[1]-block_height)/2)
+
+        draw.text(
+            (x_position, y_position),
+            gap,
             fill=self.text_color,
             font=self.font)
 

@@ -810,7 +810,7 @@ class ReplayEnhancer():
                 """
                 output = replay.build_custom_video(True, 10)
                 output = output.set_duration(
-                    output.duration).subclip(0, 60)
+                    output.duration).subclip(65, 115)
                 output.write_videofile(
                     replay.output_video,
                     fps=10,
