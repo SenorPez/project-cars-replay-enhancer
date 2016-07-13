@@ -59,7 +59,6 @@ class GTStandings(DynamicBase):
 
         self.material = None
 
-        self.replay.race_data.prepare_data()
         self.telemetry_data = self.replay.race_data.get_data()
 
         self.text_width, self.text_height = \
@@ -119,12 +118,9 @@ class GTStandings(DynamicBase):
         for driver in reversed(self.telemetry_data.drivers_by_position):
             x_offset = 0
             y_offset = 0
-            try:
-                standings_line = next(
-                    line for line in self.standings_lines \
-                    if line.driver.name == driver.name)
-            except StopIteration:
-                raise
+            standings_line = next(
+                line for line in self.standings_lines \
+                if line.driver.name == driver.name)
 
             standings_line_output = standings_line.render(
                 driver,
@@ -300,7 +296,7 @@ class Timer():
         Creates a new Timer object.
         """
         self.race_data = race_data
-        self.telemetry_data = race_data.get_data()
+        self.telemetry_data = race_data.packet
         self.mask = mask
 
         self.text_width, self.text_height = text_size

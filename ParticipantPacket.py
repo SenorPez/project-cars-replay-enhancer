@@ -3,6 +3,8 @@ Provides a class for the Participant Info Strings output by
 Project CARS
 """
 
+from hashlib import md5
+
 from Packet import Packet
 
 class ParticipantPacket(Packet):
@@ -13,6 +15,7 @@ class ParticipantPacket(Packet):
     packet type 1.
     """
     def __init__(self, packet_data):
+        self.data_hash = md5(packet_data).hexdigest()
         unpacked_data = self.unpack_data(packet_data)
 
         self.build_version_number = int(unpacked_data.popleft())

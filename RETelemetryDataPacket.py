@@ -5,6 +5,8 @@ Project CARS.
 Customized for use by the Project CARS Replay Enhancer.
 """
 
+from hashlib import md5
+
 from TelemetryDataPacket import ParticipantInfo, TelemetryDataPacket
 
 class REParticipantInfo(ParticipantInfo):
@@ -45,12 +47,8 @@ class RETelemetryDataPacket(TelemetryDataPacket):
     We do not call the parent constructor.
     """
 
-    _last_time = None
-
     def __init__(self, packet_data):
-        self.elapsed_time = 0.0
-        self.add_time = 0.0
-
+        self.data_hash = md5(packet_data).hexdigest()
         unpacked_data = self.unpack_data(packet_data)
 
         self.build_version_number = int(unpacked_data.popleft())
@@ -163,20 +161,3 @@ class RETelemetryDataPacket(TelemetryDataPacket):
             [x.race_position \
                 for x in self.participant_info \
                 if x.is_active])
-
-
-    def previous_packet(self, packet):
-        """
-        Takes the previous packet, to calculate the elapsed time.
-        This is a set-only property.
-        """
-        if self.current_time == -1.0:
-            self.elapsed_time = 0.0
-            self.add_time = 0.0
-        else:
-            self.add_time = packet.add_time
-            if packet.current_time > self.current_time:
-                self.add_time += packet.current_time
-
-            self.elapsed_time = self.add_time + self.current_time
-    previous_packet = property(None, previous_packet)

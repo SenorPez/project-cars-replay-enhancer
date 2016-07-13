@@ -150,7 +150,7 @@ class ReplayEnhancer():
 
         self.sync_racestart = json_data['sync_racestart']
 
-        self.race_data = RaceData()
+        self.race_data = RaceData(self.source_telemetry)
         self.participant_data = ParticipantData()
         self.participant_data = list()
         self.participant_configurations = list()
@@ -177,12 +177,8 @@ class ReplayEnhancer():
         self.size = None
 
         self.get_telemetry()
-        self.__process_telemetry_directory(
-            self.source_telemetry)
 
-        #self.track = Track(self.telemetry_data[0][0][0][-7])
-        self.track = Track(
-            self.race_data.telemetry_data[-1].track_length)
+        self.track = Track(self.race_data.packet.track_length)
 
     def __process_telemetry_directory(self, telemetry_directory):
         with tqdm(desc="Processing telemetry",
@@ -810,7 +806,7 @@ class ReplayEnhancer():
                 """
                 output = replay.build_custom_video(True, 10)
                 output = output.set_duration(
-                    output.duration).subclip(65, 115)
+                    output.duration).subclip(0, 90)
                 output.write_videofile(
                     replay.output_video,
                     fps=10,
