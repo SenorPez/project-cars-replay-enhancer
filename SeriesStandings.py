@@ -173,15 +173,18 @@ class SeriesStandings(StaticBase):
                 finish_data = {(
                     participant_data[i][1],
                     int(x[184+participant_data[i][0]*9])) \
-                    for telemetry_index, x in enumerate(telemetry_data) \
+                    for telemetry_index, x \
+                        in enumerate(telemetry_data) \
                     for i in range(int(x[4])) \
-                    if telemetry_index+offset > self.replay.time_expired}
+                    if telemetry_index+offset > \
+                        self.replay.time_expired}
                 for name, laps in finish_data:
                     if laps < finish_status[name]['laps'] and \
                            finish_status[name]['dnf']:
                         finish_status[name]['dnf'] = False
                         finish_position += 1
-                        finish_status[name]['position'] = finish_position
+                        finish_status[name]['position'] = \
+                            finish_position
                         finish_status[name]['laps'] = laps
 
             #Find the indexes when the last laps end.
@@ -386,7 +389,8 @@ class SeriesStandings(StaticBase):
         self.classification.extend(dnf_classification)
 
         try:
-            for name, data in self.replay.additional_participant_config.items():
+            for name, data \
+                in self.replay.additional_participant_config.items():
                 self.classification.append(
                     ("DNF", name, data['team'], data['car'], 0))
         except AttributeError:
@@ -446,8 +450,12 @@ class SeriesStandings(StaticBase):
 
         #Remap to display names
         self.classification = [
-            (p, self.replay.name_display[n]) + tuple(rest) \
-            for p, n, *rest in self.classification]
+            (
+                p,
+                self.replay.name_display[n],
+                "" if t is None else t
+            ) + tuple(rest) \
+            for p, n, t, *rest in self.classification]
 
         column_headings = [tuple([x if len([y[i] \
             for y in self.classification \
@@ -491,7 +499,7 @@ class SeriesStandings(StaticBase):
             (text_width+self.replay.margin*2, heading_height),
             self.replay.heading_color)
 
-        if len(self.replay.series_logo):
+        if self.replay.series_logo is not None:
             series_logo = Image.open(
                 self.replay.series_logo).resize(
                     (heading_material.height, heading_material.height))

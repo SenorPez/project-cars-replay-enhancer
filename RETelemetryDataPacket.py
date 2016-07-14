@@ -24,6 +24,9 @@ class REParticipantInfo(ParticipantInfo):
     def __init__(self, unpacked_data):
         self.index = None
         self.name = None
+        self.team = None
+        self.car = None
+        self.car_class = None
         self.viewed = False
 
         self._race_position = int(unpacked_data.popleft())

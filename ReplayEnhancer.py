@@ -120,6 +120,8 @@ class ReplayEnhancer():
         except KeyError:
             pass
 
+        self.car_class_data = dict()
+
         self.team_data = {k:v['team'] \
             for k, v in json_data['participant_config'].items()}
         try:
@@ -150,7 +152,7 @@ class ReplayEnhancer():
 
         self.sync_racestart = json_data['sync_racestart']
 
-        self.race_data = RaceData(self.source_telemetry)
+        self.race_data = RaceData(self.source_telemetry, self)
         self.participant_data = ParticipantData()
         self.participant_data = list()
         self.participant_configurations = list()
@@ -178,7 +180,7 @@ class ReplayEnhancer():
 
         self.get_telemetry()
 
-        self.track = Track(self.race_data.packet.track_length)
+        self.track = Track(self.race_data.track_length)
 
     def __process_telemetry_directory(self, telemetry_directory):
         with tqdm(desc="Processing telemetry",
@@ -803,10 +805,9 @@ class ReplayEnhancer():
                 print("Invalid JSON in configuration file: {}".format(
                     error))
             else:
-                """
                 output = replay.build_custom_video(True, 10)
                 output = output.set_duration(
-                    output.duration).subclip(0, 90)
+                    output.duration).subclip(0, 30)
                 output.write_videofile(
                     replay.output_video,
                     fps=10,
@@ -816,7 +817,8 @@ class ReplayEnhancer():
                 output.write_videofile(
                     replay.output_video,
                     fps=30)
-                #output.save_frame("outputs/custom.png", 110)
+                """
+                output.save_frame("outputs/custom.png", 2)
         except KeyboardInterrupt:
             raise
 

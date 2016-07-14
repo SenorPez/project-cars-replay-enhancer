@@ -993,6 +993,11 @@ class Configuration:
                                 ['team'] = last_team
                             break
 
+                if not len(self.participant_config[participant]\
+                        ['team']):
+                    self.participant_config[participant]['team'] = \
+                        None
+
                 if use_last_points:
                     self.participant_config[participant]\
                         ['points'] = last_points
@@ -1100,7 +1105,7 @@ class Configuration:
                         self.additional_participant_config[additional_participant_name] = self.additional_participant_config[additional_participant]
                         self.additional_participant_config.pop(additional_participant, None)
                         additional_participant = additional_participant_name
-                
+
                 try:
                     while True:
                         print("Enter abbreviated name override for",
@@ -1245,7 +1250,7 @@ class Configuration:
                         self.additional_participant_config[additional_participant_name] = {'car': None, 'team': None, 'points': 0, 'short_display': None}
                         additional_participant = additional_participant_name
                         break
-                
+
                 if not add_additional_participant:
                     break
 
@@ -1375,7 +1380,7 @@ class Configuration:
 
 
 
-            
+
         except KeyboardInterrupt:
             print("\n\nExiting. No configuration data written.")
             raise KeyboardInterrupt
@@ -1782,7 +1787,7 @@ class Configuration:
                   'video_cache': self.video_cache,
                   'sync_racestart': self.sync_racestart}
         return OrderedDict(sorted(
-            output.items(), 
+            output.items(),
             key=lambda x: x[0].lower()))
 
     @staticmethod

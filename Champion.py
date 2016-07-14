@@ -158,16 +158,19 @@ class Champion(StaticBase):
                 finish_data = {(
                     participant_data[i][1],
                     int(x[184+participant_data[i][0]*9])) \
-                    for telemetry_index, x in enumerate(telemetry_data) \
+                    for telemetry_index, x in enumerate(
+                        telemetry_data) \
                     for i in range(int(x[4])) \
-                    if telemetry_index+offset > self.replay.time_expired}
+                    if telemetry_index+offset > \
+                        self.replay.time_expired}
                 for name, laps in finish_data:
                     if laps < finish_status[name]['laps'] and \
                            finish_status[name]['dnf']:
                         finish_status[name]['dnf'] = False
                         finish_position += 1
-                        finish_status[name]['position'] = finish_position
-                        finish_status[name]['laps'] = laps                    
+                        finish_status[name]['position'] = \
+                            finish_position
+                        finish_status[name]['laps'] = laps
 
             #Find the indexes when the last laps end.
             for index, name, *_ in participant_data:
@@ -381,7 +384,8 @@ class Champion(StaticBase):
             car,
             str(16-16) if self.replay.point_structure is None \
                 and position == "DNF"
-            else str(16-int(position)) if self.replay.point_structure is None \
+            else str(16-int(position)) \
+                if self.replay.point_structure is None \
             else str(self.replay.points[name]) if position == "DNF"
             else str(self.replay.points[name]) if laps < 1 else str(
                 self.replay.points[name]+\
@@ -415,8 +419,12 @@ class Champion(StaticBase):
 
         #Remap to display names
         self.classification = [
-            (p, self.replay.name_display[n]) + tuple(rest) \
-            for p, n, *rest \
+            (
+                p,
+                self.replay.name_display[n],
+                "" if t is None else t
+            ) + tuple(rest) \
+            for p, n, t, *rest \
             in self.classification]
 
         heading_width = self.replay.heading_font.getsize(
@@ -467,7 +475,7 @@ class Champion(StaticBase):
             (255, 255, 255))
         self.material.paste(heading_material, (0, 0))
 
-        if len(self.replay.series_logo):
+        if self.replay.series_logo is not None:
             series_logo = Image.open(
                 self.replay.series_logo).resize((300, 300))
             self.material.paste(

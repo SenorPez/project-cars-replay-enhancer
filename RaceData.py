@@ -23,13 +23,19 @@ class RaceData():
     """
 
     _missing_participants = 0
-    _participant_list = dict()
+    participant_list = dict()
     _update_indexes = set()
     _telemetry_waiting = list()
+    _starting_grid = None
+    _track_length = None
 
     def __init__(self, telemetry_directory,
+                 replay=None,
                  descriptor_file='descriptor.json'):
         self.telemetry_directory = telemetry_directory
+        self.replay = replay
+        self.descriptor_file = descriptor_file
+
         try:
             with open(os.path.join(
                 os.path.realpath(self.telemetry_directory),
@@ -54,8 +60,6 @@ class RaceData():
         self.telemetry_data = self.__get_telemetry_data(
             race_start=self.descriptor['race_start'])
         self.packet = None
-        self.packet = self.get_data()
-        #import pdb; pdb.set_trace()
 
     def __build_descriptor(self,
                            descriptor_file='descriptor.json'):
@@ -104,6 +108,19 @@ class RaceData():
                     packet.session_state != 5 or \
                     packet.game_state != 2):
                 break
+
+        #Exhaust packets for data population.
+        #Why does this happen, PCARS?
+        while True:
+            packet = next(telemetry_data)
+            progress.update()
+            if packet.packet_type == 0 and \
+                    any([participant.race_position \
+                        for participant \
+                        in packet.participant_info]) and \
+                    packet.track_length:
+                break
+        #packet.track_length:
 
         progress.close()
         self.descriptor['race_start'] = packet.data_hash
@@ -248,21 +265,59 @@ class RaceData():
 
     def __add_telemetry_packet(self, packet):
         if self.packet.num_participants == packet.num_participants and \
-                len(self._participant_list) >= \
+                len(self.participant_list) >= \
                 self.packet.num_participants:
             self.packet = packet
         else:
             self.packet = packet
-            self._participant_list = dict()
+            self.participant_list = dict()
             self.__rebuild_participants()
 
-        for index, name in self._participant_list.items():
+        for index, name in self.participant_list.items():
             self.packet.participant_info[index].name = name
             self.packet.participant_info[index].index = index
+
+            try:
+                self.packet.participant_info[index].team = \
+                    self.replay.team_data[name]
+            except (AttributeError, KeyError):
+                self.packet.participant_info[index].team = None
+
+            try:
+                self.packet.participant_info[index].car = \
+                    self.replay.car_data[name]
+            except (AttributeError, KeyError):
+                self.packet.participant_info[index].car = None
+
+            try:
+                self.packet.participant_info[index].car_class = \
+                    self.replay.car_class_data[name]
+            except (AttributeError, KeyError):
+                self.packet.participant_info[index].car_class = None
 
             for telemetry_packet, _ in self._telemetry_waiting:
                 telemetry_packet.participant_info[index].name = name
                 telemetry_packet.participant_info[index].index = index
+
+                try:
+                    telemetry_packet.participant_info[index].team = \
+                        self.replay.team_data[name]
+                except (AttributeError, KeyError):
+                    telemetry_packet.participant_info[index].team = None
+
+                try:
+                    telemetry_packet.participant_info[index].car = \
+                        self.replay.car_data[name]
+                except (AttributeError, KeyError):
+                    telemetry_packet.participant_info[index].car = None
+
+                try:
+                    telemetry_packet.participant_info[index].\
+                        car_class = \
+                        self.replay.car_class_data[name]
+                except (AttributeError, KeyError):
+                    telemetry_packet.participant_info[index].\
+                        car_class = None
 
         for participant_index in range(56):
             participant_info = \
@@ -298,8 +353,8 @@ class RaceData():
 
     def __rebuild_participants(self):
         self._telemetry_waiting = list()
-        self._participant_list = dict()
-        while len(self._participant_list) < \
+        self.participant_list = dict()
+        while len(self.participant_list) < \
                 self.packet.num_participants:
             packet = next(self.telemetry_data)
 
@@ -316,17 +371,17 @@ class RaceData():
     def __add_participant_packet(self, packet):
         if packet.packet_type == 1:
             for i, name in enumerate(packet.name):
-                self._participant_list[i] = name
+                self.participant_list[i] = name
         elif packet.packet_type == 2:
             for i, name in enumerate(packet.name, packet.offset):
-                self._participant_list[i] = name
+                self.participant_list[i] = name
 
     def get_participant_index(self, participant_name):
         """
         Given participant_name, finds the corresponding index.
         """
         matches = [(index, name) for index, name \
-            in self._participant_list.items() \
+            in self.participant_list.items() \
             if name == participant_name]
 
         index, _ = matches[0]
@@ -352,3 +407,43 @@ class RaceData():
             self.max_name_dimensions_value = (width, height)
 
         return self.max_name_dimensions_value
+
+    @property
+    def starting_grid(self):
+        """
+        Returns the starting grid for the replay.
+        """
+        if self._starting_grid is None:
+            grid_data = RaceData(
+                self.telemetry_directory,
+                replay=self.replay,
+                descriptor_file=self.descriptor_file)
+            _ = grid_data.get_data()
+
+            self._starting_grid = [(
+                grid_data.packet.participant_info[index].\
+                    race_position,
+                grid_data.packet.participant_info[index].name,
+                grid_data.packet.participant_info[index].team,
+                grid_data.packet.participant_info[index].car,
+                grid_data.packet.participant_info[index].\
+                    car_class) for \
+                index, name in grid_data.participant_list.items() \
+                if grid_data.packet.participant_info[index].is_active]
+
+        return self._starting_grid
+
+    @property
+    def track_length(self):
+        """
+        Returns the track length.
+        """
+        if self._track_length is None:
+            track_data = RaceData(
+                self.telemetry_directory,
+                descriptor_file=self.descriptor_file)
+            _ = track_data.get_data()
+
+            self._track_length = track_data.packet.track_length
+
+        return self._track_length

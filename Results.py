@@ -488,9 +488,9 @@ class Results(StaticBase):
         #Remap to display names
         self.classification = [(
             p,
-            self.replay.name_display[n]) + tuple(rest) \
-            for p, n, *rest in self.classification]
-
+            self.replay.name_display[n],
+            "" if t is None else t) + tuple(rest) \
+            for p, n, t, *rest in self.classification]
 
         column_headings = [tuple([x \
             if len([y[i] \
@@ -536,7 +536,7 @@ class Results(StaticBase):
             (text_width+self.replay.margin*2, header_height),
             self.replay.heading_color)
 
-        if len(self.replay.series_logo):
+        if self.replay.series_logo is not None:
             series_logo = Image.open(
                 self.replay.series_logo).resize(
                     (heading_material.height, heading_material.height))
