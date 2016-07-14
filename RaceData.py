@@ -83,6 +83,8 @@ class RaceData():
                     packet.race_state == 3:
                 break
 
+        self.descriptor['race_end'] = packet.data_hash
+
         #Exhaust packets after the race finish.
         while True:
             packet = next(telemetry_data)
@@ -90,6 +92,8 @@ class RaceData():
             if packet.packet_type == 0 and \
                     packet.race_state == 2:
                 break
+
+        self.descriptor['race_finish'] = packet.data_hash
 
         #Exhaust packets after the green flag.
         while True:
@@ -109,19 +113,6 @@ class RaceData():
                     packet.game_state != 2):
                 break
 
-        #Exhaust packets for data population.
-        #Why does this happen, PCARS?
-        while True:
-            packet = next(telemetry_data)
-            progress.update()
-            if packet.packet_type == 0 and \
-                    any([participant.race_position \
-                        for participant \
-                        in packet.participant_info]) and \
-                    packet.track_length:
-                break
-        #packet.track_length:
-
         progress.close()
         self.descriptor['race_start'] = packet.data_hash
         with open(os.path.join(
@@ -139,6 +130,7 @@ class RaceData():
     def __get_telemetry_data(self, reverse=False, \
                              race_start=None, elapsed_time=True):
         find_start = False if race_start is None else True
+        find_populate = False
         last_packet = None
         new_packet = None
 
@@ -151,9 +143,19 @@ class RaceData():
             if md5(packet_data).hexdigest() == race_start and \
                     find_start:
                 find_start = False
+                find_populate = True
             elif md5(packet_data).hexdigest() != race_start and \
                     find_start:
                 continue
+
+            if find_populate and len(packet_data) == 1367:
+                new_packet = TelemetryDataPacket(packet_data)
+                if not any([participant.race_position \
+                        for participant \
+                        in new_packet.participant_info]):
+                    continue
+                else:
+                    find_populate = False
 
             if len(packet_data) == 1347:
                 yield ParticipantPacket(packet_data)
