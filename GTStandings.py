@@ -154,7 +154,7 @@ class GTStandings(DynamicBase):
                 material_width*2,
                 window_bottom))
             draw_middle_line = False
-        elif last_position-subject_position <= 3:
+        elif last_position-subject_position <= 2:
             adjust_y = last_position-5
             window_top = self.text_height*2*adjust_y+\
                 1*adjust_y
