@@ -1,7 +1,7 @@
 # Project CARS Replay Enhancer
 Combines telemetry data with replay video to improve Project CARS replays.
 
-Current release: 0.3  
+Current release: 0.3.2  
 Current edge state: Less Rough  
 Current mood: Nervous  
 
@@ -15,6 +15,7 @@ The scripts are currently not fast enough for live broadcasting.
 * [natsort](https://pypi.python.org/pypi/natsort "natsort")
 * [NumPy](http://www.numpy.org/ "NumPy")
 * [Pillow](https://pypi.python.org/pypi/Pillow "Pillow")
+* [UnicodeCSV] (https://pypi.python.org/pypi/unicodecsv/ "UnicodeCSV")
 
 ## Usage
 ###Telemetry Capture:
