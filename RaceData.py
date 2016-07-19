@@ -28,6 +28,9 @@ class RaceData():
     _telemetry_waiting = list()
     _starting_grid = None
     _track_length = None
+    _final_lap = False
+    _race_finished = set()
+    _classification = list()
 
     def __init__(self, telemetry_directory,
                  replay=None,
@@ -140,6 +143,7 @@ class RaceData():
             with open(packet, 'rb') as packet_file:
                 packet_data = packet_file.read()
 
+            #TODO: This seems messy. Maybe clean?
             if md5(packet_data).hexdigest() == race_start and \
                     find_start:
                 find_start = False
@@ -183,6 +187,13 @@ class RaceData():
             else:
                 raise ValueError("Malformed or unrecognized packet.")
 
+    def race_time(self, driver_index):
+        """
+        Returns the race time for a driver.
+        """
+        race_time = sum(self.lap_time(driver_index))
+        return race_time if race_time != 0 else None
+
     def lap_time(self, driver_index, lap_number=None):
         """
         Returns lap times for a driver, specified by driver_index.
@@ -198,6 +209,39 @@ class RaceData():
             return lap_times
         else:
             return lap_times[lap_number-1]
+
+    def laps_completed(self, driver_index):
+        """
+        Returns the number of laps completed.
+        """
+        return len(self.lap_time(driver_index))
+
+    def sector_time(self, sector, driver_index, lap_number=None):
+        """
+        Returns sector times for a driver, specified by sector and
+        driver_index.
+
+        Pass lap_number to return a specific lap.
+        """
+        if sector < 1 or sector > 3:
+            raise ValueError("Invalid Sector Number.")
+
+        sector_times = [time for time, _ in \
+            self.sector_times[driver_index]][sector-1::3]
+
+        if lap_number is None:
+            return sector_times
+        else:
+            return sector_times[lap_number-1]
+
+    def best_race_time(self):
+        """
+        Returns the best race time in the race.
+        """
+        return min([self.race_time(driver_index) \
+            for driver_index, _ \
+            in enumerate(self.sector_times) \
+            if self.race_time(driver_index) is not None])
 
     def best_lap_time(self, driver_index=None):
         """
@@ -217,15 +261,83 @@ class RaceData():
         else:
             return best_laps[driver_index]
 
-    def get_data(self, at_time=None):
+    def best_sector_time(self, sector, driver_index=None):
+        """
+        Returns the best sector time or times in the race.
+
+        sector should be 1, 2, or 3.
+        Pass driver_index to return the best time for that index.
+        """
+        if sector < 1 or sector > 3:
+            raise ValueError("Invalid Sector Number.")
+
+        best_sectors = [
+            min(self.sector_time(sector, driver_index))
+            for driver_index, sector_times \
+            in enumerate(self.sector_times) \
+            if len(sector_times)]
+
+        if driver_index is None:
+            return min([time for time in best_sectors \
+                if time is not None])
+        else:
+            return best_sectors[driver_index]
+
+    def points(self, finish_position, driver_name=None):
+        """
+        Returns the number of points earned in the race.
+        """
+        if self.replay is None:
+            return 0
+
+        finish_position_points = 0
+        try:
+            finish_position_points = \
+                self.replay.point_structure[finish_position]
+        except IndexError:
+            pass
+
+        fast_lap_points = 0
+        if driver_name is not None and \
+                self.best_lap_time(
+                        self.get_participant_index(driver_name)) \
+                        == self.best_lap_time():
+            fast_lap_points = self.replay.point_structure[0]
+
+        return finish_position_points+fast_lap_points
+
+    def series_points(self, finish_position, driver_name=None):
+        """
+        Returns the number of series points.
+        """
+        if self.replay is None:
+            return 0
+
+        previous_points = 0
+        try:
+            previous_points = self.replay.points[driver_name]
+        except IndexError:
+            pass
+
+        return self.points(
+            finish_position,
+            driver_name)+previous_points
+
+    def get_data(self, at_time=None, get_next=False):
         """
         Returns the telemetry data. If at_time is provided, the
         time index is used to determine which data packet to return.
+
+        If get_next is provided, the next packet in the data set is
+        returned.
+
         If no index is provided, the first data is provided.
         """
         if self.packet is None:
             packet = next(self.telemetry_data)
             self.packet = packet
+        elif get_next:
+            packet = next(self.telemetry_data)
         elif at_time is None:
             return self.packet
         elif len(self._telemetry_waiting):
@@ -274,6 +386,10 @@ class RaceData():
             self.packet = packet
             self.participant_list = dict()
             self.__rebuild_participants()
+
+        if self.packet.event_type == 'time':
+            #TODO: Time.
+            pass
 
         for index, name in self.participant_list.items():
             self.packet.participant_info[index].name = name
@@ -328,6 +444,11 @@ class RaceData():
             if participant_info.race_position == 1:
                 self.leader_index = participant_index
 
+                if self.packet.event_type == 'laps' and \
+                        participant_info.laps_completed >= \
+                        self.packet.event_duration:
+                    self._final_lap = True
+
             sector_time = (
                 participant_info.last_sector_time,
                 participant_info.sector)
@@ -336,11 +457,14 @@ class RaceData():
                 if sector_time != \
                         self.sector_times[participant_index][-1] \
                         and \
-                        participant_info.last_sector_time != -123:
+                        participant_info.last_sector_time != -123 \
+                        and \
+                        participant_info.sector != 0:
                     self.sector_times[participant_index].append(
                         sector_time)
             except IndexError:
-                if participant_info.last_sector_time != -123:
+                if participant_info.last_sector_time != -123 and \
+                        participant_info.sector != 0:
                     self.sector_times[participant_index].append(
                         sector_time)
 
@@ -352,6 +476,29 @@ class RaceData():
             else:
                 self.valid_laps[participant_index].add(
                     participant_info.current_lap)
+
+            if participant_info.sector == 1 and \
+                    self._final_lap and \
+                    participant_index not in self._race_finished:
+                classification = (
+                    participant_index,
+                    self.packet.participant_info[participant_index].\
+                        name,
+                    self.packet.participant_info[participant_index].\
+                        team,
+                    self.packet.participant_info[participant_index].\
+                        car,
+                    self.packet.participant_info[participant_index].\
+                        car_class,
+                    self.laps_completed(participant_index),
+                    self.race_time(participant_index),
+                    self.best_lap_time(participant_index),
+                    self.best_sector_time(1, participant_index),
+                    self.best_sector_time(2, participant_index),
+                    self.best_sector_time(3, participant_index))
+
+                self._classification.append(classification)
+                self._race_finished.add(participant_index)
 
     def __rebuild_participants(self):
         self._telemetry_waiting = list()
@@ -388,6 +535,25 @@ class RaceData():
 
         index, _ = matches[0]
         return index
+
+    def process_all(self):
+        """
+        Processes all packets in telemetry directory.
+        Should probably be used only for testing. Maybe.
+        """
+        progress = tqdm(
+            desc='Processing All Telemetry Data',
+            total=self.packet_count,
+            unit='packets')
+
+        while True:
+            try:
+                _ = self.get_data(get_next=True)
+                progress.update()
+            except StopIteration:
+                break
+
+        progress.close()
 
     def max_name_dimensions(self, font):
         """
@@ -434,6 +600,88 @@ class RaceData():
                 if grid_data.packet.participant_info[index].is_active]
 
         return self._starting_grid
+
+    @property
+    def classification(self):
+        """
+        Returns the classification data.
+        """
+        if self.packet is None or \
+                len(self._classification) < \
+                self.packet.num_participants:
+            classification_data = RaceData(
+                self.telemetry_directory,
+                replay=self.replay,
+                descriptor_file=self.descriptor_file)
+
+            progress = tqdm(
+                desc='Determining Classification',
+                total=classification_data.packet_count,
+                unit='packets')
+
+            while True:
+                try:
+                    _ = classification_data.get_data(get_next=True)
+                    progress.update()
+                except StopIteration:
+                    break
+
+            progress.close()
+            self._classification = classification_data._classification
+
+            points = classification_data.points
+            series_points = classification_data.series_points
+        else:
+            points = self.points
+            series_points = self.series_points
+
+        classification = sorted(
+            [data for data in self._classification \
+                if data[0] is not None],
+            key=lambda x: (-x[5], x[6]))
+        classification = [(finish_position, driver_name)+\
+            tuple(rest)+\
+            (
+                points(finish_position, driver_name),
+                series_points(finish_position, driver_name)
+            ) \
+            for finish_position, (driver_index, driver_name, *rest) \
+            in enumerate(classification, 1)]
+
+        if self.replay is not None:
+            for name in self.replay.additional_participants:
+                try:
+                    team = self.replay.team_data[name]
+                except KeyError:
+                    team = None
+
+                try:
+                    car = self.replay.car_data[name]
+                except KeyError:
+                    car = None
+
+                try:
+                    car_class = self.replay.car_class_data[name]
+                except KeyError:
+                    car_class = None
+
+                additional = (
+                    None,
+                    name,
+                    team,
+                    car,
+                    car_class,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    0,
+                    self.replay.points[name])
+                classification.append(additional)
+
+        return classification
 
     @property
     def track_length(self):

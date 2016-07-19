@@ -39,6 +39,17 @@ class StaticBase(metaclass=abc.ABCMeta):
     def _make_material(self, material_only):
         """Create material used as a canvas."""
 
+    def format_string(self, value):
+        """
+        Formats values into a string.
+        """
+        if value is None:
+            return ""
+        elif isinstance(value, float):
+            return self.format_time(value)
+        else:
+            return str(value)
+
     @staticmethod
     def format_time(seconds):
         """
@@ -51,8 +62,8 @@ class StaticBase(metaclass=abc.ABCMeta):
         return_value = (int(hours), int(minutes), float(seconds))
 
         if hours:
-            return "{0:d}:{1:0>2d}:{2:0>5.2f}".format(*return_value)
+            return "{0:d}:{1:0>2d}:{2:0>6.3f}".format(*return_value)
         elif minutes:
-            return "{1:d}:{2:0>5.2f}".format(*return_value)
+            return "{1:d}:{2:0>6.3f}".format(*return_value)
         else:
-            return "{2:.2f}".format(*return_value)
+            return "{2:.3f}".format(*return_value)

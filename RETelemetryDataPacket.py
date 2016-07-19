@@ -136,7 +136,15 @@ class RETelemetryDataPacket(TelemetryDataPacket):
     def event_duration(self):
         """Returns the event duration, in laps or time."""
         #TODO: Time
-        return self.laps_in_event
+        return int(self.laps_in_event)
+
+    @property
+    def event_type(self):
+        """Returns 'laps' or 'time'."""
+        if isinstance(self.event_duration, int):
+            return 'laps'
+        else:
+            return 'time'
 
     @property
     def drivers_by_position(self):

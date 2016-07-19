@@ -77,6 +77,11 @@ class ReplayEnhancer():
         self.logo_width = json_data['logo_width']
         self.series_logo = json_data['series_logo']
 
+        try:
+            self.result_lines = json_data['result_lines']
+        except KeyError:
+            self.result_lines = None
+
         self.show_champion = json_data['show_champion']
 
         self.heading_text = json_data['heading_text']
@@ -805,9 +810,10 @@ class ReplayEnhancer():
                 print("Invalid JSON in configuration file: {}".format(
                     error))
             else:
+                """
                 output = replay.build_custom_video(True, 10)
                 output = output.set_duration(
-                    output.duration).subclip(0, 30)
+                    output.duration).subclip(output.duration-60, output.duration)
                 output.write_videofile(
                     replay.output_video,
                     fps=10,
@@ -819,6 +825,7 @@ class ReplayEnhancer():
                     fps=30)
                 """
                 output.save_frame("outputs/custom.png", 2)
+                """
         except KeyboardInterrupt:
             raise
 
@@ -909,7 +916,7 @@ class ReplayEnhancer():
         standing_clip = standing_clip.set_mask(standing_clip_mask)
 
         result = mpy.ImageClip(
-            Results(self).to_frame()).set_duration(
+            Results(self, self.result_lines).to_frame()).set_duration(
                 20).set_position(('center', 'center')).add_mask()
 
         if self.point_structure is not None:
