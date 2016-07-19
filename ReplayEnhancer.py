@@ -922,7 +922,7 @@ class ReplayEnhancer():
         if self.point_structure is not None:
             result.mask = result.mask.fx(vfx.fadeout, 1)
             series_standings = mpy.ImageClip(
-                SeriesStandings(self).to_frame()).set_start(
+                SeriesStandings(self, self.result_lines).to_frame()).set_start(
                     20).set_duration(20).set_position(
                         ('center', 'center')).add_mask()
 

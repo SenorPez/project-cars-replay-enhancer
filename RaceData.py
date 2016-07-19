@@ -631,57 +631,55 @@ class RaceData():
 
             points = classification_data.points
             series_points = classification_data.series_points
-        else:
-            points = self.points
-            series_points = self.series_points
 
-        classification = sorted(
-            [data for data in self._classification \
-                if data[0] is not None],
-            key=lambda x: (-x[5], x[6]))
-        classification = [(finish_position, driver_name)+\
-            tuple(rest)+\
-            (
-                points(finish_position, driver_name),
-                series_points(finish_position, driver_name)
-            ) \
-            for finish_position, (driver_index, driver_name, *rest) \
-            in enumerate(classification, 1)]
+            classification = sorted(
+                [data for data in self._classification \
+                    if data[0] is not None],
+                key=lambda x: (-x[5], x[6]))
+            classification = [(finish_position, driver_name)+\
+                tuple(rest)+\
+                (
+                    points(finish_position, driver_name),
+                    series_points(finish_position, driver_name)
+                ) \
+                for finish_position, (driver_index, driver_name, *rest) \
+                in enumerate(classification, 1)]
 
-        if self.replay is not None:
-            for name in self.replay.additional_participants:
-                try:
-                    team = self.replay.team_data[name]
-                except KeyError:
-                    team = None
+            if self.replay is not None:
+                for name in self.replay.additional_participants:
+                    try:
+                        team = self.replay.team_data[name]
+                    except KeyError:
+                        team = None
 
-                try:
-                    car = self.replay.car_data[name]
-                except KeyError:
-                    car = None
+                    try:
+                        car = self.replay.car_data[name]
+                    except KeyError:
+                        car = None
 
-                try:
-                    car_class = self.replay.car_class_data[name]
-                except KeyError:
-                    car_class = None
+                    try:
+                        car_class = self.replay.car_class_data[name]
+                    except KeyError:
+                        car_class = None
 
-                additional = (
-                    None,
-                    name,
-                    team,
-                    car,
-                    car_class,
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                    0,
-                    self.replay.points[name])
-                classification.append(additional)
+                    additional = (
+                        None,
+                        name,
+                        team,
+                        car,
+                        car_class,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        0,
+                        self.replay.points[name])
+                    classification.append(additional)
+            self._classification = classification
 
-        return classification
+        return self._classification
 
     @property
     def track_length(self):
