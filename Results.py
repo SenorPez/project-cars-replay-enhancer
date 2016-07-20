@@ -248,6 +248,7 @@ class Results(StaticBase):
             positions = len(self.replay.point_structure)-1
         else:
             positions = self.lines
+        positions = min(positions, 16)
 
         classification = sorted(
             [line[:-1] for line in self._classification \

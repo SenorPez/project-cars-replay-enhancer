@@ -813,7 +813,7 @@ class ReplayEnhancer():
                 """
                 output = replay.build_custom_video(True, 10)
                 output = output.set_duration(
-                    output.duration).subclip(output.duration-60, output.duration)
+                    output.duration).subclip(output.duration-90, output.duration)
                 output.write_videofile(
                     replay.output_video,
                     fps=10,
@@ -868,10 +868,10 @@ class ReplayEnhancer():
         video_width, video_height = video.size
         self.size = video.size
 
-        if self.backdrop != "":
+        if self.backdrop is not None:
             backdrop = Image.open(self.backdrop).resize(
                 (video_width, video_height))
-            if self.logo != "":
+            if self.logo is not None:
                 logo = Image.open(self.logo).resize(
                     (self.logo_width, self.logo_height))
                 backdrop.paste(
@@ -885,7 +885,7 @@ class ReplayEnhancer():
                 'RGBA',
                 (video_width, video_height),
                 (0, 0, 0))
-            if self.logo != "":
+            if self.logo is not None:
                 logo = Image.open(self.logo).resize(
                     (self.logo_width, self.logo_height))
                 backdrop.paste(
@@ -984,10 +984,10 @@ class ReplayEnhancer():
 
         video_width, video_height = video.size
 
-        if self.backdrop != "":
+        if self.backdrop is not None:
             backdrop = Image.open(self.backdrop).resize(
                 (video_width, video_height))
-            if self.logo != "":
+            if self.logo is not None:
                 logo = Image.open(self.logo).resize(
                     (self.logo_width, self.logo_height))
                 backdrop.paste(
@@ -1001,7 +1001,7 @@ class ReplayEnhancer():
                 'RGBA',
                 (video_width, video_height),
                 (0, 0, 0))
-            if self.logo != "":
+            if self.logo is not None:
                 logo = Image.open(self.logo).resize(
                     (self.logo_width, self.logo_height))
                 backdrop.paste(

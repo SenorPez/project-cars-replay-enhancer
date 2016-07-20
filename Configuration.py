@@ -41,6 +41,8 @@ class Configuration:
         self.heading_text = None
         self.subheading_text = None
 
+        self.result_lines = None
+
         self.margin = None
         self.column_margin = None
 
@@ -579,7 +581,7 @@ class Configuration:
                 if len(backdrop) == 0 and previous_file:
                     break
                 elif backdrop == "-1":
-                    self.backdrop = ""
+                    self.backdrop = None
                     break
                 elif os.path.isfile(os.path.realpath(backdrop)):
                     self.backdrop = backdrop
@@ -598,7 +600,7 @@ class Configuration:
                 if len(logo) == 0 and previous_file:
                     break
                 elif logo == "-1":
-                    self.logo = ""
+                    self.logo = None
                     break
                 elif os.path.isfile(os.path.realpath(logo)):
                     self.logo = logo
@@ -606,7 +608,7 @@ class Configuration:
                 else:
                     print("Not a file. Please try again.")
 
-            if len(self.logo):
+            if self.logo is not None:
                 while True:
                     print("Enter height for logo.")
                     prompt = "({})".format(self.logo_height \
@@ -661,7 +663,7 @@ class Configuration:
                 if len(series_logo) == 0 and previous_file:
                     break
                 elif series_logo == "-1":
-                    self.series_logo = ""
+                    self.series_logo = None
                     break
                 elif os.path.isfile(os.path.realpath(series_logo)):
                     self.series_logo = series_logo
@@ -730,7 +732,7 @@ class Configuration:
                 try:
                     prompt = "({})".format(str(
                         self.point_structure[position])) \
-                        if previous_file else "0"
+                        if previous_file else "(0)"
                 except IndexError:
                     prompt = "(0)"
                 except TypeError:
@@ -790,6 +792,29 @@ class Configuration:
                 self.point_structure = point_structure
             else:
                 self.point_structure = None
+
+            while True:
+                print("Enter number of results and standings lines to show.")
+                print("Enter -1 for default behavior:")
+                print("Positions scoring points in the race and series ranks")
+                print("with points will be shown, up to 16.")
+                prompt = "({})".format(self.result_lines) \
+                    if previous_file else ""
+                result_lines = input(prompt+"--> ")
+
+                if len(result_lines) == 0 and previous_file:
+                    break
+                elif result_lines == "-1":
+                    self.result_lines = None
+                    break
+                elif len(result_lines):
+                    try:
+                        self.result_lines = int(result_lines)
+                    except ValueError:
+                        print("Result lines should be an integer",
+                              "value.")
+                    else:
+                        break
 
             print("Parsing telemetry data for driver information.")
             print("Please wait...")
@@ -1983,6 +2008,11 @@ class Configuration:
             self.heading_font_color = (255, 255, 255)
 
         self.heading_color = tuple(json_data['heading_color'])
+
+        try:
+            self.result_lines = json_data['result_lines']
+        except KeyError:
+            self.result_lines = None
 
         self.backdrop = json_data['backdrop']
         self.logo = json_data['logo']

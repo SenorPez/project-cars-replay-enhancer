@@ -195,6 +195,7 @@ class SeriesStandings(StaticBase):
                     if data[-1] > 0])
         else:
             positions = self.lines
+        positions = min(positions, 16)
 
         classification = sorted(
             [(line[1], line[2], line[3], line[4], line[12]) \
