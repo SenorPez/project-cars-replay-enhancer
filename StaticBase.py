@@ -23,7 +23,7 @@ class StaticBase(metaclass=abc.ABCMeta):
     def to_frame(self):
         """Render the card with data. Override to customize."""
         return PIL_to_npimage(
-            self._make_material(False).convert('RGB'))
+            self._make_material(False).convert('RGBA'))
 
     @abc.abstractmethod
     def make_mask(self):

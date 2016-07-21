@@ -408,8 +408,10 @@ class RaceData():
                 self.packet.participant_info[index].car = None
 
             try:
-                self.packet.participant_info[index].car_class = \
-                    self.replay.car_class_data[name]
+                self.packet.participant_info[index].car_class \
+                    = [car_class for car_class, data \
+                    in self.replay.car_classes.items() \
+                    if self.replay.car_data[name] in data['cars']][0]
             except (AttributeError, KeyError):
                 self.packet.participant_info[index].car_class = None
 
@@ -430,12 +432,14 @@ class RaceData():
                     telemetry_packet.participant_info[index].car = None
 
                 try:
-                    telemetry_packet.participant_info[index].\
-                        car_class = \
-                        self.replay.car_class_data[name]
+                    self.packet.participant_info[index].car_class \
+                        = [car_class \
+                            for car_class, data \
+                            in self.replay.car_classes.items() \
+                        if self.replay.car_data[name] \
+                        in data['cars']][0]
                 except (AttributeError, KeyError):
-                    telemetry_packet.participant_info[index].\
-                        car_class = None
+                    self.packet.participant_info[index].car_class = None
 
         for participant_index in range(56):
             participant_info = \
@@ -642,7 +646,10 @@ class RaceData():
                     points(finish_position, driver_name),
                     series_points(finish_position, driver_name)
                 ) \
-                for finish_position, (driver_index, driver_name, *rest) \
+                for finish_position, (
+                    driver_index,
+                    driver_name,
+                    *rest) \
                 in enumerate(classification, 1)]
 
             if self.replay is not None:
