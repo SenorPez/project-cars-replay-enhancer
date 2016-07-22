@@ -13,13 +13,11 @@ class Champion(StaticBase):
     """
     _classification = None
 
-    def __init__(self, replay):
+    def __init__(self, replay, car_class=None):
         self.replay = replay
         self.race_data = self.replay.race_data
 
-        participants = {
-            x for x in self.replay.participant_lookup.values()}
-        self.lap_finish = {n:None for n in participants}
+        self.car_class = car_class
 
         self.material = None
         self.heading_height = None
@@ -39,6 +37,15 @@ class Champion(StaticBase):
 
         for rank, name, team, car, _ in classification:
             if rank == 1:
+                if self.car_class is not None:
+                    draw.text(
+                        (x_pos, y_pos),
+                        "{}".format(self.car_class),
+                        fill=self.replay.font_color,
+                        font=self.replay.heading_font)
+                    y_pos += self.replay.heading_font.getsize(
+                        "{}".format(self.car_class))[1]
+
                 draw.text(
                     (x_pos, y_pos),
                     "Champion",
@@ -69,7 +76,8 @@ class Champion(StaticBase):
                 self.format_string(team),
                 fill=self.replay.font_color,
                 font=self.replay.font)
-            y_pos += self.replay.font.getsize(team)[1]
+            y_pos += self.replay.font.getsize(
+                self.format_string(team))[1]
             draw.text(
                 (x_pos+self.replay.column_margin, y_pos),
                 self.format_string(car),
@@ -89,7 +97,7 @@ class Champion(StaticBase):
                 [self.replay.heading_font.getsize(n)[0] \
                      if r == 1 \
                      else self.replay.font.getsize(n)[0],
-                 self.replay.font.getsize(t)[0]+\
+                 self.replay.font.getsize(self.format_string(t))[0]+\
                     self.replay.column_margin,
                  self.replay.font.getsize(c)[0]+\
                     self.replay.column_margin]) \
@@ -103,12 +111,14 @@ class Champion(StaticBase):
             self.replay.heading_text)[1]+self.replay.margin*2
         text_height = max(
             [300, sum(
-                [self.replay.heading_font.getsize(n)[1]+\
-                    self.replay.font.getsize(t)[1]+\
+                [self.replay.heading_font.getsize(
+                    self.format_string(self.car_class))[1]+\
+                    self.replay.heading_font.getsize(n)[1]+\
+                    self.replay.font.getsize(self.format_string(t))[1]+\
                     self.replay.font.getsize(c)[1] \
                     if r == 1 \
                     else self.replay.font.getsize(n)[1]+\
-                    self.replay.font.getsize(t)[1]+\
+                    self.replay.font.getsize(self.format_string(t))[1]+\
                     self.replay.font.getsize(c)[1] \
                     for r, n, t, c, _ \
                     in classification]+\
@@ -144,8 +154,11 @@ class Champion(StaticBase):
         """
         Returns the top three in series points.
         """
-        if self._classification is None:
+        if self._classification is None and self.car_class is None:
             self._classification = self.race_data.classification
+        elif self._classification is None:
+            self._classification = \
+                self.race_data.class_classification(self.car_class)
 
         classification = sorted(
             [(line[1], line[2], line[3], line[12]) \
