@@ -500,13 +500,6 @@ class ReplayEnhancer():
 
         standing_clip = standing_clip.set_mask(standing_clip_mask)
 
-        result = mpy.ImageClip(
-            Results(
-                self,
-                self.result_lines,
-                'Road C1').to_frame()).set_duration(
-                    20).set_position(('center', 'center')).add_mask()
-
         start_time = 0
         screen_duration = 20
         result = list()
@@ -535,19 +528,38 @@ class ReplayEnhancer():
             result.append(new_result)
 
         if self.point_structure is not None:
-            result[-1].mask = result[-1].mask.fx(vfx.fadeout, 1)
-            series_standings = mpy.ImageClip(
-                SeriesStandings(
+            standing = list()
+            for index, car_class in enumerate(sorted(self.car_classes)):
+                new_standing = mpy.ImageClip(SeriesStandings(
                     self,
-                    self.result_lines).to_frame()).set_start(
-                        start_time).set_duration(
-                            screen_duration).set_position(
-                                ('center', 'center')).add_mask()
-            start_time += screen_duration
+                    self.result_lines,
+                    car_class).to_frame())
+                new_standing = new_standing.set_start(start_time)
+                new_standing = new_standing.set_duration(
+                    screen_duration)
+                new_standing = new_standing.set_position((
+                    'center',
+                    'center'))
+                new_standing = new_standing.add_mask()
+                start_time += screen_duration
+
+                if index != 0:
+                    new_standing.mask = new_standing.mask.fx(
+                        vfx.fadein,
+                        1)
+                    standing[index-1].mask = standing[index-1].mask.fx(
+                        vfx.fadeout,
+                        1)
+
+                standing.append(new_standing)
+
+            result[-1].mask = result[-1].mask.fx(vfx.fadeout, 1)
+            standing[0].mask = standing[0].mask.fx(
+                vfx.fadein, 1)
 
             if self.show_champion:
-                series_standings.mask = series_standings.mask.fx(
-                    vfx.fadein, 1).fx(vfx.fadeout, 1)
+                standing[-1].mask = standing[-1].mask.fx(
+                    vfx.fadeout, 1)
                 champion = mpy.ImageClip(
                     Champion(self).to_frame()).set_start(
                         start_time).set_duration(
@@ -555,9 +567,6 @@ class ReplayEnhancer():
                                 ('center', 'center')).add_mask()
                 champion.mask = champion.mask.fx(vfx.fadein, 1)
                 start_time += screen_duration
-            else:
-                series_standings.mask = series_standings.mask.fx(
-                    vfx.fadein, 1)
         else:
             if self.show_champion:
                 result[-1].mask = result[-1].mask.fx(vfx.fadeout, 1)
@@ -577,7 +586,7 @@ class ReplayEnhancer():
 
         outro_videos = [backdrop_clip] + result
         if self.point_structure is not None:
-            outro_videos.append(series_standings)
+            outro_videos.extend(standing)
         if self.show_champion:
             outro_videos.append(champion)
 
