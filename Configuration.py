@@ -672,7 +672,7 @@ class Configuration:
                 print("Positions scoring points in the race and series")
                 print("ranks with points will be shown, up to 16.")
                 prompt = "({})".format(self.result_lines) \
-                    if previous_file else ""
+                    if previous_file and self.result_lines is not None else ""
                 result_lines = input(prompt+"--> ")
 
                 if len(result_lines) == 0 and previous_file:
@@ -741,10 +741,12 @@ class Configuration:
                 for car_class, car in {
                         (
                             car_class,
-                            data['car']
-                        ) for car_class, data in \
-                        self.car_classes.items()}:
+                            car
+                        ) for car_class, data \
+                        in self.car_classes.items() \
+                        for car in data['cars']}:
                     car_class_lookup[car] = car_class
+
                 car_class_color_lookup = dict()
                 for car_class, car_class_color in {
                         (
@@ -753,6 +755,7 @@ class Configuration:
                         ) for car_class, data in \
                         self.car_classes.items()}:
                     car_class_color_lookup[car_class] = car_class_color
+
                 for car_class in self.car_classes:
                     self.car_classes[car_class]['cars'] = set(
                         self.car_classes[car_class]['cars'])
@@ -1834,7 +1837,8 @@ class Configuration:
                   'video_skipstart': self.video_skipstart,
                   'video_skipend': self.video_skipend,
                   'video_cache': self.video_cache,
-                  'sync_racestart': self.sync_racestart}
+                  'sync_racestart': self.sync_racestart,
+                  'result_lines': self.result_lines}
         return OrderedDict(sorted(
             output.items(),
             key=lambda x: x[0].lower()))
@@ -2019,26 +2023,17 @@ class Configuration:
         self.font = json_data['font']
         self.font_size = json_data['font_size']
 
-        try:
-            self.font_color = tuple(json_data['font_color'])
-        except KeyError:
-            self.font_color = (0, 0, 0)
+        self.font_color = tuple(json_data['font_color'])
 
         self.heading_font = json_data['heading_font']
         self.heading_font_size = json_data['heading_font_size']
 
-        try:
-            self.heading_font_color = tuple(
-                json_data['heading_font_color'])
-        except KeyError:
-            self.heading_font_color = (255, 255, 255)
+        self.heading_font_color = tuple(
+            json_data['heading_font_color'])
 
         self.heading_color = tuple(json_data['heading_color'])
 
-        try:
-            self.result_lines = json_data['result_lines']
-        except KeyError:
-            self.result_lines = None
+        self.result_lines = json_data['result_lines']
 
         self.backdrop = json_data['backdrop']
         self.logo = json_data['logo']
@@ -2060,21 +2055,19 @@ class Configuration:
         self.output_video = json_data['output_video']
 
         self.car_classes = json_data['car_classes']
+        for _, data in self.car_classes.items():
+            data['cars'] = set(data['cars'])
 
         self.participant_config = {k:v \
             for k, v \
             in json_data['participant_config'].items()}
 
-        try:
-            self.additional_participants = \
-                [x for x \
-                in json_data['additional_participant_config'].keys()]
-            self.additional_participant_config = {k:v \
-                for k, v \
-                in json_data['additional_participant_config'].items()}
-        except KeyError:
-            self.additional_participants = None
-            self.additional_participant_config = None
+        self.additional_participants = \
+            [x for x \
+            in json_data['additional_participant_config'].keys()]
+        self.additional_participant_config = {k:v \
+            for k, v \
+            in json_data['additional_participant_config'].items()}
 
         self.point_structure = json_data['point_structure']
 
