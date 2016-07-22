@@ -390,8 +390,8 @@ class ReplayEnhancer():
                 output = replay.build_custom_video(True, 10)
                 output = output.set_duration(
                     output.duration).subclip(
-                        output.duration-60,
-                        output.duration)
+                        0,
+                        120)
                 output.write_videofile(
                     replay.output_video,
                     fps=10,
@@ -402,7 +402,7 @@ class ReplayEnhancer():
                     replay.output_video,
                     fps=30)
                 """
-                output.save_frame("outputs/custom.png", 2)
+                output.save_frame("outputs/custom.png", 10)
         except KeyboardInterrupt:
             raise
 

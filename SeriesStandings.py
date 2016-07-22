@@ -100,6 +100,7 @@ class SeriesStandings(StaticBase):
                             y_pos+self.row_height
                         )
                     ],
+                    outline=(0, 0, 0),
                     fill=tuple(color))
                 x_adj = 0
             except IndexError:

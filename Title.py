@@ -95,6 +95,7 @@ class Title(StaticBase):
                         (
                             car_class[1]+x_divisions*2,
                             y_pos+self.data_height)],
+                    outline=(0, 0, 0),
                     fill=tuple(color))
                 draw.text((car_class[1]+self.data_height, y_pos),
                           str(car_class[0]),

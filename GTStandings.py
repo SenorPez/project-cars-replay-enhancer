@@ -5,6 +5,7 @@ Standings overlay.
 import abc
 
 from PIL import Image, ImageDraw
+from moviepy.video.io.bindings import PIL_to_npimage
 
 from DynamicBase import DynamicBase
 
@@ -45,7 +46,9 @@ class GTStandings(DynamicBase):
         Gets the mask. Drops the time argument from the
         caller.
         """
-        out = super(GTStandings, self).make_mask()
+        out = self._make_material(True)
+        out = out.split()[-1].convert('RGB')
+        out = PIL_to_npimage(out)
         out = out[:, :, 0]/255
         return out
 
@@ -68,16 +71,18 @@ class GTStandings(DynamicBase):
         self.standings_lines = list()
         for driver in self.telemetry_data.drivers_by_position:
             self.standings_lines.append(Standing(
-                self.replay.race_data,
+                self.replay,
                 driver,
                 (self.text_width, self.text_height),
                 self.replay.font,
-                self.mask))
+                self.mask,
+                ups=self.ups))
         self.timer = Timer(
-            self.replay.race_data,
+            self.replay,
             (self.text_width, self.text_height),
             self.replay.font,
-            self.mask)
+            self.mask,
+            ups=self.ups)
 
     def update(self, force_process=False):
         if self.process_data or force_process:
@@ -96,6 +101,9 @@ class GTStandings(DynamicBase):
             self.telemetry_data = self.update(force_process=True)
 
         material_width = self.text_height*2+self.text_width+10*2
+        if self.replay.car_classes is not None:
+            material_width += self.text_height
+
         subject_position = \
             self.telemetry_data.drivers_by_index[0].race_position
         last_position = self.telemetry_data.last_place
@@ -122,9 +130,13 @@ class GTStandings(DynamicBase):
                 line for line in self.standings_lines \
                 if line.driver.name == driver.name)
 
+            #TODO: Clean up masking behavior.
+            #Set to False at all times for proper text masking
+            #right now.
             standings_line_output = standings_line.render(
                 driver,
-                bg_only)
+                False)
+
 
             for animation in standings_line.animations:
                 x_adj, y_adj = animation.offset
@@ -181,8 +193,10 @@ class GTStandings(DynamicBase):
             self.replay.size)
 
         #Composite the timer and the top and bottom standings blocks.
+        #TODO: Clean up masking behavior.
+        #Set to False at all times for proper text masking right now.
         self.material.paste(
-            self.timer.render(self.telemetry_data, bg_only),
+            self.timer.render(self.telemetry_data, False),
             (self.replay.margin, self.replay.margin))
         self.material.paste(
             top_five,
@@ -232,7 +246,11 @@ class GTStandings(DynamicBase):
                         self.replay.margin+self.text_height*2*6+1*5)],
                 fill='white',
                 width=1)
-        return self.material if bg_only else self._write_data()
+
+        #TODO: Clean up masking behavior.
+        #Set to False at all times for proper text masking right now.
+        #return self.material if bg_only else self._write_data()
+        return self._write_data()
 
     def _write_data(self):
         #Do nothing. Data writing is handled by the Standing row class.
@@ -290,19 +308,21 @@ class Timer():
 
         return self._make_material()
 
-    def __init__(self, race_data, text_size, font,
+    def __init__(self, replay, text_size, font,
                  mask=False, ups=None):
         """
         Creates a new Timer object.
         """
-        self.race_data = race_data
-        self.telemetry_data = race_data.packet
+        self.replay = replay
+        self.race_data = self.replay.race_data
+        self.telemetry_data = self.race_data.packet
         self.mask = mask
 
         self.text_width, self.text_height = text_size
         self.font = font
         self.material_width = self.text_height*2+self.text_width+10*2
-
+        if self.replay.car_classes is not None:
+            self.material_width += self.text_height
         self.material = None
 
         if ups is not None:
@@ -507,30 +527,35 @@ class Standing():
                     self.race_data,
                     self.driver,
                     self.font,
-                    (200, self.text_height*2))
+                    (200, self.text_height*2),
+                    ups=self.ups)
             else:
                 self.flyout = GapTimeFlyout(
                     self.race_data,
                     self.driver,
                     self.font,
-                    (200, self.text_height*2))
+                    (200, self.text_height*2),
+                    ups=self.ups)
 
         self.driver = driver
 
         return self._make_material()
 
-    def __init__(self, race_data, driver, text_size,
+    def __init__(self, replay, driver, text_size,
                  font, mask=False, ups=None):
         """
         Creates a new Standings object.
         """
-        self.race_data = race_data
+        self.replay = replay
+        self.race_data = self.replay.race_data
         self.driver = driver
         self.mask = mask
 
         self.text_width, self.text_height = text_size
         self.font = font
         self.material_width = self.text_height*2+self.text_width+10*2
+        if self.replay.car_classes is not None:
+            self.material_width += self.text_height
 
         self.material = None
         self.material_with_data = None
@@ -582,11 +607,16 @@ class Standing():
                 self.text_height*2+1,
                 self.text_height*2+1),
             fill=self.position_color)
+
+        width = self.text_height*2+self.text_width+10*2+1
+        if self.replay.car_classes is not None:
+            width += self.text_height
+
         draw.rectangle(
             (
                 self.text_height*2,
                 0,
-                self.text_height*2+self.text_width+10*2+1,
+                width,
                 self.text_height*2+1),
             fill=self.name_color)
 
@@ -603,7 +633,6 @@ class Standing():
             (self.text_height*2-position_width)/2)
         y_position = int(
             (self.text_height*2-block_height)/2)
-
         draw.text(
             (x_position, y_position),
             str(self.driver.race_position),
@@ -611,6 +640,33 @@ class Standing():
             font=self.font)
 
         x_position = self.text_height*2+10
+
+        try:
+            color = [data['color'] \
+                for data in self.replay.car_classes.values() \
+                if self.replay.car_data[self.driver.name] \
+                in data['cars']][0]
+            x_divisions = int(self.text_height/3)
+
+            draw.polygon(
+                [
+                    (x_position, y_position+self.text_height),
+                    (x_position+x_divisions, y_position),
+                    (x_position+x_divisions*3, y_position),
+                    (
+                        x_position+x_divisions*2,
+                        y_position+self.text_height
+                    )
+                ],
+                outline=(0, 0, 0),
+                fill=tuple(color))
+            x_position += self.text_height
+        except IndexError:
+            if self.replay.car_classes is None:
+                pass
+            else:
+                x_position += self.text_height
+
         draw.text(
             (x_position, y_position),
             str(self.driver.name),
@@ -643,6 +699,24 @@ class Flyout():
     @ups.setter
     def ups(self, value):
         self._ups = value
+
+    @staticmethod
+    def format_time(seconds):
+        """
+        Converts seconds into seconds, minutes:seconds, or
+        hours:minutes.seconds as appropriate.
+        """
+        minutes, seconds = divmod(float(seconds), 60)
+        hours, minutes = divmod(minutes, 60)
+
+        return_value = (int(hours), int(minutes), float(seconds))
+
+        if hours:
+            return "{0:d}:{1:0>2d}:{2:0>6.3f}".format(*return_value)
+        elif minutes:
+            return "{1:d}:{2:0>6.3f}".format(*return_value)
+        else:
+            return "{2:.3f}".format(*return_value)
 
 class LapTimeFlyout(Flyout):
     """
@@ -765,24 +839,6 @@ class LapTimeFlyout(Flyout):
             font=self.font)
 
         return self.material_with_data
-
-    @staticmethod
-    def format_time(seconds):
-        """
-        Converts seconds into seconds, minutes:seconds, or
-        hours:minutes.seconds as appropriate.
-        """
-        minutes, seconds = divmod(float(seconds), 60)
-        hours, minutes = divmod(minutes, 60)
-
-        return_value = (int(hours), int(minutes), float(seconds))
-
-        if hours:
-            return "{0:d}:{1:0>2d}:{2:0>6.3f}".format(*return_value)
-        elif minutes:
-            return "{1:d}:{2:0>6.3f}".format(*return_value)
-        else:
-            return "{2:.3f}".format(*return_value)
 
 class GapTimeFlyout(Flyout):
     """
@@ -931,24 +987,6 @@ class GapTimeFlyout(Flyout):
             font=self.font)
 
         return self.material_with_data
-
-    @staticmethod
-    def format_time(seconds):
-        """
-        Converts seconds into seconds, minutes:seconds, or
-        hours:minutes.seconds as appropriate.
-        """
-        minutes, seconds = divmod(float(seconds), 60)
-        hours, minutes = divmod(minutes, 60)
-
-        return_value = (int(hours), int(minutes), float(seconds))
-
-        if hours:
-            return "{0:d}:{1:0>2d}:{2:0>6.3f}".format(*return_value)
-        elif minutes:
-            return "{1:d}:{2:0>6.3f}".format(*return_value)
-        else:
-            return "{2:.3f}".format(*return_value)
 
 class GTAnimation():
     """

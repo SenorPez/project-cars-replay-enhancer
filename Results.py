@@ -110,6 +110,7 @@ class Results(StaticBase):
                         (
                             car_class[1]+x_divisions*2,
                             y_pos+self.data_height)],
+                    outline=(0, 0, 0),
                     fill=tuple(color))
                 x_adj = 0
             except IndexError:
