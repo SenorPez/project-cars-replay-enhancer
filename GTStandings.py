@@ -217,7 +217,7 @@ class GTStandings(DynamicBase):
                     0,
                     self.replay.margin+self.text_height*2),
                 (
-                    self.replay.margin+material_width,
+                    self.replay.margin+material_width+1,
                     self.replay.margin+self.text_height*2)],
             fill='white',
             width=1)
@@ -229,7 +229,7 @@ class GTStandings(DynamicBase):
                     0,
                     self.replay.margin+self.text_height*2*11+1*10),
                 (
-                    self.replay.margin+material_width,
+                    self.replay.margin+material_width+1,
                     self.replay.margin+self.text_height*2*11+1*10)],
             fill='white',
             width=1)
@@ -242,7 +242,7 @@ class GTStandings(DynamicBase):
                         0,
                         self.replay.margin+self.text_height*2*6+1*5),
                     (
-                        self.replay.margin+material_width,
+                        self.replay.margin+material_width+1,
                         self.replay.margin+self.text_height*2*6+1*5)],
                 fill='white',
                 width=1)
@@ -320,7 +320,7 @@ class Timer():
 
         self.text_width, self.text_height = text_size
         self.font = font
-        self.material_width = self.text_height*2+self.text_width+10*2
+        self.material_width = self.text_height*2+self.text_width+10*2+2
         if self.replay.car_classes is not None:
             self.material_width += self.text_height
         self.material = None

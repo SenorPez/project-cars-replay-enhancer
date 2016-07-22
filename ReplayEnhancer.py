@@ -387,6 +387,7 @@ class ReplayEnhancer():
                 print("Invalid JSON in configuration file: {}".format(
                     error))
             else:
+                """
                 output = replay.build_custom_video(True, 10)
                 output = output.set_duration(
                     output.duration).subclip(
@@ -403,6 +404,7 @@ class ReplayEnhancer():
                     fps=30)
                 """
                 output.save_frame("outputs/custom.png", 10)
+                """
         except KeyboardInterrupt:
             raise
 
