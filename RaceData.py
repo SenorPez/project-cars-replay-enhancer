@@ -23,7 +23,6 @@ class RaceData():
     """
 
     _missing_participants = 0
-    participant_list = dict()
     _update_indexes = set()
     _telemetry_waiting = list()
     _starting_grid = None
@@ -32,12 +31,15 @@ class RaceData():
     _race_finished = set()
     _classification = list()
 
+    _lap_at_finish = [None for _ in range(56)]
+
     def __init__(self, telemetry_directory,
                  replay=None,
                  descriptor_file='descriptor.json'):
         self.telemetry_directory = telemetry_directory
         self.replay = replay
         self.descriptor_file = descriptor_file
+        self.participant_list = dict()
 
         try:
             with open(os.path.join(
@@ -453,6 +455,15 @@ class RaceData():
                         self.packet.event_duration:
                     self._final_lap = True
 
+                    if not any(self._lap_at_finish):
+                        self._lap_at_finish = [
+                            self.packet.participant_info[index].\
+                            current_lap \
+                            for index in range(56)]
+                        #Need to decrement the P1 lap so that it's
+                        #processed below.
+                        self._lap_at_finish[participant_index] -= 1
+
             sector_time = (
                 participant_info.last_sector_time,
                 participant_info.sector)
@@ -483,7 +494,9 @@ class RaceData():
 
             if participant_info.sector == 1 and \
                     self._final_lap and \
-                    participant_index not in self._race_finished:
+                    participant_index not in self._race_finished and \
+                    participant_info.current_lap > \
+                    self._lap_at_finish[participant_index]:
                 classification = (
                     participant_index,
                     self.packet.participant_info[participant_index].\
@@ -610,6 +623,12 @@ class RaceData():
         """
         Returns the classification data.
         """
+        return self.class_classification(None)
+
+    def class_classification(self, car_class):
+        """
+        Returns the classification data for the specified class.
+        """
         if self.packet is None or \
                 len(self._classification) < \
                 self.packet.num_participants:
@@ -636,10 +655,17 @@ class RaceData():
             points = classification_data.points
             series_points = classification_data.series_points
 
-            classification = sorted(
-                [data for data in self._classification \
-                    if data[0] is not None],
-                key=lambda x: (-x[5], x[6]))
+            if car_class is None:
+                classification = sorted(
+                    [data for data in self._classification \
+                        if data[0] is not None],
+                    key=lambda x: (-x[5], x[6]))
+            else:
+                classification = sorted(
+                    [data for data in self._classification \
+                        if data[0] is not None \
+                        and data[4] == car_class],
+                    key=lambda x: (-x[5], x[6]))
             classification = [(finish_position, driver_name)+\
                 tuple(rest)+\
                 (
@@ -649,8 +675,13 @@ class RaceData():
                 for finish_position, (
                     driver_index,
                     driver_name,
-                    *rest) \
-                in enumerate(classification, 1)]
+                    rest) \
+                in enumerate([
+                    (
+                        data[0],
+                        data[1],
+                        data[2:]
+                    ) for data in classification], 1)]
 
             if self.replay is not None:
                 for name in self.replay.additional_participants:

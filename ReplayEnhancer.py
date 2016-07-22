@@ -4,7 +4,6 @@ Provides the ReplayEnhancer and related classes.
 import argparse
 import json
 import os.path
-import sys
 
 import moviepy.editor as mpy
 from moviepy.editor import vfx
@@ -391,7 +390,7 @@ class ReplayEnhancer():
                 output = replay.build_custom_video(True, 10)
                 output = output.set_duration(
                     output.duration).subclip(
-                        output.duration-90,
+                        output.duration-60,
                         output.duration)
                 output.write_videofile(
                     replay.output_video,
@@ -502,37 +501,73 @@ class ReplayEnhancer():
         standing_clip = standing_clip.set_mask(standing_clip_mask)
 
         result = mpy.ImageClip(
-            Results(self, self.result_lines).to_frame()).set_duration(
-                20).set_position(('center', 'center')).add_mask()
+            Results(
+                self,
+                self.result_lines,
+                'Road C1').to_frame()).set_duration(
+                    20).set_position(('center', 'center')).add_mask()
+
+        start_time = 0
+        screen_duration = 20
+        result = list()
+
+        for index, car_class in enumerate(sorted(self.car_classes)):
+            new_result = mpy.ImageClip(Results(
+                self,
+                self.result_lines,
+                car_class).to_frame())
+            new_result = new_result.set_start(start_time)
+            new_result = new_result.set_duration(screen_duration)
+            new_result = new_result.set_position((
+                'center',
+                'center'))
+            new_result = new_result.add_mask()
+            start_time += screen_duration
+
+            if index != 0:
+                new_result.mask = new_result.mask.fx(
+                    vfx.fadein,
+                    1)
+                result[index-1].mask = result[index-1].mask.fx(
+                    vfx.fadeout,
+                    1)
+
+            result.append(new_result)
 
         if self.point_structure is not None:
-            result.mask = result.mask.fx(vfx.fadeout, 1)
+            result[-1].mask = result[-1].mask.fx(vfx.fadeout, 1)
             series_standings = mpy.ImageClip(
                 SeriesStandings(
                     self,
                     self.result_lines).to_frame()).set_start(
-                        20).set_duration(20).set_position(
-                        ('center', 'center')).add_mask()
+                        start_time).set_duration(
+                            screen_duration).set_position(
+                                ('center', 'center')).add_mask()
+            start_time += screen_duration
 
             if self.show_champion:
                 series_standings.mask = series_standings.mask.fx(
                     vfx.fadein, 1).fx(vfx.fadeout, 1)
                 champion = mpy.ImageClip(
                     Champion(self).to_frame()).set_start(
-                        40).set_duration(20).set_position(
-                            ('center', 'center')).add_mask()
+                        start_time).set_duration(
+                            screen_duration).set_position(
+                                ('center', 'center')).add_mask()
                 champion.mask = champion.mask.fx(vfx.fadein, 1)
+                start_time += screen_duration
             else:
                 series_standings.mask = series_standings.mask.fx(
                     vfx.fadein, 1)
         else:
             if self.show_champion:
-                result.mask = result.mask.fx(vfx.fadeout, 1)
+                result[-1].mask = result[-1].mask.fx(vfx.fadeout, 1)
                 champion = mpy.ImageClip(
                     Champion(self).to_frame()).set_start(
-                        20).set_duration(20).set_position(
-                            ('center', 'center')).add_mask()
+                        start_time).set_duration(
+                            screen_duration).set_position(
+                                ('center', 'center')).add_mask()
                 champion.mask = champion.mask.fx(vfx.fadein, 1)
+                start_time += screen_duration
 
 
         intro = mpy.CompositeVideoClip(
@@ -540,7 +575,7 @@ class ReplayEnhancer():
         mainevent = mpy.CompositeVideoClip(
             [video, standing_clip]).set_duration(video.duration)
 
-        outro_videos = [backdrop_clip, result]
+        outro_videos = [backdrop_clip] + result
         if self.point_structure is not None:
             outro_videos.append(series_standings)
         if self.show_champion:

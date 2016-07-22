@@ -24,9 +24,11 @@ class Results(StaticBase):
     """
     _classification = None
 
-    def __init__(self, replay, lines=None):
+    def __init__(self, replay, lines=None, car_class=None):
         self.replay = replay
         self.race_data = self.replay.race_data
+
+        self.car_class = car_class
 
         participants = {x for x \
             in self.replay.participant_lookup.values()}
@@ -84,31 +86,57 @@ class Results(StaticBase):
                 name[0],
                 fill=self.replay.font_color,
                 font=self.replay.font)
-            if team is not None:
-                draw.text(
-                    (team[1], y_pos),
-                    self.format_string(team[0]),
-                    fill=self.replay.font_color,
-                    font=self.replay.font)
+            draw.text(
+                (team[1], y_pos),
+                self.format_string(team[0]),
+                fill=self.replay.font_color,
+                font=self.replay.font)
             draw.text(
                 (car[1], y_pos),
                 self.format_string(car[0]),
                 fill=self.replay.font_color,
                 font=self.replay.font)
-            if car_class is not None:
-                draw.text(
-                    (car_class[1], y_pos),
-                    self.format_string(car_class[0]),
-                    fill=self.replay.font_color,
-                    font=self.replay.font)
+
+            try:
+                color = [data['color'] \
+                    for _, data in self.replay.car_classes.items() \
+                    if car[0] in data['cars']][0]
+                x_divisions = int(self.data_height/3)
+                draw.polygon(
+                    [
+                        (car_class[1], y_pos+self.data_height),
+                        (car_class[1]+x_divisions, y_pos),
+                        (car_class[1]+x_divisions*3, y_pos),
+                        (
+                            car_class[1]+x_divisions*2,
+                            y_pos+self.data_height)],
+                    fill=tuple(color))
+                x_adj = 0
+            except IndexError:
+                if car_class is None:
+                    x_adj = 0
+                else:
+                    x_adj = -self.data_height
+
             draw.text(
-                (laps[1]+(self.widths[5]-self.replay.font.getsize(
+                (car_class[1]+x_adj+self.data_height, y_pos),
+                str(car_class[0]),
+                fill=self.replay.font_color,
+                font=self.replay.font)
+
+            if car_class is None:
+                x_adj = 0
+            else:
+                x_adj = self.data_height
+
+            draw.text(
+                (laps[1]+x_adj+(self.widths[5]-self.replay.font.getsize(
                     self.format_string(laps[0]))[0])/2, y_pos),
                 self.format_string(laps[0]),
                 fill=self.replay.font_color,
                 font=self.replay.font)
             draw.text(
-                (elapsed_time[1]+(
+                (elapsed_time[1]+x_adj+(
                     self.widths[6]-self.replay.font.getsize(
                         self.format_string(
                             elapsed_time[0]))[0])/2, y_pos),
@@ -116,13 +144,14 @@ class Results(StaticBase):
                 fill=self.replay.font_color,
                 font=self.replay.font)
             draw.text(
-                (best_lap[1]+(self.widths[7]-self.replay.font.getsize(
-                    self.format_string(best_lap[0]))[0])/2, y_pos),
+                (best_lap[1]+x_adj+(
+                    self.widths[7]-self.replay.font.getsize(
+                        self.format_string(best_lap[0]))[0])/2, y_pos),
                 self.format_string(best_lap[0]),
                 fill=self.replay.font_color,
                 font=self.replay.font)
             draw.text(
-                (best_sector_1[1]+(
+                (best_sector_1[1]+x_adj+(
                     self.widths[8]-self.replay.font.getsize(
                         self.format_string(
                             best_sector_1[0]))[0])/2, y_pos),
@@ -130,7 +159,7 @@ class Results(StaticBase):
                 fill=self.replay.font_color,
                 font=self.replay.font)
             draw.text(
-                (best_sector_2[1]+(
+                (best_sector_2[1]+x_adj+(
                     self.widths[9]-self.replay.font.getsize(
                         self.format_string(
                             best_sector_2[0]))[0])/2, y_pos),
@@ -138,22 +167,21 @@ class Results(StaticBase):
                 fill=self.replay.font_color,
                 font=self.replay.font)
             draw.text(
-                (best_sector_3[1]+(
+                (best_sector_3[1]+x_adj+(
                     self.widths[10]-self.replay.font.getsize(
                         self.format_string(
                             best_sector_3[0]))[0])/2, y_pos),
                 self.format_string(best_sector_3[0]),
                 fill=self.replay.font_color,
                 font=self.replay.font)
-            if points != "":
-                draw.text(
-                    (points[1]+(
-                        self.widths[11]-self.replay.font.getsize(
-                            self.format_string(
-                                points[0]))[0])/2, y_pos),
-                    self.format_string(points[0]),
-                    fill=self.replay.font_color,
-                    font=self.replay.font)
+            draw.text(
+                (points[1]+x_adj+(
+                    self.widths[11]-self.replay.font.getsize(
+                        self.format_string(
+                            points[0]))[0])/2, y_pos),
+                self.format_string(points[0]),
+                fill=self.replay.font_color,
+                font=self.replay.font)
             y_pos += self.data_height+self.replay.margin
 
         return self.material
@@ -197,6 +225,8 @@ class Results(StaticBase):
             self.replay.font.getsize(
                 self.replay.subheading_text)[0]+\
                 self.replay.column_margin+header_height)
+        if self.replay.car_classes is not None:
+            text_width += self.data_height
         text_height = sum(heights)+self.replay.margin*len(heights)-1
 
         heading_material = Image.new(
@@ -220,9 +250,9 @@ class Results(StaticBase):
         y_pos = header_height
         for i, _ in enumerate(classification):
             if i % 2:
-                material_color = (255, 255, 255)
+                material_color = (255, 255, 255, 255)
             else:
-                material_color = (192, 192, 192)
+                material_color = (192, 192, 192, 255)
 
             row_material = Image.new(
                 'RGBA',
@@ -241,8 +271,11 @@ class Results(StaticBase):
         Returns the classification, trimmed to the number of lines
         specified.
         """
-        if self._classification is None:
+        if self._classification is None and self.car_class is None:
             self._classification = self.race_data.classification
+        elif self._classification is None:
+            self._classification = \
+                self.race_data.class_classification(self.car_class)
 
         if self.lines is None:
             positions = len(self.replay.point_structure)-1
@@ -252,7 +285,8 @@ class Results(StaticBase):
 
         classification = sorted(
             [line[:-1] for line in self._classification \
-                if line[0] is not None],
+                if line[0] is not None \
+                and line[4] == self.car_class],
             key=lambda x: x[0])[:positions]
 
         return classification
