@@ -1,22 +1,9 @@
-from importlib import import_module
+"""
+Provides UpdatedVideoClip class.
+(Missing from my installation of MoviePy.)
+"""
+
 import moviepy.editor as mpy
-from moviepy.video.io.bindings import PIL_to_npimage
-
-class simWorld():
-    def __init__(self, module, racestart, ups=30):
-        self.mod = import_module(module)
-        self.clip_t = racestart
-        self.ups = ups
-
-    def update(self):
-        self.mod.update_data(self.clip_t)
-        self.clip_t += float(1/self.ups)
-
-    def to_frame(self):
-        return PIL_to_npimage(self.mod.make_material(self.clip_t).convert('RGB'))
-
-    def make_mask(self):
-        return self.mod.make_mask(self.clip_t)
 
 class UpdatedVideoClip(mpy.VideoClip):
     """
@@ -50,8 +37,15 @@ class UpdatedVideoClip(mpy.VideoClip):
 
     def __init__(self, world, ismask=False, duration=None):
         self.world = world
-        def make_frame(t):
-            while self.world.clip_t < t:
+        def make_frame(time):
+            """
+            Updates world and returns frame.
+            """
+            while self.world.clip_t < time:
                 world.update()
-            return world.to_frame()
-        mpy.VideoClip.__init__(self, make_frame= make_frame, ismask=ismask, duration=duration)
+            return world.make_mask() if ismask else world.to_frame()
+        mpy.VideoClip.__init__(
+            self,
+            make_frame=make_frame,
+            ismask=ismask,
+            duration=duration)

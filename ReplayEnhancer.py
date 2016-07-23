@@ -3,6 +3,7 @@ Provides the ReplayEnhancer and related classes.
 """
 import argparse
 import json
+import os
 import os.path
 
 import moviepy.editor as mpy
@@ -387,24 +388,7 @@ class ReplayEnhancer():
                 print("Invalid JSON in configuration file: {}".format(
                     error))
             else:
-                """
-                output = replay.build_custom_video(True, 10)
-                output = output.set_duration(
-                    output.duration).subclip(
-                        0,
-                        120)
-                output.write_videofile(
-                    replay.output_video,
-                    fps=10,
-                    preset='superfast')
-                """
-                output = replay.build_custom_video(True)
-                output.write_videofile(
-                    replay.output_video,
-                    fps=30)
-                """
-                output.save_frame("outputs/custom.png", 10)
-                """
+                replay.build_custom_video(True)
         except KeyboardInterrupt:
             raise
 
@@ -478,16 +462,17 @@ class ReplayEnhancer():
         title = mpy.ImageClip(Title(self).to_frame()).set_duration(
             5).set_position(('center', 'center'))
 
-        title = mpy.ImageClip(Title(self).to_frame())
-        title_mask = mpy.ImageClip(Title(self).make_mask(), ismask=True)
-        title = title.set_mask(title_mask)
-        title = title.set_duration(5).set_position(('center', 'center'))
-
-        title = mpy.ImageClip(Title(self).to_frame()).set_duration(
-            5).set_position(('center', 'center'))
+        intro = mpy.CompositeVideoClip(
+            [backdrop_clip, title],
+            use_bgclip=True).set_duration(5)
 
         standing = GTStandings(
             self,
+            process_data=process_data,
+            ups=ups)
+        standing_mask = GTStandings(
+            self,
+            mask=True,
             process_data=process_data,
             ups=ups)
 
@@ -496,11 +481,16 @@ class ReplayEnhancer():
         standing_clip = standing_clip.set_position(
             (0, 0)).set_duration(video.duration)
 
-        standing_clip_mask = mpy.VideoClip(
-            make_frame=standing.get_mask,
+        standing_clip_mask = UpdatedVideoClip(
+            standing_mask,
             ismask=True)
-
+        standing_clip_mask = standing_clip_mask.set_position(
+            (0, 0)).set_duration(video.duration)
         standing_clip = standing_clip.set_mask(standing_clip_mask)
+
+        mainevent = mpy.CompositeVideoClip(
+            [video, standing_clip],
+            use_bgclip=False).set_duration(video.duration)
 
         start_time = 0
         screen_duration = 20
@@ -623,23 +613,21 @@ class ReplayEnhancer():
                 champion[0].mask = champion[0].mask.fx(
                     vfx.fadein, 1)
 
-        intro = mpy.CompositeVideoClip(
-            [backdrop_clip, title]).set_duration(5).fx(vfx.fadeout, 1)
-        mainevent = mpy.CompositeVideoClip(
-            [video, standing_clip]).set_duration(video.duration)
-
         outro_videos = [backdrop_clip] + result
         if self.point_structure is not None:
             outro_videos.extend(series_standings)
         if self.show_champion:
             outro_videos.extend(champion)
 
-        outro = mpy.CompositeVideoClip(outro_videos).set_duration(
-            sum([x.duration for x in outro_videos[1:]])).fx(
-                vfx.fadein, 1)
+        outro = mpy.CompositeVideoClip(
+            outro_videos,
+            use_bgclip=True).set_duration(
+                sum([x.duration for x in outro_videos[1:]])).fx(
+                    vfx.fadein, 1)
 
-        output = mpy.concatenate_videoclips([intro, mainevent, outro])
-        return output
+        output = mpy.concatenate_videoclips([
+            intro, mainevent, outro])
+        output.write_videofile(self.output_video)
 
     def build_default_video(self, process_data):
         """

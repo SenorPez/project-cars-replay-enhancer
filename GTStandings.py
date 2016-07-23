@@ -41,17 +41,6 @@ class GTStandings(DynamicBase):
     def ups(self, value):
         self._ups = value
 
-    def get_mask(self, _):
-        """
-        Gets the mask. Drops the time argument from the
-        caller.
-        """
-        out = self._make_material(True)
-        out = out.split()[-1].convert('RGB')
-        out = PIL_to_npimage(out)
-        out = out[:, :, 0]/255
-        return out
-
     def __init__(self, replay, clip_t=0, ups=30,
                  process_data=True, mask=False):
         self.replay = replay
@@ -67,19 +56,22 @@ class GTStandings(DynamicBase):
         self.text_width, self.text_height = \
             self.replay.race_data.max_name_dimensions(
                 self.replay.font)
+        self.short_text_width, self.short_text_height = \
+            self.replay.race_data.max_short_name_dimensions(
+                self.replay.font)
 
         self.standings_lines = list()
         for driver in self.telemetry_data.drivers_by_position:
             self.standings_lines.append(Standing(
                 self.replay,
                 driver,
-                (self.text_width, self.text_height),
+                (self.short_text_width, self.short_text_height),
                 self.replay.font,
                 self.mask,
                 ups=self.ups))
         self.timer = Timer(
             self.replay,
-            (self.text_width, self.text_height),
+            (self.short_text_width, self.short_text_height),
             self.replay.font,
             self.mask,
             ups=self.ups)
@@ -100,9 +92,13 @@ class GTStandings(DynamicBase):
         if not bg_only:
             self.telemetry_data = self.update(force_process=True)
 
-        material_width = self.text_height*2+self.text_width+10*2
         if self.replay.car_classes is not None:
-            material_width += self.text_height
+            material_width = \
+                self.short_text_height*3+self.short_text_width+10*2
+        else:
+            material_width = \
+                self.short_text_height*2+self.short_text_width+10*2
+
 
         subject_position = \
             self.telemetry_data.drivers_by_index[0].race_position
@@ -260,7 +256,14 @@ class GTStandings(DynamicBase):
         return super(GTStandings, self).to_frame()
 
     def make_mask(self):
-        return super(GTStandings, self).make_mask()
+        """
+        Returns mask.
+        """
+        out = self._make_material(True)
+        out = out.split()[-1].convert('RGB')
+        out = PIL_to_npimage(out)
+        out = out[:, :, 0]/255
+        return out
 
 class Timer():
     """
@@ -320,9 +323,12 @@ class Timer():
 
         self.text_width, self.text_height = text_size
         self.font = font
-        self.material_width = self.text_height*2+self.text_width+10*2+2
         if self.replay.car_classes is not None:
-            self.material_width += self.text_height
+            self.material_width = \
+                self.text_height*3+self.text_width+10*2+2
+        else:
+            self.material_width = \
+                self.text_height*2+self.text_width+10*2+2
         self.material = None
 
         if ups is not None:
@@ -456,14 +462,11 @@ class Standing():
     def ups(self, value):
         self._ups = value
 
-    def render(self, driver, bg_only, force_same_name=True):
+    def render(self, driver, bg_only):
         """
         Determines if data has changed and renders line.
         """
         self.mask = bg_only
-        if driver.name != self.driver.name \
-                and force_same_name:
-            raise ValueError("ValueError: Names do not match.")
 
         #TODO: This is ugly as hell. Clean it up.
         if driver.race_position == self.driver.race_position and \
@@ -527,14 +530,18 @@ class Standing():
                     self.race_data,
                     self.driver,
                     self.font,
-                    (200, self.text_height*2),
+                    size=(
+                        self.font.getsize("99:99:999")[0]+10*2,
+                        self.text_height*2),
                     ups=self.ups)
             else:
                 self.flyout = GapTimeFlyout(
                     self.race_data,
                     self.driver,
                     self.font,
-                    (200, self.text_height*2),
+                    size=(
+                        self.font.getsize("99:99:999")[0]+10*2,
+                        self.text_height*2),
                     ups=self.ups)
 
         self.driver = driver
@@ -549,13 +556,17 @@ class Standing():
         self.replay = replay
         self.race_data = self.replay.race_data
         self.driver = driver
+        self.name = self.replay.short_name_display[driver.name]
         self.mask = mask
 
         self.text_width, self.text_height = text_size
         self.font = font
-        self.material_width = self.text_height*2+self.text_width+10*2
         if self.replay.car_classes is not None:
-            self.material_width += self.text_height
+            self.material_width = \
+                self.text_height*3+self.text_width+10*2
+        else:
+            self.material_width = \
+                self.text_height*2+self.text_width+10*2
 
         self.material = None
         self.material_with_data = None
@@ -608,9 +619,10 @@ class Standing():
                 self.text_height*2+1),
             fill=self.position_color)
 
-        width = self.text_height*2+self.text_width+10*2+1
         if self.replay.car_classes is not None:
-            width += self.text_height
+            width = self.text_height*3+self.text_width+10*2+1
+        else:
+            width = self.text_height*2+self.text_width+10*2+1
 
         draw.rectangle(
             (
@@ -669,7 +681,7 @@ class Standing():
 
         draw.text(
             (x_position, y_position),
-            str(self.driver.name),
+            str(self.name),
             fill=self.name_text_color,
             font=self.font)
 
@@ -783,14 +795,14 @@ class LapTimeFlyout(Flyout):
         self.animations = list()
         self.animations.append(
             GTAnimation(
-                duration=30,
+                duration=int(ups/2),
                 position_from=(-self.size[0], 0)))
         self.animations.append(
             GTAnimation(
-                duration=30,
+                duration=int(ups/2),
                 position_from=(0, 0),
                 position_to=(-self.size[0], 0),
-                delay=300))
+                delay=ups*5))
         self.material = None
         self.material_with_data = None
         self.session_best = False
@@ -920,14 +932,14 @@ class GapTimeFlyout(Flyout):
         self.animations = list()
         self.animations.append(
             GTAnimation(
-                duration=30,
+                duration=int(ups/2),
                 position_from=(-self.size[0], 0)))
         self.animations.append(
             GTAnimation(
-                duration=30,
+                duration=int(ups/2),
                 position_from=(0, 0),
                 position_to=(-self.size[0], 0),
-                delay=300))
+                delay=ups*5))
         self.material = None
         self.material_with_data = None
         self.session_best = False
@@ -1033,8 +1045,6 @@ class GTAnimation():
             self.delay -= 1
             return (0, 0)
         else:
-            return_value = tuple([int(x) for x in self.position_from])
-
             self.ticks_remaining = max(
                 self.ticks_remaining-1,
                 0)
@@ -1053,12 +1063,13 @@ class GTAnimation():
                         self.position_to,
                         self.offset_adjustment)])
 
+            return_value = tuple([int(x) for x in self.position_from])
             return return_value
 
     @property
     def offset_static(self):
         """
-        Returns the offset without updating anything.
+        Returns the current offset without updating anything.
         """
         return tuple([int(x) for x in self.position_from])
 

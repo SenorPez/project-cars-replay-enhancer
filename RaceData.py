@@ -57,6 +57,7 @@ class RaceData():
         self.add_time = 0.0
 
         self.max_name_dimensions_value = None
+        self.max_short_name_dimensions_value = None
 
         self.sector_times = [list() for _ in range(56)]
         self.valid_laps = [set() for _ in range(56)]
@@ -592,6 +593,30 @@ class RaceData():
             self.max_name_dimensions_value = (width, height)
 
         return self.max_name_dimensions_value
+
+    def max_short_name_dimensions(self, font):
+        """
+        Determines the maximum dimensions for names involved
+        in the race.
+        """
+        if self.max_short_name_dimensions_value is None:
+            telemetry_data = self.__get_telemetry_data(
+                elapsed_time=False)
+            names = tqdm(
+                {self.replay.short_name_display[name] \
+                    for packet in telemetry_data \
+                    if packet.packet_type == 1 or \
+                    packet.packet_type == 2 \
+                    for name in packet.name \
+                    if len(name)},
+                desc='Reading Telemetry Data Names',
+                total=self.packet_count,
+                unit='packets')
+            height = max([font.getsize(driver)[1] for driver in names])
+            width = max([font.getsize(driver)[0] for driver in names])
+            self.max_short_name_dimensions_value = (width, height)
+
+        return self.max_short_name_dimensions_value
 
     @property
     def starting_grid(self):
