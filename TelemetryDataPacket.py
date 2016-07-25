@@ -13,15 +13,27 @@ class ParticipantInfo():
     telemetry data.
     """
     def __init__(self, unpacked_data):
-        self.world_position = list()
+        self._world_position = list()
         for _ in range(3):
-            self.world_position.append(int(unpacked_data.popleft()))
+            self._world_position.append(int(unpacked_data.popleft()))
+
         self.current_lap_distance = int(unpacked_data.popleft())
         self._race_position = int(unpacked_data.popleft())
         self._laps_completed = int(unpacked_data.popleft())
         self.current_lap = int(unpacked_data.popleft())
         self._sector = int(unpacked_data.popleft())
         self.last_sector_time = float(unpacked_data.popleft())
+
+    @property
+    def world_position(self):
+        """Returns world position (high accuracy for x and z)."""
+        world_position = [float(x) for x in self._world_position]
+        world_position[0] += float(
+            ((self._sector & int('00011000', 2)) >> 3) / 4)
+        world_position[2] += float(
+            ((self._sector & int('01100000', 2)) >> 5) / 4)
+
+        return world_position
 
     @property
     def is_active(self):

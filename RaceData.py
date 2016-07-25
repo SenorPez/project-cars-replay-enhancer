@@ -111,13 +111,18 @@ class RaceData():
                 break
 
         #Exhaust packets before the race start.
-        while True:
-            packet = next(telemetry_data)
-            progress.update()
-            if packet.packet_type == 0 and (
-                    packet.session_state != 5 or \
-                    packet.game_state != 2):
-                break
+        try:
+            while True:
+                packet = next(telemetry_data)
+                progress.update()
+                if packet.packet_type == 0 and (
+                        packet.session_state != 5 or \
+                        packet.game_state != 2):
+                    break
+        #None found (no restarts?) so use the first packet.
+        #It is already on `packet`.
+        except StopIteration:
+            pass
 
         progress.close()
         self.descriptor['race_start'] = packet.data_hash
@@ -398,51 +403,43 @@ class RaceData():
             self.packet.participant_info[index].name = name
             self.packet.participant_info[index].index = index
 
-            try:
+            if self.replay is not None:
                 self.packet.participant_info[index].team = \
                     self.replay.team_data[name]
-            except (AttributeError, KeyError):
-                self.packet.participant_info[index].team = None
 
-            try:
                 self.packet.participant_info[index].car = \
                     self.replay.car_data[name]
-            except (AttributeError, KeyError):
-                self.packet.participant_info[index].car = None
-
-            try:
-                self.packet.participant_info[index].car_class \
-                    = [car_class for car_class, data \
-                    in self.replay.car_classes.items() \
-                    if self.replay.car_data[name] in data['cars']][0]
-            except (AttributeError, KeyError):
-                self.packet.participant_info[index].car_class = None
-
-            for telemetry_packet, _ in self._telemetry_waiting:
-                telemetry_packet.participant_info[index].name = name
-                telemetry_packet.participant_info[index].index = index
-
-                try:
-                    telemetry_packet.participant_info[index].team = \
-                        self.replay.team_data[name]
-                except (AttributeError, KeyError):
-                    telemetry_packet.participant_info[index].team = None
-
-                try:
-                    telemetry_packet.participant_info[index].car = \
-                        self.replay.car_data[name]
-                except (AttributeError, KeyError):
-                    telemetry_packet.participant_info[index].car = None
 
                 try:
                     self.packet.participant_info[index].car_class \
-                        = [car_class \
-                            for car_class, data \
-                            in self.replay.car_classes.items() \
+                        = [car_class for car_class, data \
+                        in self.replay.car_classes.items() \
                         if self.replay.car_data[name] \
                         in data['cars']][0]
-                except (AttributeError, KeyError):
+                except IndexError:
                     self.packet.participant_info[index].car_class = None
+
+                for telemetry_packet, _ in self._telemetry_waiting:
+                    telemetry_packet.participant_info[index].name = name
+                    telemetry_packet.participant_info[index].index = \
+                        index
+
+                    telemetry_packet.participant_info[index].team = \
+                        self.replay.team_data[name]
+
+                    telemetry_packet.participant_info[index].car = \
+                        self.replay.car_data[name]
+
+                    try:
+                        self.packet.participant_info[index].car_class \
+                            = [car_class \
+                                for car_class, data \
+                                in self.replay.car_classes.items() \
+                            if self.replay.car_data[name] \
+                            in data['cars']][0]
+                    except IndexError:
+                        self.packet.participant_info[index].car_class \
+                            = None
 
         for participant_index in range(56):
             participant_info = \

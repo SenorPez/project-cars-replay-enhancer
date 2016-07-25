@@ -358,6 +358,7 @@ class ReplayEnhancer():
                 print("Invalid JSON in configuration file: {}".format(
                     error))
             else:
+                """
                 start_video = replay.build_default_video(False)
                 end_video = replay.build_default_video(False)
 
@@ -377,6 +378,11 @@ class ReplayEnhancer():
                     replay.output_video,
                     fps=10,
                     preset='superfast')
+                """
+                output1 = replay.build_custom_video(True, ups=10,
+                                                    low_quality=True)
+                output1 = output1.subclip(450, 540)
+                output1.write_videofile(replay.output_video)
 
         except KeyboardInterrupt:
             raise
@@ -396,7 +402,8 @@ class ReplayEnhancer():
                 print("Invalid JSON in configuration file: {}".format(
                     error))
             else:
-                replay.build_custom_video(True)
+                output = replay.build_custom_video(True, ups=30)
+                output.write_videofile(replay.output_video)
         except KeyboardInterrupt:
             raise
 
@@ -419,7 +426,8 @@ class ReplayEnhancer():
         except KeyboardInterrupt:
             raise
 
-    def build_custom_video(self, process_data, ups=30):
+    def build_custom_video(self, process_data, ups=30,
+                           low_quality=False):
         """
         Builds a video with custom settings (used for testing).
         """
@@ -440,7 +448,6 @@ class ReplayEnhancer():
         video_width, video_height = video.size
         self.size = video.size
 
-        low_quality = False
         if low_quality:
             ups = 10
             def timecode_frame(time):
@@ -529,11 +536,33 @@ class ReplayEnhancer():
         screen_duration = 20
         result = list()
 
-        for index, car_class in enumerate(sorted(self.car_classes)):
+        if len(self.car_classes):
+            for index, car_class in enumerate(sorted(self.car_classes)):
+                new_result = mpy.ImageClip(Results(
+                    self,
+                    self.result_lines,
+                    car_class).to_frame())
+                new_result = new_result.set_start(start_time)
+                new_result = new_result.set_duration(screen_duration)
+                new_result = new_result.set_position((
+                    'center',
+                    'center'))
+                new_result = new_result.add_mask()
+                start_time += screen_duration
+
+                if index != 0:
+                    new_result.mask = new_result.mask.fx(
+                        vfx.fadein,
+                        1)
+                    result[index-1].mask = result[index-1].mask.fx(
+                        vfx.fadeout,
+                        1)
+
+                result.append(new_result)
+        else:
             new_result = mpy.ImageClip(Results(
                 self,
-                self.result_lines,
-                car_class).to_frame())
+                self.result_lines).to_frame())
             new_result = new_result.set_start(start_time)
             new_result = new_result.set_duration(screen_duration)
             new_result = new_result.set_position((
@@ -542,23 +571,40 @@ class ReplayEnhancer():
             new_result = new_result.add_mask()
             start_time += screen_duration
 
-            if index != 0:
-                new_result.mask = new_result.mask.fx(
-                    vfx.fadein,
-                    1)
-                result[index-1].mask = result[index-1].mask.fx(
-                    vfx.fadeout,
-                    1)
-
             result.append(new_result)
 
         if self.point_structure is not None:
             series_standings = list()
-            for index, car_class in enumerate(sorted(self.car_classes)):
+            if len(self.car_classes):
+                for index, car_class in enumerate(
+                        sorted(self.car_classes)):
+                    new_standing = mpy.ImageClip(SeriesStandings(
+                        self,
+                        self.result_lines,
+                        car_class).to_frame())
+                    new_standing = new_standing.set_start(start_time)
+                    new_standing = new_standing.set_duration(
+                        screen_duration)
+                    new_standing = new_standing.set_position((
+                        'center',
+                        'center'))
+                    new_standing = new_standing.add_mask()
+                    start_time += screen_duration
+
+                    if index != 0:
+                        new_standing.mask = new_standing.mask.fx(
+                            vfx.fadein,
+                            1)
+                        series_standings[index-1].mask = \
+                            series_standings[index-1].mask.fx(
+                                vfx.fadeout,
+                                1)
+
+                    series_standings.append(new_standing)
+            else:
                 new_standing = mpy.ImageClip(SeriesStandings(
                     self,
-                    self.result_lines,
-                    car_class).to_frame())
+                    self.result_lines).to_frame())
                 new_standing = new_standing.set_start(start_time)
                 new_standing = new_standing.set_duration(
                     screen_duration)
@@ -568,15 +614,6 @@ class ReplayEnhancer():
                 new_standing = new_standing.add_mask()
                 start_time += screen_duration
 
-                if index != 0:
-                    new_standing.mask = new_standing.mask.fx(
-                        vfx.fadein,
-                        1)
-                    series_standings[index-1].mask = \
-                        series_standings[index-1].mask.fx(
-                            vfx.fadeout,
-                            1)
-
                 series_standings.append(new_standing)
 
             result[-1].mask = result[-1].mask.fx(vfx.fadeout, 1)
@@ -585,11 +622,35 @@ class ReplayEnhancer():
 
             if self.show_champion:
                 champion = list()
-                for index, car_class in enumerate(
-                        sorted(self.car_classes)):
+                if len(self.car_classes):
+                    for index, car_class in enumerate(
+                            sorted(self.car_classes)):
+                        new_champion = mpy.ImageClip(Champion(
+                            self,
+                            car_class).to_frame())
+                        new_champion = new_champion.set_start(
+                            start_time)
+                        new_champion = new_champion.set_duration(
+                            screen_duration)
+                        new_champion = new_champion.set_position((
+                            'center',
+                            'center'))
+                        new_champion = new_champion.add_mask()
+                        start_time += screen_duration
+
+                        if index != 0:
+                            new_champion.mask = new_champion.mask.fx(
+                                vfx.fadein,
+                                1)
+                            champion[index-1].mask = \
+                                series_standings[index-1].mask.fx(
+                                    vfx.fadeout,
+                                    1)
+
+                        champion.append(new_champion)
+                else:
                     new_champion = mpy.ImageClip(Champion(
-                        self,
-                        car_class).to_frame())
+                        self).to_frame())
                     new_champion = new_champion.set_start(start_time)
                     new_champion = new_champion.set_duration(
                         screen_duration)
@@ -598,15 +659,6 @@ class ReplayEnhancer():
                         'center'))
                     new_champion = new_champion.add_mask()
                     start_time += screen_duration
-
-                    if index != 0:
-                        new_champion.mask = new_champion.mask.fx(
-                            vfx.fadein,
-                            1)
-                        champion[index-1].mask = \
-                            series_standings[index-1].mask.fx(
-                                vfx.fadeout,
-                                1)
 
                     champion.append(new_champion)
 
@@ -618,11 +670,35 @@ class ReplayEnhancer():
         else:
             if self.show_champion:
                 champion = list()
-                for index, car_class in enumerate(
-                        sorted(self.car_classes)):
+                if len(self.car_classes):
+                    for index, car_class in enumerate(
+                            sorted(self.car_classes)):
+                        new_champion = mpy.ImageClip(Champion(
+                            self,
+                            car_class).to_frame())
+                        new_champion = new_champion.set_start(
+                            start_time)
+                        new_champion = new_champion.set_duration(
+                            screen_duration)
+                        new_champion = new_champion.set_position((
+                            'center',
+                            'center'))
+                        new_champion = new_champion.add_mask()
+                        start_time += screen_duration
+
+                        if index != 0:
+                            new_champion.mask = new_champion.mask.fx(
+                                vfx.fadein,
+                                1)
+                            champion[index-1].mask = series_standings\
+                                [index-1].mask.fx(
+                                    vfx.fadeout,
+                                    1)
+
+                        champion.append(new_champion)
+                else:
                     new_champion = mpy.ImageClip(Champion(
-                        self,
-                        car_class).to_frame())
+                        self).to_frame())
                     new_champion = new_champion.set_start(start_time)
                     new_champion = new_champion.set_duration(
                         screen_duration)
@@ -631,15 +707,6 @@ class ReplayEnhancer():
                         'center'))
                     new_champion = new_champion.add_mask()
                     start_time += screen_duration
-
-                    if index != 0:
-                        new_champion.mask = new_champion.mask.fx(
-                            vfx.fadein,
-                            1)
-                        champion[index-1].mask = series_standings\
-                            [index-1].mask.fx(
-                                vfx.fadeout,
-                                1)
 
                     champion.append(new_champion)
 
@@ -661,7 +728,7 @@ class ReplayEnhancer():
         output = mpy.concatenate_videoclips([
             intro, mainevent, outro])
         output = output.set_fps(ups)
-        output.write_videofile(self.output_video)
+        return output
 
     def build_default_video(self, process_data):
         """

@@ -29,6 +29,9 @@ class REParticipantInfo(ParticipantInfo):
         self.car_class = None
         self.viewed = False
 
+        self._world_position = list()
+        for _ in range(3):
+            self._world_position.append(int(unpacked_data.popleft()))
         self._race_position = int(unpacked_data.popleft())
         self._laps_completed = int(unpacked_data.popleft())
         self.current_lap = int(unpacked_data.popleft())
@@ -118,7 +121,7 @@ class RETelemetryDataPacket(TelemetryDataPacket):
         packet_string += "8x" #Extras
         packet_string += "2x" #Car damage
         packet_string += "6x" #Weather
-        packet_string += "2x2x2x2xBBBBf"*56 #Participant info
+        packet_string += "hhh2xBBBBf"*56 #Participant info
         packet_string += "fxxx"
 
         return packet_string

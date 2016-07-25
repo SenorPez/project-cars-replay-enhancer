@@ -188,7 +188,7 @@ class Configuration:
             while True:
                 print("Enter size of font.")
                 prompt = "({})".format(self.font_size) \
-                    if previous_file else "15"
+                    if previous_file else "(15)"
                 font_size = input(prompt+"--> ")
 
                 if len(font_size) == 0 and previous_file:
@@ -248,7 +248,8 @@ class Configuration:
             while True:
                 print("Enter size of heading font.")
                 prompt = "({})".format(self.heading_font_size) \
-                    if previous_file else str(int(self.font_size/0.75))
+                    if previous_file else "("+str(
+                        int(self.font_size/0.75))+")"
                 heading_font_size = input(prompt+"--> ")
 
                 if len(heading_font_size) == 0 and previous_file:
@@ -268,7 +269,8 @@ class Configuration:
             while True:
                 print("Enter margin width.")
                 prompt = "({})".format(self.margin) \
-                    if previous_file else str(self.heading_font_size)
+                    if previous_file else "("+str(
+                        self.heading_font_size)+")"
                 margin = input(prompt+"--> ")
 
                 if len(margin) == 0 and previous_file:
@@ -287,7 +289,8 @@ class Configuration:
             while True:
                 print("Enter column margin width.")
                 prompt = "({})".format(self.column_margin) \
-                    if previous_file else str(int(self.margin/2))
+                    if previous_file else "("+str(
+                        int(self.margin/2))+")"
                 column_margin = input(prompt+"--> ")
 
                 if len(column_margin) == 0 and previous_file:
@@ -423,11 +426,13 @@ class Configuration:
                       "separated by commas, representing Red, Green,",
                       "and Blue values.")
                 prompt = "({}, {}, {})".format(*self.heading_color) \
-                    if previous_file else ""
+                    if previous_file else "(0, 0, 0)"
                 heading_color = input(prompt+"--> ")
 
                 if len(heading_color) == 0 and previous_file:
                     break
+                elif len(heading_color) == 0:
+                    self.heading_color = [0, 0, 0]
                 else:
                     try:
                         heading_color = [int(x) \
@@ -672,7 +677,8 @@ class Configuration:
                 print("Positions scoring points in the race and series")
                 print("ranks with points will be shown, up to 16.")
                 prompt = "({})".format(self.result_lines) \
-                    if previous_file and self.result_lines is not None else ""
+                    if previous_file and self.result_lines is not None \
+                    else ""
                 result_lines = input(prompt+"--> ")
 
                 if len(result_lines) == 0 and previous_file:
@@ -901,8 +907,8 @@ class Configuration:
                             session_car = last_car
                             break
 
-                if session_car not in confirmed_cars \
-                        and use_car_class:
+                if use_car_class and \
+                        session_car not in confirmed_cars:
                     while True:
                         print("Enter class for {}.".format(
                             session_car))
@@ -951,7 +957,7 @@ class Configuration:
                             car_class_lookup[session_car] = car_class
                             break
 
-                if car_class not in confirmed_classes and use_car_class:
+                if use_car_class and car_class not in confirmed_classes:
                     while True:
                         print("Enter color code for {}.".format(
                             car_class))

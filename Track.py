@@ -30,20 +30,20 @@ class Track():
 
         #integer, _, decimal = str(track_length).partition('.')
         #track_length = ".".join([integer, (decimal+'0'*3)[:3]])
-        track = sorted([y \
-            for x in json_data['tracks'] \
-            for y in x.values() \
-            if abs(y['length']-float(track_length)) < error],
+        track = sorted(
+            [y \
+                for x in json_data['tracks'] \
+                for y in x.values() \
+                if abs(y['length']-float(track_length)) < error],
             key=lambda y: abs(y['length']-float(track_length)))
-        #track = [y for x in json_data['tracks'] \
-            #for y in x.values() \
-            #if y['length'] == float(track_length)]
 
         if len(track) == 0:
-            print("Error. No matching track length found",
+            print(
+                "Error. No matching track length found",
                 "in data. Supplied track length was {}".format(
                     track_length))
-            print("Press any key to continue. Pit stop detection",
+            print(
+                "Press any key to continue. Pit stop detection",
                 "will be disabled.")
             input("--> ")
 
@@ -51,13 +51,15 @@ class Track():
         else:
             use_track = "1"
             if len(track) > 1:
-                print("Error. Multiple matching track lengths found",
+                print(
+                    "Error. Multiple matching track lengths found",
                     "in data. Supplied track length was {}".format(
                         track_length))
                 for i, matching_track in enumerate(track, 1):
                     print("Enter {} to use {}".format(
                         i, matching_track['display_name']))
-                print("Enter any other value, or press Enter to",
+                print(
+                    "Enter any other value, or press Enter to",
                     "continue. Pit stop detection will be disabled.")
                 use_track = input("--> ")
 
@@ -77,8 +79,8 @@ class Track():
                     self.length = float(track['length'])
 
                     try:
-                        #If all of the pit keys are present, we populate the
-                        #pit information.
+                        #If all of the pit keys are present, we populate
+                        #the pit information.
                         self.pit = True
                         self.pit_entry = [float(track['pit_entry'][0]),
                                           float(track['pit_entry'][1])]
@@ -86,8 +88,8 @@ class Track():
                                          float(track['pit_exit'][1])]
                         self.pit_radius = float(track['pit_radius'])
                     except KeyError:
-                        #If any of the pit keys aren't present, we treat it
-                        #like there's no pit on the track.
+                        #If any of the pit keys aren't present, we treat
+                        #it like there's no pit on the track.
                         self.pit = False
             else:
                 self.pit = False
@@ -101,7 +103,7 @@ class Track():
         return self.pit and \
             abs(self.pit_entry[0]-coordinates[0]) < \
                 self.pit_radius and \
-            abs(self.pit_entry[1]-coordinates[1]) < \
+            abs(self.pit_entry[1]-coordinates[2]) < \
                 self.pit_radius
 
     def at_pit_exit(self, coordinates):
@@ -113,5 +115,5 @@ class Track():
         return self.pit and \
             abs(self.pit_exit[0]-coordinates[0]) < \
                 self.pit_radius and \
-            abs(self.pit_exit[1]-coordinates[1]) < \
+            abs(self.pit_exit[1]-coordinates[2]) < \
                 self.pit_radius

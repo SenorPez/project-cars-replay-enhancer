@@ -3,6 +3,7 @@ Provides classes for the creation of a GT Sport style
 Standings overlay.
 """
 import abc
+from collections import deque
 
 from PIL import Image, ImageDraw
 from moviepy.video.io.bindings import PIL_to_npimage
@@ -523,6 +524,7 @@ class Standing():
         self.mask = bg_only
 
         #TODO: This is ugly as hell. Clean it up.
+        """
         if driver.race_position == self.driver.race_position and \
                 driver.current_lap == self.driver.current_lap and \
                 self.material is not None and (
@@ -560,6 +562,7 @@ class Standing():
                         in self.flyout.animations]
 
                 return self.material_with_data
+        """
 
         if driver.race_position != self.driver.race_position:
             #Determine the difference.
@@ -575,10 +578,28 @@ class Standing():
                     (0, offset)))
 
         if self.flyout is not None and \
+                not self.flyout.persist and \
                 all([x.complete for x in self.flyout.animations]):
             self.flyout = None
 
-        if driver.current_lap != self.driver.current_lap:
+        if isinstance(self.flyout, PitStopFlyout):
+            self.flyout.new_location = driver.world_position
+            if self.replay.track.at_pit_exit(driver.world_position):
+                self.flyout.close_flyout()
+
+        if self.replay.track.at_pit_entry(driver.world_position) and \
+                not isinstance(self.flyout, PitStopFlyout):
+            self.flyout = PitStopFlyout(
+                driver.world_position,
+                self.font,
+                size=(
+                    self.font.getsize("99:99:999")[0]+10*2,
+                    self.text_height*2),
+                ups=self.ups,
+                persist=True)
+
+        if driver.current_lap != self.driver.current_lap and \
+                self.flyout is None:
             if driver.race_position == 1:
                 self.flyout = LapTimeFlyout(
                     self.race_data,
@@ -835,6 +856,7 @@ class LapTimeFlyout(Flyout):
             self.driver.current_lap)
         self.font = font
         self.mask = mask
+        self.persist = False
 
         if size is None:
             width, _ = self.font.getsize("99:99:999")
@@ -952,6 +974,7 @@ class GapTimeFlyout(Flyout):
                  font, mask=False, ups=None, size=None):
         self.race_data = race_data
         self.driver = driver
+        self.persist = False
 
         self.lap_time = self.race_data.lap_time(
             self.driver.index,
@@ -1049,6 +1072,154 @@ class GapTimeFlyout(Flyout):
         draw.text(
             (x_position, y_position),
             gap,
+            fill=self.text_color,
+            font=self.font)
+
+        return self.material_with_data
+
+class PitStopFlyout(Flyout):
+    """
+    Class representing a flyout for pit stop.
+    """
+    _color = (0, 0, 0, 200)
+    _mask_color = (210, 210, 210, 200)
+
+    _stop_complete = False
+
+    _pit_in_color = (255, 0, 0, 255)
+    _pit_color = (192, 192, 192, 255)
+    _pit_out_color = (255, 255, 255, 255)
+
+    _ups = 30
+
+    @property
+    def old_location(self):
+        """Returns the oldest location."""
+        return self._locations[0]
+
+    @property
+    def location(self):
+        """Returns the previous location."""
+        return self._locations[1]
+
+    @property
+    def new_location(self):
+        """Returns the latest location."""
+        return self._locations[2]
+
+    @new_location.setter
+    def new_location(self, value):
+        """
+        Adds a new location.
+        """
+        self._locations.append(value)
+        _ = self._locations.popleft()
+        if self.new_location == self.location:
+            self._stop_complete = True
+
+    @property
+    def color(self):
+        """
+        Gets the material color for the flyout.
+        """
+        return self._mask_color if self.mask \
+            else self._color
+
+    @property
+    def text_color(self):
+        """
+        Gets the text color for the line.
+        """
+        if self.new_location == self.location \
+                and all([self._locations]):
+            return self._pit_color
+        else:
+            return self._pit_out_color if self._stop_complete \
+                else self._pit_in_color
+
+    def __init__(self, loc, font, mask=False, ups=None, size=None,
+                 persist=False):
+        self._locations = deque([None, None, loc])
+
+        self.font = font
+        self.mask = mask
+
+        if size is None:
+            width, _ = self.font.getsize("99:99:999")
+            _, height = self.font.getsize("Srp")
+            self.size = (width+10*2, height*2)
+        else:
+            self.size = size
+
+        self.animations = list()
+        self.animations.append(
+            GTAnimation(
+                duration=int(ups/2),
+                position_from=(-self.size[0], 0)))
+
+        self.material = None
+        self.material_with_data = None
+
+        if ups is not None:
+            self.ups = ups
+
+        self.persist = persist
+
+    def close_flyout(self):
+        """
+        Adds an animation to close the flyout.
+        """
+        self.persist = False
+        self.animations.append(
+            GTAnimation(
+                duration=int(self.ups/2),
+                position_from=(0, 0),
+                position_to=(-self.size[0], 0)))
+
+    def render(self, bg_only):
+        """
+        Determines if the flyout needs to be updated, and returns a
+        rendering.
+        """
+        self.mask = bg_only
+
+        if self.material is None:
+            return self._make_material()
+        elif self.new_location == self.location and \
+                all([self._locations]) and \
+                self.location != self.old_location:
+            return self._make_material()
+        elif self.old_location == self.location and \
+                all([self._locations]) and \
+                self.location != self.new_location:
+            return self._make_material()
+        elif self.mask:
+            return self.material
+        else:
+            return self.material_with_data
+
+    def _make_material(self):
+        self.material = Image.new(
+            'RGBA',
+            self.size,
+            self.color)
+
+        return self.material if self.mask else self._write_data()
+
+    def _write_data(self):
+        block_height = self.font.getsize("A")[1]
+        block_width = self.font.getsize("PIT")[0]
+
+        self.material_with_data = self.material.copy()
+        draw = ImageDraw.Draw(self.material_with_data)
+
+        x_position = self.size[0]-10-block_width
+        y_position = int(
+            (self.size[1]-block_height)/2)
+
+        draw.text(
+            (x_position, y_position),
+            "PIT",
             fill=self.text_color,
             font=self.font)
 
