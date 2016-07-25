@@ -99,9 +99,14 @@ class GTStandings(DynamicBase):
             material_width = \
                 self.short_text_height*2+self.short_text_width+10*2
 
+        for driver in self.telemetry_data.drivers_by_index:
+            if self.replay.viewed is None and \
+                    driver.viewed:
+                subject_position = driver.race_position
+            elif self.replay.viewed is not None and \
+                    self.replay.viewed == driver.name:
+                subject_position = driver.race_position
 
-        subject_position = \
-            self.telemetry_data.drivers_by_index[0].race_position
         last_position = self.telemetry_data.last_place
         subject_y = None
         draw_middle_line = False
@@ -139,7 +144,11 @@ class GTStandings(DynamicBase):
                 x_offset += x_adj
                 y_offset += y_adj
 
-            if driver.viewed:
+            if self.replay.viewed is None and \
+                    driver.viewed:
+                subject_y = y_position+y_offset
+            elif self.replay.viewed is not None and \
+                    self.replay.viewed == driver.name:
                 subject_y = y_position+y_offset
 
             output_material.paste(
@@ -352,25 +361,38 @@ class Timer():
         y_position = int(
             (self.text_height*2-block_height)/2)
 
-        lap_display_width, _ = self.font.getsize(
-            "Lap {total}/{total}".format(
-                total=self.telemetry_data.event_duration))
+        if self.replay.viewed is None:
+            for driver in self.telemetry_data.drivers_by_index:
+                if driver.viewed:
+                    break
 
-        current_time = 0 if self.telemetry_data.current_time == -1 \
-            else self.telemetry_data.current_time
-        draw.text(
-            (10, y_position),
-            "{time}".format(
-                time=self.format_time(current_time)),
-            fill=self.background_text_color,
-            font=self.font)
-        draw.text(
-            (self.material_width-10-lap_display_width, y_position),
-            "Lap {current}/{total}".format(
-                current=str(self.telemetry_data.leader_lap),
-                total=str(self.telemetry_data.event_duration)),
-            fill=self.background_text_color,
-            font=self.font)
+            lap_display_width, _ = self.font.getsize(
+                "Lap {total}/{total}".format(
+                    total=self.telemetry_data.event_duration))
+
+            current_time = 0 if self.telemetry_data.current_time == -1 \
+                else self.telemetry_data.current_time
+            draw.text(
+                (10, y_position),
+                "{time}".format(
+                    time=self.format_time(current_time)),
+                fill=self.background_text_color,
+                font=self.font)
+            draw.text(
+                (self.material_width-10-lap_display_width, y_position),
+                "Lap {current}/{total}".format(
+                    current=str(self.telemetry_data.leader_lap),
+                    total=str(self.telemetry_data.event_duration)),
+                fill=self.background_text_color,
+                font=self.font)
+        else:
+            draw.text(
+                (10, y_position),
+                "Lap {current}/{total}".format(
+                    current=str(self.telemetry_data.leader_lap),
+                    total=str(self.telemetry_data.event_duration)),
+                fill=self.background_text_color,
+                font=self.font)
 
         return output
 
@@ -417,7 +439,15 @@ class Standing():
         Gets the material color for the position, based on if it's the
         viewed car or not.
         """
-        return self._viewed_position_color if self.driver.viewed \
+        viewed = False
+        if self.replay.viewed is not None and \
+                self.replay.viewed == self.driver.name:
+            viewed = True
+        elif self.replay.viewed is None and \
+                self.driver.viewed:
+            viewed = True
+
+        return self._viewed_position_color if viewed \
             else self._mask_position_color if self.mask \
             else self._position_color
 
@@ -427,8 +457,16 @@ class Standing():
         Gets the text color for the position, based on if it's the
         viewed car or not.
         """
+        viewed = False
+        if self.replay.viewed is not None and \
+                self.replay.viewed == self.driver.name:
+            viewed = True
+        elif self.replay.viewed is None and \
+                self.driver.viewed:
+            viewed = True
+
         return self._viewed_position_text_color \
-            if self.driver.viewed \
+            if viewed \
             else self._position_text_color
 
     @property
@@ -437,7 +475,15 @@ class Standing():
         Gets the material color for a name, based on if it's the
         viewed car or not.
         """
-        return self._viewed_name_color if self.driver.viewed \
+        viewed = False
+        if self.replay.viewed is not None and \
+                self.replay.viewed == self.driver.name:
+            viewed = True
+        elif self.replay.viewed is None and \
+                self.driver.viewed:
+            viewed = True
+
+        return self._viewed_name_color if viewed \
             else self._mask_name_color if self.mask \
             else self._name_color
 
@@ -447,8 +493,16 @@ class Standing():
         Gets the text color for a name, based on if it's the
         viewed car or not.
         """
+        viewed = False
+        if self.replay.viewed is not None and \
+                self.replay.viewed == self.driver.name:
+            viewed = True
+        elif self.replay.viewed is None and \
+                self.driver.viewed:
+            viewed = True
+
         return self._viewed_name_text_color \
-            if self.driver.viewed \
+            if viewed \
             else self._name_text_color
 
     @property

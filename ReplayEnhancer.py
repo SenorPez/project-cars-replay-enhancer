@@ -9,7 +9,7 @@ import os.path
 import moviepy.editor as mpy
 from moviepy.editor import vfx
 from moviepy.video.io.bindings import PIL_to_npimage
-from PIL import Image, ImageFont
+from PIL import Image, ImageDraw, ImageFont
 
 from Champion import Champion
 from Configuration import Configuration
@@ -133,6 +133,14 @@ class ReplayEnhancer():
         self.additional_participant_config = {k:v \
             for k, v \
             in json_data['additional_participant_config'].items()}
+
+        self.viewed = None
+        for name, data in json_data['participant_config'].items():
+            try:
+                if data['viewed']:
+                    self.viewed = name
+            except KeyError:
+                pass
 
         self.telemetry_data = list()
         self.config_version = 4
@@ -415,6 +423,7 @@ class ReplayEnhancer():
         """
         Builds a video with custom settings (used for testing).
         """
+
         if self.source_video is None:
             video = mpy.ColorClip(
                 (1280, 720),
@@ -430,6 +439,25 @@ class ReplayEnhancer():
 
         video_width, video_height = video.size
         self.size = video.size
+
+        low_quality = False
+        if low_quality:
+            ups = 10
+            def timecode_frame(time):
+                """
+                Adds a timecode.
+                """
+                timecode_image = Image.new('RGB', (50, 25))
+                draw = ImageDraw.Draw(timecode_image)
+                draw.text((0, 0), "%.02f"%(time))
+                return PIL_to_npimage(timecode_image)
+
+            timecode = mpy.VideoClip(
+                timecode_frame,
+                duration=video.duration)
+            timecode = timecode.set_position((
+                'right',
+                'top'))
 
         if self.backdrop is not None:
             backdrop = Image.open(self.backdrop).resize(
@@ -491,6 +519,11 @@ class ReplayEnhancer():
         mainevent = mpy.CompositeVideoClip(
             [video, standing_clip],
             use_bgclip=False).set_duration(video.duration)
+
+        if low_quality:
+            mainevent = mpy.CompositeVideoClip(
+                [video, standing_clip, timecode],
+                use_bgclip=False).set_duration(video.duration)
 
         start_time = 0
         screen_duration = 20
@@ -627,6 +660,7 @@ class ReplayEnhancer():
 
         output = mpy.concatenate_videoclips([
             intro, mainevent, outro])
+        output = output.set_fps(ups)
         output.write_videofile(self.output_video)
 
     def build_default_video(self, process_data):
