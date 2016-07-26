@@ -3,7 +3,7 @@ Provides classes for the creation of a GT Sport style
 Standings overlay.
 """
 import abc
-from collections import deque
+import math
 
 from PIL import Image, ImageDraw
 from moviepy.video.io.bindings import PIL_to_npimage
@@ -583,7 +583,9 @@ class Standing():
             self.flyout = None
 
         if isinstance(self.flyout, PitStopFlyout):
-            self.flyout.new_location = driver.world_position
+            self.flyout.update(
+                driver.world_position,
+                self.replay.race_data.packet.current_time)
             if self.replay.track.at_pit_exit(driver.world_position):
                 self.flyout.close_flyout()
 
@@ -1084,38 +1086,67 @@ class PitStopFlyout(Flyout):
     _color = (0, 0, 0, 200)
     _mask_color = (210, 210, 210, 200)
 
-    _stop_complete = False
-
     _pit_in_color = (255, 0, 0, 255)
-    _pit_color = (192, 192, 192, 255)
-    _pit_out_color = (255, 255, 255, 255)
+    _pit_color = (255, 255, 255, 255)
 
     _ups = 30
 
+    """
     @property
     def old_location(self):
-        """Returns the oldest location."""
         return self._locations[0]
 
     @property
     def location(self):
-        """Returns the previous location."""
         return self._locations[1]
 
     @property
     def new_location(self):
-        """Returns the latest location."""
         return self._locations[2]
+    """
 
-    @new_location.setter
-    def new_location(self, value):
+    @property
+    def stopped(self):
         """
-        Adds a new location.
+        Returns if a car is stopped. Uses a quarter second of
+        locations to determine, as the accuracy of the location
+        may return false positives.
         """
-        self._locations.append(value)
-        _ = self._locations.popleft()
-        if self.new_location == self.location:
-            self._stop_complete = True
+        try:
+            window_size = math.ceil(self.ups*0.25)
+            data = iter(
+                self._locations[-window_size:])
+            first = next(data)
+            return all(first == rest for rest in data)
+        except StopIteration:
+            return True
+
+    def update(self, location, time=None):
+        """
+        Updates the flyout with the current position (used to
+        determine the pit stop status) and time (used to
+        determine the pit stop duration).
+        """
+        self._locations.append(location)
+        if self.stopped:
+            if time is None or time == -1.0:
+                self.base_time = 0.0
+                self.add_time = 0.0
+                self.last_time = None
+            else:
+                if self.last_time is None:
+                    self.base_time = time
+                    self.stop_time = 0.0
+                    self.add_time = 0.0
+                    self.last_time = time
+                elif self.last_time > time:
+                    self.add_time += (self.last_time-self.base_time)
+                    self.base_time = 0.0
+                    self.last_time = time
+                else:
+                    self.last_time = time
+                self.stop_time = (time-self.base_time) + \
+                    self.add_time
 
     @property
     def color(self):
@@ -1130,19 +1161,20 @@ class PitStopFlyout(Flyout):
         """
         Gets the text color for the line.
         """
-        if self.new_location == self.location \
-                and all([self._locations]):
-            return self._pit_color
-        else:
-            return self._pit_out_color if self._stop_complete \
-                else self._pit_in_color
+        return self._pit_in_color if self.stop_time == 0.0 \
+            else self._pit_color
 
     def __init__(self, loc, font, mask=False, ups=None, size=None,
                  persist=False):
-        self._locations = deque([None, None, loc])
+        self._locations = [loc]
 
         self.font = font
         self.mask = mask
+
+        self.stop_time = 0.0
+        self.base_time = 0.0
+        self.add_time = 0.0
+        self.last_time = None
 
         if size is None:
             width, _ = self.font.getsize("99:99:999")
@@ -1183,6 +1215,7 @@ class PitStopFlyout(Flyout):
         """
         self.mask = bg_only
 
+        """
         if self.material is None:
             return self._make_material()
         elif self.new_location == self.location and \
@@ -1192,11 +1225,14 @@ class PitStopFlyout(Flyout):
         elif self.old_location == self.location and \
                 all([self._locations]) and \
                 self.location != self.new_location:
+            self.stop_time = 0.0
             return self._make_material()
         elif self.mask:
             return self.material
         else:
             return self.material_with_data
+        """
+        return self._make_material()
 
     def _make_material(self):
         self.material = Image.new(
@@ -1208,7 +1244,10 @@ class PitStopFlyout(Flyout):
 
     def _write_data(self):
         block_height = self.font.getsize("A")[1]
-        block_width = self.font.getsize("PIT")[0]
+
+        display_text = "PIT" if self.stop_time == 0.0 \
+            else self.format_time(self.stop_time)
+        block_width = self.font.getsize(display_text)[0]
 
         self.material_with_data = self.material.copy()
         draw = ImageDraw.Draw(self.material_with_data)
@@ -1219,7 +1258,7 @@ class PitStopFlyout(Flyout):
 
         draw.text(
             (x_position, y_position),
-            "PIT",
+            display_text,
             fill=self.text_color,
             font=self.font)
 
