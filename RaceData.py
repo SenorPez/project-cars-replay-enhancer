@@ -673,6 +673,7 @@ class RaceData():
 
             progress.close()
             self._classification = classification_data._classification
+            _ = self.get_data()
 
             points = classification_data.points
             series_points = classification_data.series_points
