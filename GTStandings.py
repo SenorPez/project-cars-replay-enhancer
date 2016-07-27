@@ -667,25 +667,41 @@ class Standing():
         flyout = flyout.crop((
             0-x_offset,
             0-y_offset,
-            self.material_width,
-            self.text_height*2))
+            flyout.size[0],
+            flyout.size[1]))
 
         self.material.paste(
             flyout,
             (
-                self.material_width,
+                self.material_width+2,
                 0))
+        self.material = self.material.crop((
+            0,
+            0,
+            self.material_width+2+flyout.size[0],
+            max(
+                self.text_height*2,
+                self.flyout.size[1])))
         return self.material
 
     def _make_material(self):
-        self.material = Image.new(
-            'RGBA',
-            (
-                self.material_width*2,
-                self.text_height*2))
-
         if self.flyout is not None:
+            self.material = Image.new(
+                'RGBA',
+                (
+                    self.material_width+self.flyout.size[0],
+                    max(
+                        self.text_height*2,
+                        self.flyout.size[1])),
+                color=(255, 0, 0, 255))
             self.material = self._attach_flyout()
+        else:
+            self.material = Image.new(
+                'RGBA',
+                (
+                    self.material_width+2,
+                    self.text_height*2),
+                color=(255, 0, 0, 255))
 
         draw = ImageDraw.Draw(self.material)
         draw.rectangle(
