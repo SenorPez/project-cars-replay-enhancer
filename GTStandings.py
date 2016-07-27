@@ -100,14 +100,6 @@ class GTStandings(DynamicBase):
             material_width = \
                 self.short_text_height*2+self.short_text_width+10*2
 
-        for driver in self.telemetry_data.drivers_by_index:
-            if self.replay.viewed is None and \
-                    driver.viewed:
-                subject_position = driver.race_position
-            elif self.replay.viewed is not None and \
-                    self.replay.viewed == driver.name:
-                subject_position = driver.race_position
-
         last_position = self.telemetry_data.last_place
         subject_y = None
         draw_middle_line = False
@@ -163,7 +155,8 @@ class GTStandings(DynamicBase):
             0,
             material_width*2,
             self.text_height*2*5+1*5))
-        if subject_position <= 8:
+        if subject_y-(self.text_height*2*2+1*2) <= \
+                self.text_height*2*5+1*5:
             window_top = self.text_height*2*5+1*5
             window_bottom = self.text_height*2*10+1*10
             window_five = output_material.crop((
@@ -172,7 +165,8 @@ class GTStandings(DynamicBase):
                 material_width*2,
                 window_bottom))
             draw_middle_line = False
-        elif last_position-subject_position <= 2:
+        elif subject_y+(self.text_height*2*3+1*2) >= \
+                self.text_height*2*last_position+1*last_position:
             adjust_y = last_position-5
             window_top = self.text_height*2*adjust_y+\
                 1*adjust_y
