@@ -104,7 +104,7 @@ class SeriesStandings(StaticBase):
                     fill=tuple(color))
                 x_adj = 0
             except IndexError:
-                if car_class is None:
+                if car_class[0] is None:
                     x_adj = 0
                 else:
                     x_adj = -self.row_height
@@ -115,7 +115,7 @@ class SeriesStandings(StaticBase):
                 fill=self.replay.font_color,
                 font=self.replay.font)
 
-            if car_class is None:
+            if car_class[0] is None:
                 x_adj = 0
             else:
                 x_adj = self.row_height
@@ -168,7 +168,7 @@ class SeriesStandings(StaticBase):
             self.replay.font.getsize(
                 self.replay.subheading_text)[0]+\
                 self.replay.column_margin+heading_height)
-        if self.replay.car_classes is not None:
+        if len(self.replay.car_classes):
             text_width += self.row_height
         text_height = sum(heights)+self.replay.margin*len(heights)-1
 

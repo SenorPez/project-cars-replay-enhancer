@@ -93,7 +93,7 @@ class GTStandings(DynamicBase):
         if not bg_only:
             self.telemetry_data = self.update(force_process=True)
 
-        if self.replay.car_classes is not None:
+        if len(self.replay.car_classes):
             material_width = \
                 self.short_text_height*3+self.short_text_width+10*2
         else:
@@ -327,7 +327,7 @@ class Timer():
 
         self.text_width, self.text_height = text_size
         self.font = font
-        if self.replay.car_classes is not None:
+        if len(self.replay.car_classes):
             self.material_width = \
                 self.text_height*3+self.text_width+10*2+2
         else:
@@ -632,7 +632,7 @@ class Standing():
 
         self.text_width, self.text_height = text_size
         self.font = font
-        if self.replay.car_classes is not None:
+        if len(self.replay.car_classes):
             self.material_width = \
                 self.text_height*3+self.text_width+10*2
         else:
@@ -706,7 +706,7 @@ class Standing():
                 self.text_height*2+1),
             fill=self.position_color)
 
-        if self.replay.car_classes is not None:
+        if len(self.replay.car_classes):
             width = self.text_height*3+self.text_width+10*2+1
         else:
             width = self.text_height*2+self.text_width+10*2+1
@@ -761,9 +761,7 @@ class Standing():
                 fill=tuple(color))
             x_position += self.text_height
         except IndexError:
-            if self.replay.car_classes is None:
-                pass
-            else:
+            if len(self.replay.car_classes):
                 x_position += self.text_height
 
         draw.text(

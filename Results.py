@@ -83,7 +83,7 @@ class Results(StaticBase):
                 font=self.replay.font)
             draw.text(
                 (name[1], y_pos),
-                name[0],
+                self.format_string(name[0]),
                 fill=self.replay.font_color,
                 font=self.replay.font)
             draw.text(
@@ -121,11 +121,11 @@ class Results(StaticBase):
 
             draw.text(
                 (car_class[1]+x_adj+self.data_height, y_pos),
-                str(car_class[0]),
+                self.format_string(car_class[0]),
                 fill=self.replay.font_color,
                 font=self.replay.font)
 
-            if car_class is None:
+            if car_class[0] is None:
                 x_adj = 0
             else:
                 x_adj = self.data_height

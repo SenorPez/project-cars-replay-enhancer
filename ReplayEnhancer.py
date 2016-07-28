@@ -381,8 +381,17 @@ class ReplayEnhancer():
                 """
                 output1 = replay.build_custom_video(True, ups=10,
                                                     low_quality=True)
-                output1 = output1.subclip(450, 540)
+                output1 = output1.subclip(
+                    output1.duration-60,
+                    output1.duration)
                 output1.write_videofile(replay.output_video)
+
+                #output1 = output1.subclip(450, 540)
+                #output1 = output1.subclip(455, 480)
+                #output1.save_frame("outputs/output.jpg", 2)
+                Image.fromarray(
+                    output1.get_frame(828)).save(
+                        'outputs/output.png')
 
         except KeyboardInterrupt:
             raise
@@ -449,7 +458,6 @@ class ReplayEnhancer():
         self.size = video.size
 
         if low_quality:
-            ups = 10
             def timecode_frame(time):
                 """
                 Adds a timecode.
