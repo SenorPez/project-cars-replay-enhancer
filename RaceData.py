@@ -718,12 +718,16 @@ class RaceData():
             series_points = self.series_points
 
         if car_class is None:
-            classification = [data for data in self._classification \
-                if data[0] is not None]
+            classification = sorted(
+                [data for data in self._classification \
+                    if data[0] is not None],
+                key=lambda x: (-x[5], x[6]))
         else:
-            classification = [data for data in self._classification \
-                if data[0] is not None \
-                and data[4] == car_class]
+            classification = sorted(
+                [data for data in self._classification \
+                    if data[0] is not None \
+                    and data[4] == car_class],
+                key=lambda x: (-x[5], x[6]))
 
         classification = [(finish_position, driver_name)+\
             tuple(rest)+\
@@ -745,18 +749,6 @@ class RaceData():
                     data[1],
                     data[2:]
                 ) for data in classification], 1)]
-
-        if car_class is None:
-            classification = sorted(
-                [data for data in classification \
-                    if data[0] is not None],
-                key=lambda x: (-x[5], x[6]))
-        else:
-            classification = sorted(
-                [data for data in classification \
-                    if data[0] is not None \
-                    and data[4] == car_class],
-                key=lambda x: (-x[5], x[6]))
 
         if self.replay is not None:
             for name in self.replay.additional_participants:
