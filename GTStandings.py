@@ -1120,8 +1120,11 @@ class PitStopFlyout(Flyout):
         locations to determine, as the accuracy of the location
         may return false positives.
         """
+        window_size = math.ceil(self.ups*0.25)
+        if len(self._locations) < window_size:
+            return False
+
         try:
-            window_size = math.ceil(self.ups*0.25)
             data = iter(
                 self._locations[-window_size:])
             first = next(data)
