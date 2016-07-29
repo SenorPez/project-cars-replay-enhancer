@@ -237,6 +237,24 @@ class SeriesStandings(StaticBase):
                 if line[4] == self.car_class],
             key=lambda x: -x[-1])[:positions]
 
+        # Check to see if there are ties that got cropped.
+        extras = [data for data in \
+            [(line[1], line[2], line[3], line[4], line[12]) \
+                for line in self._classification \
+                if line[12] == classification[-1][-1]]
+            if data not in classification]
+
+        # Trim to a max of 16.
+        classification = classification + extras
+        while len(classification) > 16:
+            classification = [data for data in classification \
+                if data[-1] != classification[-1][-1]]
+
+        # Resort
+        classification = sorted(
+            classification,
+            key=lambda x: (-x[-1], x[0]))
+
         for rank, data in enumerate(classification):
             if rank == 0:
                 classification[rank] = (rank+1,)+data

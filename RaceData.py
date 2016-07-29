@@ -31,6 +31,8 @@ class RaceData():
     _race_finished = set()
     _classification = list()
 
+    _end_sector_times = [list() for _ in range(56)]
+
     _lap_at_finish = [None for _ in range(56)]
 
     def __init__(self, telemetry_directory,
@@ -208,8 +210,13 @@ class RaceData():
 
         Pass lap_number to return a specific lap.
         """
+        if max([len(time) for time in self.sector_times]):
+            times = self.sector_times
+        else:
+            times = self._end_sector_times
+
         sector_times = [time for time, _ in \
-            self.sector_times[driver_index]]
+            times[driver_index]]
         lap_times = [sum(times) for times in zip(
             *[iter(sector_times)]*3)]
 
@@ -234,8 +241,13 @@ class RaceData():
         if sector < 1 or sector > 3:
             raise ValueError("Invalid Sector Number.")
 
+        if max([len(times) for times in self.sector_times]):
+            times = self.sector_times
+        else:
+            times = self._end_sector_times
+
         sector_times = [time for time, _ in \
-            self.sector_times[driver_index]][sector-1::3]
+            times[driver_index]][sector-1::3]
 
         if lap_number is None:
             return sector_times
@@ -258,10 +270,15 @@ class RaceData():
         Pass driver_index to return the best time or times for
             that index.
         """
+        if max([len(times) for times in self.sector_times]):
+            times = self.sector_times
+        else:
+            times = self._end_sector_times
+
         best_laps = [None if len(sector_times) < 3 \
             else min(self.lap_time(driver_index)) \
             for driver_index, sector_times \
-            in enumerate(self.sector_times)]
+            in enumerate(times)]
 
         if driver_index is None:
             return min([time for time in best_laps \
@@ -279,10 +296,15 @@ class RaceData():
         if sector < 1 or sector > 3:
             raise ValueError("Invalid Sector Number.")
 
+        if max([len(times) for times in self.sector_times]):
+            times = self.sector_times
+        else:
+            times = self._end_sector_times
+
         best_sectors = [
             min(self.sector_time(sector, driver_index))
             for driver_index, sector_times \
-            in enumerate(self.sector_times) \
+            in enumerate(times) \
             if len(sector_times)]
 
         if driver_index is None:
@@ -404,11 +426,17 @@ class RaceData():
             self.packet.participant_info[index].index = index
 
             if self.replay is not None:
-                self.packet.participant_info[index].team = \
-                    self.replay.team_data[name]
+                try:
+                    self.packet.participant_info[index].team = \
+                        self.replay.team_data[name]
+                except KeyError:
+                    self.packet.participant_info[index].team = None
 
-                self.packet.participant_info[index].car = \
-                    self.replay.car_data[name]
+                try:
+                    self.packet.participant_info[index].car = \
+                        self.replay.car_data[name]
+                except KeyError:
+                    self.packet.participant_info[index].car = None
 
                 try:
                     self.packet.participant_info[index].car_class \
@@ -416,7 +444,7 @@ class RaceData():
                         in self.replay.car_classes.items() \
                         if self.replay.car_data[name] \
                         in data['cars']][0]
-                except IndexError:
+                except (IndexError, KeyError):
                     self.packet.participant_info[index].car_class = None
 
                 for telemetry_packet, _ in self._telemetry_waiting:
@@ -424,11 +452,17 @@ class RaceData():
                     telemetry_packet.participant_info[index].index = \
                         index
 
-                    telemetry_packet.participant_info[index].team = \
-                        self.replay.team_data[name]
+                    try:
+                        telemetry_packet.participant_info[index].team = \
+                            self.replay.team_data[name]
+                    except KeyError:
+                        telemetry_packet.participant_info[index].team = None
 
-                    telemetry_packet.participant_info[index].car = \
-                        self.replay.car_data[name]
+                    try:
+                        telemetry_packet.participant_info[index].car = \
+                            self.replay.car_data[name]
+                    except KeyError:
+                        telemetry_packet.participant_info[index].car = None
 
                     try:
                         self.packet.participant_info[index].car_class \
@@ -437,7 +471,7 @@ class RaceData():
                                 in self.replay.car_classes.items() \
                             if self.replay.car_data[name] \
                             in data['cars']][0]
-                    except IndexError:
+                    except (IndexError, KeyError):
                         self.packet.participant_info[index].car_class \
                             = None
 
@@ -672,75 +706,92 @@ class RaceData():
                     break
 
             progress.close()
-            self._classification = classification_data._classification
-            _ = self.get_data()
 
+
+            self._classification = classification_data._classification
+            self._end_sector_times = classification_data.sector_times
             points = classification_data.points
             series_points = classification_data.series_points
+            _ = self.get_data()
+        else:
+            points = self.points
+            series_points = self.series_points
 
-            if car_class is None:
-                classification = sorted(
-                    [data for data in self._classification \
-                        if data[0] is not None],
-                    key=lambda x: (-x[5], x[6]))
-            else:
-                classification = sorted(
-                    [data for data in self._classification \
-                        if data[0] is not None \
-                        and data[4] == car_class],
-                    key=lambda x: (-x[5], x[6]))
-            classification = [(finish_position, driver_name)+\
-                tuple(rest)+\
+        if car_class is None:
+            classification = [data for data in self._classification \
+                if data[0] is not None]
+        else:
+            classification = [data for data in self._classification \
+                if data[0] is not None \
+                and data[4] == car_class]
+
+        classification = [(finish_position, driver_name)+\
+            tuple(rest)+\
+            (
+                points(
+                    finish_position, 
+                    driver_name),
+                series_points(
+                    finish_position,
+                    driver_name)
+            ) \
+            for finish_position, (
+                driver_index,
+                driver_name,
+                rest) \
+            in enumerate([
                 (
-                    points(finish_position, driver_name),
-                    series_points(finish_position, driver_name)
-                ) \
-                for finish_position, (
-                    driver_index,
-                    driver_name,
-                    rest) \
-                in enumerate([
-                    (
-                        data[0],
-                        data[1],
-                        data[2:]
-                    ) for data in classification], 1)]
+                    data[0],
+                    data[1],
+                    data[2:]
+                ) for data in classification], 1)]
 
-            if self.replay is not None:
-                for name in self.replay.additional_participants:
-                    try:
-                        team = self.replay.team_data[name]
-                    except KeyError:
-                        team = None
+        if car_class is None:
+            classification = sorted(
+                [data for data in classification \
+                    if data[0] is not None],
+                key=lambda x: (-x[5], x[6]))
+        else:
+            classification = sorted(
+                [data for data in classification \
+                    if data[0] is not None \
+                    and data[4] == car_class],
+                key=lambda x: (-x[5], x[6]))
 
-                    try:
-                        car = self.replay.car_data[name]
-                    except KeyError:
-                        car = None
+        if self.replay is not None:
+            for name in self.replay.additional_participants:
+                try:
+                    team = self.replay.team_data[name]
+                except KeyError:
+                    team = None
 
-                    try:
-                        car_class = self.replay.car_class_data[name]
-                    except KeyError:
-                        car_class = None
+                try:
+                    car = self.replay.car_data[name]
+                except KeyError:
+                    car = None
 
-                    additional = (
-                        None,
-                        name,
-                        team,
-                        car,
-                        car_class,
-                        None,
-                        None,
-                        None,
-                        None,
-                        None,
-                        None,
-                        0,
-                        self.replay.points[name])
-                    classification.append(additional)
-            self._classification = classification
+                try:
+                    car_class = self.replay.car_class_data[name]
+                except KeyError:
+                    car_class = None
 
-        return self._classification
+                additional = (
+                    None,
+                    name,
+                    team,
+                    car,
+                    car_class,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    0,
+                    self.replay.points[name])
+                classification.append(additional)
+
+        return classification
 
     @property
     def track_length(self):
