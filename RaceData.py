@@ -21,23 +21,21 @@ class RaceData():
     """
     Represents data about the race.
     """
-
-    _missing_participants = 0
-    _update_indexes = set()
-    _telemetry_waiting = list()
-    _starting_grid = None
-    _track_length = None
-    _final_lap = False
-    _race_finished = set()
-    _classification = list()
-
-    _end_sector_times = [list() for _ in range(56)]
-
-    _lap_at_finish = [None for _ in range(56)]
-
     def __init__(self, telemetry_directory,
                  replay=None,
                  descriptor_file='descriptor.json'):
+        self._classification = list()
+        self._missing_participants = 0
+        self._update_indexes = set()
+        self._telemetry_waiting = list()
+        self._starting_grid = None
+        self._track_length = None
+        self._final_lap = False
+        self._race_finished = set()
+        self._classification = list()
+        self._end_sector_times = [list() for _ in range(56)]
+        self._lap_at_finish = [None for _ in range(56)]
+
         self.telemetry_directory = telemetry_directory
         self.replay = replay
         self.descriptor_file = descriptor_file
