@@ -41,6 +41,9 @@ class RaceData():
         self.descriptor_file = descriptor_file
         self.participant_list = dict()
 
+        self.driver_lookup = dict()
+        self.get_names()
+
         try:
             with open(os.path.join(
                 os.path.realpath(self.telemetry_directory),
@@ -222,6 +225,66 @@ class RaceData():
             return lap_times
         else:
             return lap_times[lap_number-1]
+
+    def get_names(self):
+        telemetry_data = self.__get_telemetry_data(
+            elapsed_time=False)
+        packet = next(telemetry_data)
+        while packet.packet_type != 0:
+            packet = next(telemetry_data)
+        old_drivers = list()
+        self.driver_lookup = dict()
+
+        while True:
+            try:
+                new_drivers = self.pull_names(
+                    telemetry_data,
+                    packet.num_participants)
+                packet = next(telemetry_data)
+
+                if len(new_drivers) < len(old_drivers):
+                    """"
+                    Someone dropped out.
+                    The vacated position is filled by the last
+                    position.
+                    """
+                    for index, name in enumerate(new_drivers):
+                        if new_drivers[index] != old_drivers[index]:
+                            old_name = old_drivers[-1]
+                            new_name = new_drivers[index]
+                            compare = os.path.commonprefix(
+                                [old_name, new_name])
+                            self.driver_lookup[old_name] = compare
+                            self.driver_lookup[new_name] = compare
+                elif len(new_drivers) > len(old_drivers):
+                    """
+                    Someone joined.
+                    The new person is added in the last position.
+                    """
+                    for name in new_drivers:
+                        self.driver_lookup[name] = name
+
+                old_drivers = new_drivers
+
+            except StopIteration:
+                break
+
+    @staticmethod
+    def pull_names(telemetry_data, count):
+        drivers = list()
+        packet = next(telemetry_data)
+        while len(drivers) < count:
+            if packet.packet_type == 1 or \
+                    packet.packet_type == 2:
+                drivers.extend(
+                    [name for name in packet.name])
+            packet = next(telemetry_data)
+        while (packet.packet_type == 0 and packet.num_participants == count) or \
+                packet.packet_type == 1 or \
+                packet.packet_type == 2:
+            packet = next(telemetry_data)
+
+        return drivers[:count]
 
     def laps_completed(self, driver_index):
         """
@@ -407,7 +470,7 @@ class RaceData():
 
     def __add_telemetry_packet(self, packet):
         if self.packet.num_participants == packet.num_participants and \
-                len(self.participant_list) >= \
+                len(self.participant_list) == \
                 self.packet.num_participants:
             self.packet = packet
         else:
@@ -549,6 +612,9 @@ class RaceData():
 
     def __rebuild_participants(self):
         self._telemetry_waiting = list()
+        if len(self.participant_list):
+            old_participant_list = self.participant_list
+
         self.participant_list = dict()
         while len(self.participant_list) < \
                 self.packet.num_participants:
@@ -563,6 +629,37 @@ class RaceData():
                 self.__dispatch(packet)
             else:
                 raise ValueError("Malformed or unknown packet.")
+
+        if len(old_participant_list) > len(self.participant_list):
+            """"
+            Change was caused by someon dropping out.
+            Space vacated by dropout is filled by whoever was in the
+            last index position.
+            """
+            for index in range(len(self.participant_list)):
+                if self.participant_list[index] != old_participant_list[index]:
+                    self._end_sector_times[55] = self._end_sector_times[index]
+                    self._end_sector_times[index] = self._end_sector_times[len(old_participant_list)-1]
+                    self._end_sector_times[len(old_participant_list)-1] = list()
+
+                    self._lap_at_finish[55] = self._lap_at_finish[index]
+                    self._lap_at_finish[index] = self._lap_at_finish[len(old_participant_list)-1]
+                    self._lap_at_finish[len(old_participant_list)-1] = None
+
+                    self.sector_times[55] = self.sector_times[index]
+                    self.sector_times[index] = self.sector_times[len(old_participant_list)-1]
+                    self.sector_times[len(old_participant_list)-1] = list()
+
+                    self.valid_laps[55] = self.valid_laps[index]
+                    self.valid_laps[index] = self.valid_laps[len(old_participant_list)-1]
+                    self.valid_laps[len(old_participant_list)-1] = set()
+
+                    self.invalid_laps[55] = self.invalid_laps[index]
+                    self.invalid_laps[index] = self.invalid_laps[len(old_participant_list)-1]
+                    self.invalid_laps[len(old_participant_list)-1] = set()
+
+        print(self.participant_list)
+
 
     def __add_participant_packet(self, packet):
         if packet.packet_type == 1:
@@ -611,12 +708,18 @@ class RaceData():
             telemetry_data = self.__get_telemetry_data(
                 elapsed_time=False)
             names = tqdm(
-                {name for packet in telemetry_data \
-                    if packet.packet_type == 1 or \
-                    packet.packet_type == 2 for name in packet.name},
+                {
+                    self.replay.name_display[self.driver_lookup[name]]
+                    for packet in telemetry_data
+                    if packet.packet_type == 1 or
+                    packet.packet_type == 2
+                    for name in packet.name
+                    if len(name)
+                },
                 desc='Reading Telemetry Data Names',
                 total=self.packet_count,
-                unit='packets')
+                unit='packets'
+            )
             height = max([font.getsize(driver)[1] for driver in names])
             width = max([font.getsize(driver)[0] for driver in names])
             self.max_name_dimensions_value = (width, height)
@@ -632,7 +735,7 @@ class RaceData():
             telemetry_data = self.__get_telemetry_data(
                 elapsed_time=False)
             names = tqdm(
-                {self.replay.short_name_display[name] \
+                {self.replay.short_name_display[self.driver_lookup[name]] \
                     for packet in telemetry_data \
                     if packet.packet_type == 1 or \
                     packet.packet_type == 2 \
@@ -704,7 +807,6 @@ class RaceData():
                     break
 
             progress.close()
-
 
             self._classification = classification_data._classification
             self._end_sector_times = classification_data.sector_times
