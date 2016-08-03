@@ -116,6 +116,7 @@ class RaceData():
         #Exhaust packets before the race start.
         try:
             while True:
+                old_packet = packet
                 packet = next(telemetry_data)
                 progress.update()
                 if packet.packet_type == 0 and (
@@ -123,12 +124,12 @@ class RaceData():
                         packet.game_state != 2):
                     break
         #None found (no restarts?) so use the first packet.
-        #It is already on `packet`.
+        #It is already on `old_packet`.
         except StopIteration:
             pass
 
         progress.close()
-        self.descriptor['race_start'] = packet.data_hash
+        self.descriptor['race_start'] = old_packet.data_hash
         with open(os.path.join(
             os.path.realpath(self.telemetry_directory),
             os.path.relpath(descriptor_file)), 'w') as desc_file:
@@ -167,7 +168,7 @@ class RaceData():
                 new_packet = TelemetryDataPacket(packet_data)
                 if not any([participant.race_position \
                         for participant \
-                        in new_packet.participant_info]):
+                        in new_packet.participant_info][:new_packet.num_participants]):
                     continue
                 else:
                     find_populate = False
@@ -194,7 +195,8 @@ class RaceData():
                         self.elapsed_time = \
                             self.add_time + new_packet.current_time
 
-                yield TelemetryDataPacket(packet_data)
+                # yield TelemetryDataPacket(packet_data)
+                yield new_packet
             else:
                 raise ValueError("Malformed or unrecognized packet.")
 
@@ -233,14 +235,21 @@ class RaceData():
         while packet.packet_type != 0:
             packet = next(telemetry_data)
         old_drivers = list()
+        self.driver_matrix = list()
         self.driver_lookup = dict()
 
+        progress = tqdm(
+            desc='Getting names',
+            total=self.packet_count,
+            unit='packets')
         while True:
             try:
                 new_drivers = self.pull_names(
                     telemetry_data,
-                    packet.num_participants)
+                    packet.num_participants,
+                    progress)
                 packet = next(telemetry_data)
+                progress.update()
 
                 if len(new_drivers) < len(old_drivers):
                     """"
@@ -268,22 +277,29 @@ class RaceData():
 
             except StopIteration:
                 break
+        progress.close()
 
-    @staticmethod
-    def pull_names(telemetry_data, count):
+    def pull_names(self, telemetry_data, count, progress_bar=None):
         drivers = list()
         packet = next(telemetry_data)
+        if progress_bar is not None:
+            progress_bar.update()
         while len(drivers) < count:
             if packet.packet_type == 1 or \
                     packet.packet_type == 2:
                 drivers.extend(
                     [name for name in packet.name])
             packet = next(telemetry_data)
+            if progress_bar is not None:
+                progress_bar.update()
         while (packet.packet_type == 0 and packet.num_participants == count) or \
                 packet.packet_type == 1 or \
                 packet.packet_type == 2:
             packet = next(telemetry_data)
+            if progress_bar is not None:
+                progress_bar.update()
 
+        self.driver_matrix.append(drivers[:count])
         return drivers[:count]
 
     def laps_completed(self, driver_index):
@@ -362,11 +378,14 @@ class RaceData():
         else:
             times = self._end_sector_times
 
-        best_sectors = [
-            min(self.sector_time(sector, driver_index))
-            for driver_index, sector_times \
-            in enumerate(times) \
-            if len(sector_times)]
+        try:
+            best_sectors = [
+                min(self.sector_time(sector, driver_index))
+                for driver_index, sector_times \
+                in enumerate(times) \
+                if len(sector_times)]
+        except ValueError:
+            return None
 
         if driver_index is None:
             return min([time for time in best_sectors \
@@ -406,7 +425,7 @@ class RaceData():
 
         previous_points = 0
         try:
-            previous_points = self.replay.points[driver_name]
+            previous_points = self.replay.points[self.driver_lookup[driver_name]]
         except IndexError:
             pass
 
@@ -470,32 +489,40 @@ class RaceData():
 
     def __add_telemetry_packet(self, packet):
         if self.packet.num_participants == packet.num_participants and \
-                len(self.participant_list) == \
+                len(self.participant_list) >= \
                 self.packet.num_participants:
             self.packet = packet
         else:
             self.packet = packet
-            self.participant_list = dict()
-            self.__rebuild_participants()
+            self.__rebuild_participants(self.packet.num_participants)
 
         if self.packet.event_type == 'time':
             #TODO: Time.
             pass
 
         for index, name in self.participant_list.items():
-            self.packet.participant_info[index].name = name
             self.packet.participant_info[index].index = index
+            self.packet.participant_info[index].name = name
+            if self.replay is None:
+                pass
+            else:
+                """
+                try:
+                    self.packet.participant_info[index].name = \
+                        self.replay.name_display[self.driver_lookup[name]]
+                except KeyError:
+                    self.packet.participant_info[index].name = name
+                """
 
-            if self.replay is not None:
                 try:
                     self.packet.participant_info[index].team = \
-                        self.replay.team_data[name]
+                        self.replay.team_data[self.driver_lookup[name]]
                 except KeyError:
                     self.packet.participant_info[index].team = None
 
                 try:
                     self.packet.participant_info[index].car = \
-                        self.replay.car_data[name]
+                        self.replay.car_data[self.driver_lookup[name]]
                 except KeyError:
                     self.packet.participant_info[index].car = None
 
@@ -503,7 +530,7 @@ class RaceData():
                     self.packet.participant_info[index].car_class \
                         = [car_class for car_class, data \
                         in self.replay.car_classes.items() \
-                        if self.replay.car_data[name] \
+                        if self.replay.car_data[self.driver_lookup[name]] \
                         in data['cars']][0]
                 except (IndexError, KeyError):
                     self.packet.participant_info[index].car_class = None
@@ -515,13 +542,13 @@ class RaceData():
 
                     try:
                         telemetry_packet.participant_info[index].team = \
-                            self.replay.team_data[name]
+                            self.replay.team_data[self.driver_lookup[name]]
                     except KeyError:
                         telemetry_packet.participant_info[index].team = None
 
                     try:
                         telemetry_packet.participant_info[index].car = \
-                            self.replay.car_data[name]
+                            self.replay.car_data[self.driver_lookup[name]]
                     except KeyError:
                         telemetry_packet.participant_info[index].car = None
 
@@ -530,7 +557,7 @@ class RaceData():
                             = [car_class \
                                 for car_class, data \
                                 in self.replay.car_classes.items() \
-                            if self.replay.car_data[name] \
+                            if self.replay.car_data[self.driver_lookup[name]]
                             in data['cars']][0]
                     except (IndexError, KeyError):
                         self.packet.participant_info[index].car_class \
@@ -570,6 +597,9 @@ class RaceData():
                         participant_info.sector != 0:
                     self.sector_times[participant_index].append(
                         sector_time)
+                elif participant_info.last_sector_time != 123 \
+                        and participant_info.sector != 0:
+                    pass
             except IndexError:
                 if participant_info.last_sector_time != -123 and \
                         participant_info.sector != 0:
@@ -610,12 +640,10 @@ class RaceData():
                 self._classification.append(classification)
                 self._race_finished.add(participant_index)
 
-    def __rebuild_participants(self):
+    def __rebuild_participants(self, count):
         self._telemetry_waiting = list()
-        if len(self.participant_list):
-            old_participant_list = self.participant_list
+        old_participant_list = self.participant_list if len(self.participant_list) else dict()
 
-        self.participant_list = dict()
         while len(self.participant_list) < \
                 self.packet.num_participants:
             packet = next(self.telemetry_data)
@@ -632,7 +660,7 @@ class RaceData():
 
         if len(old_participant_list) > len(self.participant_list):
             """"
-            Change was caused by someon dropping out.
+            Change was caused by someone dropping out.
             Space vacated by dropout is filled by whoever was in the
             last index position.
             """
@@ -657,9 +685,6 @@ class RaceData():
                     self.invalid_laps[55] = self.invalid_laps[index]
                     self.invalid_laps[index] = self.invalid_laps[len(old_participant_list)-1]
                     self.invalid_laps[len(old_participant_list)-1] = set()
-
-        print(self.participant_list)
-
 
     def __add_participant_packet(self, packet):
         if packet.packet_type == 1:
@@ -705,21 +730,9 @@ class RaceData():
         in the race.
         """
         if self.max_name_dimensions_value is None:
-            telemetry_data = self.__get_telemetry_data(
-                elapsed_time=False)
-            names = tqdm(
-                {
-                    self.replay.name_display[self.driver_lookup[name]]
-                    for packet in telemetry_data
-                    if packet.packet_type == 1 or
-                    packet.packet_type == 2
-                    for name in packet.name
-                    if len(name)
-                },
-                desc='Reading Telemetry Data Names',
-                total=self.packet_count,
-                unit='packets'
-            )
+            names = {
+                self.replay.name_display[name]
+                for name in self.driver_lookup.values()}
             height = max([font.getsize(driver)[1] for driver in names])
             width = max([font.getsize(driver)[0] for driver in names])
             self.max_name_dimensions_value = (width, height)
@@ -732,6 +745,10 @@ class RaceData():
         in the race.
         """
         if self.max_short_name_dimensions_value is None:
+            names = {
+                self.replay.short_name_display[name]
+                for name in self.driver_lookup.values()}
+            """
             telemetry_data = self.__get_telemetry_data(
                 elapsed_time=False)
             names = tqdm(
@@ -744,6 +761,7 @@ class RaceData():
                 desc='Reading Telemetry Data Names',
                 total=self.packet_count,
                 unit='packets')
+            """
             height = max([font.getsize(driver)[1] for driver in names])
             width = max([font.getsize(driver)[0] for driver in names])
             self.max_short_name_dimensions_value = (width, height)
@@ -771,8 +789,15 @@ class RaceData():
                 grid_data.packet.participant_info[index].\
                     car_class) for \
                 index, name in grid_data.participant_list.items() \
-                if grid_data.packet.participant_info[index].is_active]
-
+                if grid_data.packet.participant_info[index].is_active]\
+                [:grid_data.packet.num_participants]
+            if self.replay is not None:
+                self._starting_grid = [(
+                    data[0],
+                    self.replay.name_display[self.driver_lookup[data[1]]])+tuple(
+                    data[2:]) for data
+                    in self._starting_grid]
+            
         return self._starting_grid
 
     @property

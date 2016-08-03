@@ -381,17 +381,20 @@ class ReplayEnhancer():
                 """
                 output1 = replay.build_custom_video(True, ups=10,
                                                     low_quality=True)
-                output1 = output1.subclip(
-                    output1.duration-60,
+                output1 = output1.set_duration(
+                    output1.duration).subclip(
+                    output1.duration-150,
                     output1.duration)
+                """
+                output1 = output1.subclip(
+                    0,
+                    120)
+                    """
                 output1.write_videofile(replay.output_video)
 
                 #output1 = output1.subclip(450, 540)
                 #output1 = output1.subclip(455, 480)
                 #output1.save_frame("outputs/output.jpg", 2)
-                Image.fromarray(
-                    output1.get_frame(828)).save(
-                        'outputs/output.png')
 
         except KeyboardInterrupt:
             raise
@@ -527,17 +530,19 @@ class ReplayEnhancer():
         standing_clip_mask = UpdatedVideoClip(
             standing_mask,
             ismask=True)
+        """
         standing_clip_mask = standing_clip_mask.set_position(
             (0, 0)).set_duration(video.duration)
+        """
         standing_clip = standing_clip.set_mask(standing_clip_mask)
-
-        mainevent = mpy.CompositeVideoClip(
-            [video, standing_clip],
-            use_bgclip=False).set_duration(video.duration)
 
         if low_quality:
             mainevent = mpy.CompositeVideoClip(
                 [video, standing_clip, timecode],
+                use_bgclip=False).set_duration(video.duration)
+        else:
+            mainevent = mpy.CompositeVideoClip(
+                [video, standing_clip],
                 use_bgclip=False).set_duration(video.duration)
 
         start_time = 0

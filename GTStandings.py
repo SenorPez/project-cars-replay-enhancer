@@ -627,7 +627,7 @@ class Standing():
         self.replay = replay
         self.race_data = self.replay.race_data
         self.driver = driver
-        self.name = self.replay.short_name_display[driver.name]
+        self.name = self.replay.short_name_display[self.race_data.driver_lookup[driver.name]]
         self.mask = mask
 
         self.text_width, self.text_height = text_size

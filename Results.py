@@ -22,9 +22,8 @@ class Results(StaticBase):
     - Personal Best Sector 3 Time
     - Points Earned
     """
-    _classification = None
-
     def __init__(self, replay, lines=None, car_class=None):
+        self._classification = None
         self.replay = replay
         self.race_data = self.replay.race_data
 

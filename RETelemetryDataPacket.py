@@ -153,13 +153,13 @@ class RETelemetryDataPacket(TelemetryDataPacket):
     def drivers_by_position(self):
         """Returns drivers, srted by race position."""
         return sorted(
-            [x for x in self.participant_info if x.is_active],
+            self.drivers_by_index,
             key=lambda x: x.race_position)
 
     @property
     def drivers_by_index(self):
         """Returns drivers, sorted by their index."""
-        return [x for x in self.participant_info if x.is_active]
+        return [x for x in self.participant_info if x.is_active][:self.num_participants]
 
     @property
     def leader_lap(self):
