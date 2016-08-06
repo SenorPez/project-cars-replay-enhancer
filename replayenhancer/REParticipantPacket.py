@@ -7,7 +7,7 @@ Customized for use by the Project CARS Replay Enhancer.
 
 from hashlib import md5
 
-from ParticipantPacket import ParticipantPacket
+from replayenhancer.ParticipantPacket import ParticipantPacket
 
 class REParticipantPacket(ParticipantPacket):
     # pylint: disable=super-init-not-called

@@ -5,7 +5,7 @@ Project CARS
 
 from hashlib import md5
 
-from Packet import Packet
+from replayenhancer.Packet import Packet
 
 class ParticipantInfo():
     """

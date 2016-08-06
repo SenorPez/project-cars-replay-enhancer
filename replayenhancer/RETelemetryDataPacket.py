@@ -7,7 +7,7 @@ Customized for use by the Project CARS Replay Enhancer.
 
 from hashlib import md5
 
-from TelemetryDataPacket import ParticipantInfo, TelemetryDataPacket
+from replayenhancer.TelemetryDataPacket import ParticipantInfo, TelemetryDataPacket
 
 class REParticipantInfo(ParticipantInfo):
     # pylint: disable=super-init-not-called
