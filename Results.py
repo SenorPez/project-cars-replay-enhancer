@@ -286,10 +286,17 @@ class Results(StaticBase):
         classification = sorted(
             [line[:-1] for line in self._classification \
                 if line[0] is not None \
+                and line[0] != "DNF" \
                 and line[4] == self.car_class],
-            key=lambda x: x[0])[:positions]
+            key=lambda x: x[0])
+        dnf_classification = sorted(
+            [line[:-1] for line in self._classification \
+                if line[0] == "DNF" \
+                and line[4] == self.car_class],
+            key=lambda x: (-x[5], x[4], x[2]))
+        classification.extend(dnf_classification)
 
-        return classification
+        return classification[:positions]
 
     @property
     def classification_with_headings(self):
@@ -324,7 +331,8 @@ class Results(StaticBase):
         column_headings = [heading \
             if len(
                 [data[i] for data in self.classification \
-                    if data[i] is not None]) \
+                    if data[i] is not None \
+                    and data[i] != "DNF"]) \
             else None \
             for i, heading in enumerate(column_headings)]
 

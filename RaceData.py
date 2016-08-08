@@ -3,6 +3,7 @@ Provides a class for the storing and management of
 race data.
 """
 
+from copy import deepcopy
 from hashlib import md5
 import json
 import os.path
@@ -23,7 +24,8 @@ class RaceData():
     """
     def __init__(self, telemetry_directory,
                  replay=None,
-                 descriptor_file='descriptor.json'):
+                 descriptor_file='descriptor.json',
+                 classi=False):
         self._classification = list()
         self._missing_participants = 0
         self._update_indexes = set()
@@ -33,8 +35,11 @@ class RaceData():
         self._final_lap = False
         self._race_finished = set()
         self._classification = list()
+        self._dnf_classification = list()
         self._end_sector_times = [list() for _ in range(56)]
+        self._dnf_end_sector_times = list()
         self._lap_at_finish = [None for _ in range(56)]
+        self._dnf_lap_at_finish = list()
 
         self.telemetry_directory = telemetry_directory
         self.replay = replay
@@ -43,6 +48,9 @@ class RaceData():
 
         self.driver_lookup = dict()
         self.get_names()
+
+        self.classi = classi
+        self._participant_store = None
 
         try:
             with open(os.path.join(
@@ -65,6 +73,12 @@ class RaceData():
         self.sector_times = [list() for _ in range(56)]
         self.valid_laps = [set() for _ in range(56)]
         self.invalid_laps = [set() for _ in range(56)]
+
+        self.dnf_sector_times = list()
+        self.dnf_valid_laps = list()
+        self.dnf_invalid_laps = list()
+
+        self.dnf_lookup = list()
 
         self.telemetry_data = self.__get_telemetry_data(
             race_start=self.descriptor['race_start'])
@@ -200,21 +214,27 @@ class RaceData():
             else:
                 raise ValueError("Malformed or unrecognized packet.")
 
-    def race_time(self, driver_index):
+    def race_time(self, driver_index, dataset=None):
         """
         Returns the race time for a driver.
         """
-        race_time = sum(self.lap_time(driver_index))
+        if dataset is None:
+            dataset = self.sector_times
+
+        race_time = sum(self.lap_time(driver_index, dataset=dataset))
         return race_time if race_time != 0 else None
 
-    def lap_time(self, driver_index, lap_number=None):
+    def lap_time(self, driver_index, lap_number=None, dataset=None):
         """
         Returns lap times for a driver, specified by driver_index.
 
         Pass lap_number to return a specific lap.
         """
-        if max([len(time) for time in self.sector_times]):
-            times = self.sector_times
+        if dataset is None:
+            dataset = self.sector_times
+
+        if max([len(time) for time in dataset]):
+            times = dataset
         else:
             times = self._end_sector_times
 
@@ -226,7 +246,10 @@ class RaceData():
         if lap_number is None:
             return lap_times
         else:
-            return lap_times[lap_number-1]
+            try:
+                return lap_times[lap_number-1]
+            except IndexError:
+                return 0
 
     def get_names(self):
         telemetry_data = self.__get_telemetry_data(
@@ -249,6 +272,8 @@ class RaceData():
                     packet.num_participants,
                     progress)
                 packet = next(telemetry_data)
+                while packet.packet_type != 0:
+                    packet = next(telemetry_data)
                 progress.update()
 
                 if len(new_drivers) < len(old_drivers):
@@ -302,24 +327,30 @@ class RaceData():
         self.driver_matrix.append(drivers[:count])
         return drivers[:count]
 
-    def laps_completed(self, driver_index):
+    def laps_completed(self, driver_index, dataset=None):
         """
         Returns the number of laps completed.
         """
-        return len(self.lap_time(driver_index))
+        if dataset is None:
+            dataset = self.sector_times
 
-    def sector_time(self, sector, driver_index, lap_number=None):
+        return len(self.lap_time(driver_index, dataset=dataset))
+
+    def sector_time(self, sector, driver_index, lap_number=None, dataset=None):
         """
         Returns sector times for a driver, specified by sector and
         driver_index.
 
         Pass lap_number to return a specific lap.
         """
+        if dataset is None:
+            dataset = self.sector_times
+
         if sector < 1 or sector > 3:
             raise ValueError("Invalid Sector Number.")
 
-        if max([len(times) for times in self.sector_times]):
-            times = self.sector_times
+        if max([len(times) for times in dataset]):
+            times = dataset
         else:
             times = self._end_sector_times
 
@@ -331,29 +362,34 @@ class RaceData():
         else:
             return sector_times[lap_number-1]
 
-    def best_race_time(self):
+    def best_race_time(self, dataset=None):
         """
         Returns the best race time in the race.
         """
-        return min([self.race_time(driver_index) \
+        if dataset is None:
+            dataset = self.sector_times
+        return min([self.race_time(driver_index, dataset=dataset) \
             for driver_index, _ \
-            in enumerate(self.sector_times) \
-            if self.race_time(driver_index) is not None])
+            in enumerate(dataset) \
+            if self.race_time(driver_index, dataset=dataset) is not None])
 
-    def best_lap_time(self, driver_index=None):
+    def best_lap_time(self, driver_index=None, dataset=None):
         """
         Returns the best lap time or times in the race.
 
         Pass driver_index to return the best time or times for
             that index.
         """
-        if max([len(times) for times in self.sector_times]):
-            times = self.sector_times
+        if dataset is None:
+            dataset = self.sector_times
+
+        if max([len(times) for times in dataset]):
+            times = dataset
         else:
             times = self._end_sector_times
 
         best_laps = [None if len(sector_times) < 3 \
-            else min(self.lap_time(driver_index)) \
+            else min(self.lap_time(driver_index, dataset=dataset)) \
             for driver_index, sector_times \
             in enumerate(times)]
 
@@ -363,29 +399,44 @@ class RaceData():
         else:
             return best_laps[driver_index]
 
-    def best_sector_time(self, sector, driver_index=None):
+    def best_sector_time(self, sector, driver_index=None, dataset=None):
         """
         Returns the best sector time or times in the race.
 
         sector should be 1, 2, or 3.
         Pass driver_index to return the best time for that index.
         """
+        if dataset is None:
+            dataset = self.sector_times
+
         if sector < 1 or sector > 3:
             raise ValueError("Invalid Sector Number.")
 
-        if max([len(times) for times in self.sector_times]):
-            times = self.sector_times
+        if max([len(times) for times in dataset]):
+            times = dataset
         else:
             times = self._end_sector_times
 
-        try:
-            best_sectors = [
-                min(self.sector_time(sector, driver_index))
-                for driver_index, sector_times \
-                in enumerate(times) \
-                if len(sector_times)]
-        except ValueError:
-            return None
+        """
+        best_sectors = [
+            min(self.sector_time(sector, 0, dataset=[sector_times]))
+            for driver_index, sector_times \
+            in enumerate(times) \
+            if len(sector_times)]
+        """
+        """
+        best_sectors = [
+            min(self.sector_time(sector, 0, dataset=[sector_times]))
+            if len(self.sector_time(sector, 0, dataset=[sector_times]))
+            else None
+            for sector_times in times]
+        """
+        best_sectors = [
+            min(self.sector_time(sector, driver_index, dataset=times))
+            if len(self.sector_time(sector, driver_index, dataset=times))
+            else None
+            for driver_index, _
+            in enumerate(times)]
 
         if driver_index is None:
             return min([time for time in best_sectors \
@@ -482,19 +533,75 @@ class RaceData():
             self.__add_telemetry_packet(packet)
         elif packet.packet_type == 1:
             self.__add_participant_packet(packet)
+            self.participant_list = {index:name for index, name in self.participant_list.items() if index < self._participant_store}
         elif packet.packet_type == 2:
             self.__add_participant_packet(packet)
+            self.participant_list = {index:name for index, name in self.participant_list.items() if index < self._participant_store}
         else:
             raise ValueError("Malformed or unknown packet.")
 
     def __add_telemetry_packet(self, packet):
         if self.packet.num_participants == packet.num_participants and \
-                len(self.participant_list) >= \
+                len(self.participant_list) == \
                 self.packet.num_participants:
             self.packet = packet
         else:
+            self.old_participant_list = deepcopy(self.participant_list)
             self.packet = packet
             self.__rebuild_participants(self.packet.num_participants)
+
+            if len(self.old_participant_list) > len(self.participant_list):
+                """"
+                Change was caused by someone dropping out.
+                Space vacated by dropout is filled by whoever was in the
+                last index position.
+                """
+                change_found = False
+                for index in range(len(self.participant_list)):
+                    if self.participant_list[index] != self.old_participant_list[index]:
+                        change_found = True
+                        self.dnf_lookup.append(self.old_participant_list[index])
+
+                        self._dnf_end_sector_times.append(self._end_sector_times[index])
+                        self._end_sector_times[index] = self._end_sector_times[len(self.old_participant_list)-1]
+                        self._end_sector_times[len(self.old_participant_list)-1] = list()
+
+                        self._dnf_lap_at_finish.append(self._lap_at_finish[index])
+                        self._lap_at_finish[index] = self._lap_at_finish[len(self.old_participant_list)-1]
+                        self._lap_at_finish[len(self.old_participant_list)-1] = None
+
+                        self.dnf_sector_times.append(self.sector_times[index])
+                        self.sector_times[index] = self.sector_times[len(self.old_participant_list)-1]
+                        self.sector_times[len(self.old_participant_list)-1] = list()
+
+                        self.dnf_valid_laps.append(self.valid_laps[index])
+                        self.valid_laps[index] = self.valid_laps[len(self.old_participant_list)-1]
+                        self.valid_laps[len(self.old_participant_list)-1] = set()
+
+                        self.dnf_invalid_laps.append(self.invalid_laps[index])
+                        self.invalid_laps[index] = self.invalid_laps[len(self.old_participant_list)-1]
+                        self.invalid_laps[len(self.old_participant_list)-1] = set()
+                if not change_found:
+                    """
+                    Drop out was last in the list.
+                    """
+                    index += 1
+                    self.dnf_lookup.append(self.old_participant_list[index])
+
+                    self._dnf_end_sector_times.append(self._end_sector_times[index])
+                    self._end_sector_times[index] = list()
+
+                    self._dnf_lap_at_finish.append(self._lap_at_finish[index])
+                    self._lap_at_finish[index] = None
+
+                    self.dnf_sector_times.append(self.sector_times[index])
+                    self.sector_times[index] = list()
+
+                    self.dnf_valid_laps.append(self.valid_laps[index])
+                    self.valid_laps[index] = set()
+
+                    self.dnf_invalid_laps.append(self.invalid_laps[index])
+                    self.invalid_laps[index] = set()
 
         if self.packet.event_type == 'time':
             #TODO: Time.
@@ -567,7 +674,8 @@ class RaceData():
             participant_info = \
                 self.packet.participant_info[participant_index]
 
-            if participant_info.race_position == 1:
+            if participant_info.race_position == 1 and \
+                    participant_index < self.packet.num_participants:
                 self.leader_index = participant_index
 
                 if self.packet.event_type == 'laps' and \
@@ -642,7 +750,9 @@ class RaceData():
 
     def __rebuild_participants(self, count):
         self._telemetry_waiting = list()
-        old_participant_list = self.participant_list if len(self.participant_list) else dict()
+        if self.packet.num_participants > 0:
+            self._participant_store = self.packet.num_participants
+            self.participant_list = dict()
 
         while len(self.participant_list) < \
                 self.packet.num_participants:
@@ -657,34 +767,6 @@ class RaceData():
                 self.__dispatch(packet)
             else:
                 raise ValueError("Malformed or unknown packet.")
-
-        if len(old_participant_list) > len(self.participant_list):
-            """"
-            Change was caused by someone dropping out.
-            Space vacated by dropout is filled by whoever was in the
-            last index position.
-            """
-            for index in range(len(self.participant_list)):
-                if self.participant_list[index] != old_participant_list[index]:
-                    self._end_sector_times[55] = self._end_sector_times[index]
-                    self._end_sector_times[index] = self._end_sector_times[len(old_participant_list)-1]
-                    self._end_sector_times[len(old_participant_list)-1] = list()
-
-                    self._lap_at_finish[55] = self._lap_at_finish[index]
-                    self._lap_at_finish[index] = self._lap_at_finish[len(old_participant_list)-1]
-                    self._lap_at_finish[len(old_participant_list)-1] = None
-
-                    self.sector_times[55] = self.sector_times[index]
-                    self.sector_times[index] = self.sector_times[len(old_participant_list)-1]
-                    self.sector_times[len(old_participant_list)-1] = list()
-
-                    self.valid_laps[55] = self.valid_laps[index]
-                    self.valid_laps[index] = self.valid_laps[len(old_participant_list)-1]
-                    self.valid_laps[len(old_participant_list)-1] = set()
-
-                    self.invalid_laps[55] = self.invalid_laps[index]
-                    self.invalid_laps[index] = self.invalid_laps[len(old_participant_list)-1]
-                    self.invalid_laps[len(old_participant_list)-1] = set()
 
     def __add_participant_packet(self, packet):
         if packet.packet_type == 1:
@@ -817,30 +899,39 @@ class RaceData():
             classification_data = RaceData(
                 self.telemetry_directory,
                 replay=self.replay,
-                descriptor_file=self.descriptor_file)
+                descriptor_file=self.descriptor_file,
+                classi=True)
 
+            """
             progress = tqdm(
                 desc='Determining Classification',
                 total=classification_data.packet_count,
                 unit='packets')
+            """
 
             while True:
                 try:
                     _ = classification_data.get_data(get_next=True)
-                    progress.update()
+                    #progress.update()
                 except StopIteration:
                     break
 
-            progress.close()
+            #progress.close()
 
             self._classification = classification_data._classification
             self._end_sector_times = classification_data.sector_times
             points = classification_data.points
             series_points = classification_data.series_points
+            dnf_lookup = classification_data.dnf_lookup
+            dnf_sector_times = classification_data.dnf_sector_times
+            participant_list = classification_data.participant_list
             _ = self.get_data()
         else:
             points = self.points
             series_points = self.series_points
+            dnf_lookup = self.dnf_lookup
+            dnf_sector_times = self.dnf_sector_times
+            participant_list = self.participant_list
 
         if car_class is None:
             classification = sorted(
@@ -875,6 +966,44 @@ class RaceData():
                     data[2:]
                 ) for data in classification], 1)]
 
+        for index, dnf_name in [(index, name) for index, name in participant_list.items() if name not in [data[1] for data in classification]]:
+            name = self.replay.name_display[self.driver_lookup[dnf_name]]
+
+            try:
+                team = self.replay.team_data[self.driver_lookup[dnf_name]]
+            except KeyError:
+                team = None
+
+            try:
+                car = self.replay.car_data[self.driver_lookup[dnf_name]]
+            except KeyError:
+                car = None
+
+            try:
+                dnf_car_class = [car_class for car_class, data \
+                    in self.replay.car_classes.items() \
+                    if self.replay.car_data[self.driver_lookup[dnf_name]] \
+                    in data['cars']][0]
+            except (IndexError, KeyError):
+                dnf_car_class = None
+
+            if dnf_car_class == car_class:
+                dnf = (
+                    "DNF",
+                    name,
+                    team,
+                    car,
+                    dnf_car_class,
+                    self.laps_completed(index, dataset=self._end_sector_times),
+                    self.race_time(index, dataset=self._end_sector_times),
+                    self.best_lap_time(index, dataset=self._end_sector_times),
+                    self.best_sector_time(1, index, dataset=self._end_sector_times),
+                    self.best_sector_time(2, index, dataset=self._end_sector_times),
+                    self.best_sector_time(3, index, dataset=self._end_sector_times),
+                    0,
+                    self.replay.points[self.driver_lookup[dnf_name]])
+                classification.append(dnf)
+
         if self.replay is not None:
             for name in self.replay.additional_participants:
                 try:
@@ -888,16 +1017,16 @@ class RaceData():
                     car = None
 
                 try:
-                    car_class = self.replay.car_class_data[name]
+                    add_car_class = self.replay.car_class_data[name]
                 except KeyError:
-                    car_class = None
+                    add_car_class = None
 
                 additional = (
                     None,
                     name,
                     team,
                     car,
-                    car_class,
+                    add_car_class,
                     None,
                     None,
                     None,
@@ -906,7 +1035,47 @@ class RaceData():
                     None,
                     0,
                     self.replay.points[name])
-                classification.append(additional)
+
+                if car_class == add_car_class:
+                    classification.append(additional)
+
+        for index, dnf_name in enumerate(dnf_lookup):
+            name = self.replay.name_display[self.driver_lookup[dnf_name]]
+
+            try:
+                team = self.replay.team_data[self.driver_lookup[dnf_name]]
+            except KeyError:
+                team = None
+
+            try:
+                car = self.replay.car_data[self.driver_lookup[dnf_name]]
+            except KeyError:
+                car = None
+
+            try:
+                dnf_car_class = [car_class for car_class, data \
+                    in self.replay.car_classes.items() \
+                    if self.replay.car_data[self.driver_lookup[dnf_name]] \
+                    in data['cars']][0]
+            except (IndexError, KeyError):
+                dnf_car_class = None
+
+            if dnf_car_class == car_class:
+                dnf = (
+                    "DNF",
+                    name,
+                    team,
+                    car,
+                    dnf_car_class,
+                    self.laps_completed(0, [dnf_sector_times[index]]),
+                    self.race_time(0, [dnf_sector_times[index]]),
+                    self.best_lap_time(0, [dnf_sector_times[index]]),
+                    self.best_sector_time(1, 0, [dnf_sector_times[index]]),
+                    self.best_sector_time(2, 0, [dnf_sector_times[index]]),
+                    self.best_sector_time(3, 0, [dnf_sector_times[index]]),
+                    0,
+                    self.replay.points[self.driver_lookup[dnf_name]])
+                classification.append(dnf)
 
         return classification
 

@@ -62,20 +62,55 @@ class GTStandings(DynamicBase):
                 self.replay.font)
 
         self.standings_lines = list()
-        for driver in self.telemetry_data.drivers_by_position:
-            self.standings_lines.append(Standing(
-                self.replay,
-                driver,
-                (self.short_text_width, self.short_text_height),
-                self.replay.font,
-                self.mask,
-                ups=self.ups))
+        self.__build_standings()
+
         self.timer = Timer(
             self.replay,
             (self.short_text_width, self.short_text_height),
             self.replay.font,
             self.mask,
             ups=self.ups)
+
+    def __build_standings(self):
+        if len(self.standings_lines) == 0:
+            for driver in self.telemetry_data.drivers_by_position:
+                self.standings_lines.append(Standing(
+                    self.replay,
+                    driver,
+                    (self.short_text_width, self.short_text_height),
+                    self.replay.font,
+                    self.mask,
+                    ups=self.ups))
+        else:
+            previous_standings_lines = self.standings_lines
+            self.standings_lines = list()
+
+            delete_ix = set()
+            for driver in self.telemetry_data.drivers_by_position:
+                index, standings_line = self.__find_standings_line(
+                    previous_standings_lines,
+                    driver)
+                if index is not None:
+                    self.standings_lines.append(standings_line)
+                    delete_ix.add(index)
+
+            """
+            for index in delete_ix:
+                standings_line = previous_standings_lines[index]
+                standings_line.animations.append(
+                    GTAnimation(
+                        duration=int(self.ups/2),
+                        position_from=(0, 0),
+                        position_to=(0, -1000)))
+                self.standings_lines.append(standings_line)
+            """
+                
+    def __find_standings_line(self, standings_lines, driver):
+        for index, standing in enumerate(standings_lines):
+            if self.replay.race_data.driver_lookup[standing.driver.name] == \
+                    self.replay.race_data.driver_lookup[driver.name]:
+                return (index, standing)
+        return (None, None)
 
     def update(self, force_process=False):
         if self.process_data or force_process:
@@ -92,6 +127,9 @@ class GTStandings(DynamicBase):
     def _make_material(self, bg_only):
         if not bg_only:
             self.telemetry_data = self.update(force_process=True)
+        
+        if len(self.standings_lines) != self.telemetry_data.num_participants:
+            self.__build_standings()
 
         if len(self.replay.car_classes):
             material_width = \
@@ -120,9 +158,22 @@ class GTStandings(DynamicBase):
         for driver in reversed(self.telemetry_data.drivers_by_position):
             x_offset = 0
             y_offset = 0
-            standings_line = next(
-                line for line in self.standings_lines \
-                if line.driver.name == driver.name)
+            try:
+                standings_line = next(
+                    line for line in self.standings_lines \
+                    if self.replay.race_data.driver_lookup[line.driver.name] == self.replay.race_data.driver_lookup[driver.name])
+            except StopIteration:
+                """
+                Added person not yet populated.
+                """
+                standings_line = Standing(
+                    self.replay,
+                    driver,
+                    (self.short_text_width, self.short_text_height),
+                    self.replay.font,
+                    self.mask,
+                    ups=self.ups)
+                self.standings_lines.append(standings_line)
 
             #TODO: Clean up masking behavior.
             #Set to False at all times for proper text masking
@@ -141,7 +192,7 @@ class GTStandings(DynamicBase):
                     driver.viewed:
                 subject_y = y_position+y_offset
             elif self.replay.viewed is not None and \
-                    self.replay.viewed == driver.name:
+                    self.replay.viewed == self.replay.race_data.driver_lookup[driver.name]:
                 subject_y = y_position+y_offset
 
             output_material.paste(

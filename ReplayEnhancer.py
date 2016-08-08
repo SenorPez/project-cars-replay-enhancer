@@ -381,15 +381,15 @@ class ReplayEnhancer():
                 """
                 output1 = replay.build_custom_video(True, ups=10,
                                                     low_quality=True)
+                """
                 output1 = output1.set_duration(
                     output1.duration).subclip(
-                    output1.duration-150,
+                    output1.duration-40,
                     output1.duration)
                 """
                 output1 = output1.subclip(
-                    0,
-                    120)
-                    """
+                    180,
+                    240)
                 output1.write_videofile(replay.output_video)
 
                 #output1 = output1.subclip(450, 540)
