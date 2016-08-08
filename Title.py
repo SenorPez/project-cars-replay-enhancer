@@ -17,16 +17,14 @@ class Title(StaticBase):
     def __init__(self, replay):
         self.replay = replay
 
-        telemetry_data = self.replay.telemetry_data[0][0][0]
-        participant_data = self.replay.telemetry_data[0][-1]
-
         self.starting_grid = sorted(
-            ((str(int(telemetry_data[182+i*9]) & int('01111111', 2)),
-              str(self.replay.name_display[n]),
-              t if t is not None else "",
-              c) for i, n, t, c in participant_data),
-            key=lambda x: int(x[0]))
-        self.starting_grid = self.starting_grid[:16]
+            self.replay.race_data.starting_grid,
+            key=lambda x: int(x[0]))[:16]
+        self.starting_grid = [
+            tuple(
+                ["" if y is None else str(y) for y in x]
+            )
+            for x in self.starting_grid]
 
         self.widths = list()
         self.data_height = int(0)
@@ -65,7 +63,7 @@ class Title(StaticBase):
                 ) \
             for i, w in enumerate(self.widths)]
 
-        for position, name, team, car in \
+        for position, name, team, car, car_class in \
                 [list(zip(x, column_positions)) \
                     for x in self.starting_grid]:
             draw.text((position[1], y_pos),
@@ -84,17 +82,36 @@ class Title(StaticBase):
                       str(car[0]),
                       fill=self.replay.font_color,
                       font=self.replay.font)
+            if len(car_class[0]):
+                color = [data['color'] \
+                    for _, data in self.replay.car_classes.items() \
+                    if car[0] in data['cars']][0]
+                x_divisions = int(self.data_height/3)
+                draw.polygon(
+                    [
+                        (car_class[1], y_pos+self.data_height),
+                        (car_class[1]+x_divisions, y_pos),
+                        (car_class[1]+x_divisions*3, y_pos),
+                        (
+                            car_class[1]+x_divisions*2,
+                            y_pos+self.data_height)],
+                    outline=(0, 0, 0),
+                    fill=tuple(color))
+                draw.text((car_class[1]+self.data_height, y_pos),
+                          str(car_class[0]),
+                          fill=self.replay.font_color,
+                          font=self.replay.font)
             y_pos += self.data_height+self.replay.margin
 
         return self.material
 
     def _make_material(self, bgOnly):
-        self.widths = [max([self.replay.font.getsize(x[i])[0] \
+        self.widths = [max([self.replay.font.getsize(str(x[i]))[0] \
             for x in self.starting_grid]) \
             for i in range(len(self.starting_grid[0]))]
         self.widths.append(sum(self.widths))
 
-        heights = [max([self.replay.font.getsize(x[i])[1] \
+        heights = [max([self.replay.font.getsize(str(x[i]))[1] \
             for x in self.starting_grid]) \
             for i in range(len(self.starting_grid[0]))]
         self.data_height = max(heights)
@@ -123,6 +140,9 @@ class Title(StaticBase):
                 self.replay.subheading_text)[0]+ \
                 self.replay.column_margin+ \
                 header_height)
+        if any([car_class \
+                for _, _, _, _, car_class in self.starting_grid]):
+            text_width += self.data_height
         text_height = sum(heights)+self.replay.margin*len(heights)-1
 
         heading_material = Image.new(
@@ -130,7 +150,7 @@ class Title(StaticBase):
             (text_width+self.replay.margin*2, header_height),
             self.replay.heading_color)
 
-        if len(self.replay.series_logo):
+        if self.replay.series_logo is not None:
             series_logo = Image.open(
                 self.replay.series_logo
                 ).resize(
@@ -146,9 +166,9 @@ class Title(StaticBase):
         y_pos = header_height
         for i, _ in enumerate(self.starting_grid):
             if i % 2:
-                material_color = (255, 255, 255)
+                material_color = (255, 255, 255, 255)
             else:
-                material_color = (192, 192, 192)
+                material_color = (192, 192, 192, 255)
 
             row_material = Image.new(
                 'RGBA',

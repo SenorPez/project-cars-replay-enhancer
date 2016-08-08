@@ -4,6 +4,7 @@ objects that update continuously based on the telemetry feed.
 """
 
 import abc
+from moviepy.video.io.bindings import PIL_to_npimage
 
 from StaticBase import StaticBase
 
@@ -44,5 +45,19 @@ class DynamicBase(StaticBase, metaclass=abc.ABCMeta):
         return
 
     @abc.abstractmethod
-    def update(self):
-        """Update the simulation including updating clip_t"""
+    def update(self, force_process=False):
+        """
+        If force_process is False, only clip_t is updated. Use this to
+        advance through time without the overhead of rendering the
+        intervening frames. Note that this may cause errors in data
+        display, however, for data that rely on historical information.
+
+        If force_process is True, the data is read and clip_t
+        is updated.
+        """
+
+    @abc.abstractmethod
+    def to_frame(self):
+        """Render the card with data. Override to customize."""
+        return PIL_to_npimage(
+            self._make_material(False).convert('RGB'))

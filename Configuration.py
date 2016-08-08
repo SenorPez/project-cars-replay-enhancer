@@ -4,8 +4,6 @@ configuration files for the Project CARS Replay Enhancer.
 """
 
 from collections import OrderedDict
-import unicodecsv as csv
-import re
 import os
 import json
 from glob import glob
@@ -14,6 +12,7 @@ from struct import unpack
 import moviepy.editor as mpy
 from natsort import natsorted
 from tqdm import tqdm
+import unicodecsv as csv
 
 class Configuration:
     """
@@ -41,6 +40,8 @@ class Configuration:
         self.heading_text = None
         self.subheading_text = None
 
+        self.result_lines = None
+
         self.margin = None
         self.column_margin = None
 
@@ -48,6 +49,8 @@ class Configuration:
         self.source_telemetry = None
         self.telemetry_file = None
         self.output_video = None
+
+        self.car_classes = dict()
 
         self.car_data = None
         self.team_data = None
@@ -64,13 +67,13 @@ class Configuration:
         self.sync_racestart = None
 
         self.participant_config = None
+        self.additional_participant_config = None
 
         self.participants = dict()
         self.participant_lookup = dict()
         self.participant_configurations = list()
 
         self.additional_participants = list()
-        self.additional_participant_configurations = list()
 
         self.previous_file = previous_file
         if previous_file:
@@ -185,7 +188,7 @@ class Configuration:
             while True:
                 print("Enter size of font.")
                 prompt = "({})".format(self.font_size) \
-                    if previous_file else "15"
+                    if previous_file else "(15)"
                 font_size = input(prompt+"--> ")
 
                 if len(font_size) == 0 and previous_file:
@@ -245,7 +248,8 @@ class Configuration:
             while True:
                 print("Enter size of heading font.")
                 prompt = "({})".format(self.heading_font_size) \
-                    if previous_file else str(int(self.font_size/0.75))
+                    if previous_file else "("+str(
+                        int(self.font_size/0.75))+")"
                 heading_font_size = input(prompt+"--> ")
 
                 if len(heading_font_size) == 0 and previous_file:
@@ -265,7 +269,8 @@ class Configuration:
             while True:
                 print("Enter margin width.")
                 prompt = "({})".format(self.margin) \
-                    if previous_file else str(self.heading_font_size)
+                    if previous_file else "("+str(
+                        self.heading_font_size)+")"
                 margin = input(prompt+"--> ")
 
                 if len(margin) == 0 and previous_file:
@@ -284,7 +289,8 @@ class Configuration:
             while True:
                 print("Enter column margin width.")
                 prompt = "({})".format(self.column_margin) \
-                    if previous_file else str(int(self.margin/2))
+                    if previous_file else "("+str(
+                        int(self.margin/2))+")"
                 column_margin = input(prompt+"--> ")
 
                 if len(column_margin) == 0 and previous_file:
@@ -301,123 +307,34 @@ class Configuration:
                     else:
                         break
 
-            purge_cache = False
-            use_blackframe = False
-            """
-            Removing blackframe detection for the time being.
-            It's too slow, there are too many problems with it, and
-            it's too arcane for the average user.
-
-            Until it can be better automated and faster, it's gone.
-            """
-
-            '''
-            while True:
-                print("Use blackframe detection to crop video?")
-                print("Choose YES (default) to trim video based on",
-                      "fade-through-blacks present in most Project",
-                      "CARS replays.")
-                print("Choose NO to manually enter, in seconds, the",
-                      "start and stop time of the video.")
-                use_blackframe = input("[Y/n]--> ")
-                if len(use_blackframe) == 0 or \
-                        str.lower(use_blackframe) == 'y':
-                    use_blackframe = True
-                    break
-                elif str.lower(use_blackframe) == 'n':
-                    use_blackframe = False
-                    break
-            '''
             if self.source_video is not None:
-                if use_blackframe:
-                    while True:
-                        print("Enter blackframe detection threshold.")
-                        print("This sets how dark the screen must be to",
-                              "be recognized as a fade.")
-                        prompt = "({})".format(self.video_threshold) \
-                            if previous_file else "1"
-                        video_threshold = input(prompt+"--> ")
-
-                        if len(video_threshold) == 0 and previous_file:
-                            break
-                        elif len(video_threshold) == 0:
-                            self.video_threshold = 1
-                            purge_cache = True
-                            break
-                        elif len(video_threshold) != 0:
-                            try:
-                                self.video_threshold = int(video_threshold)
-                                purge_cache = True
-                            except ValueError:
-                                print("Blackframe detection threshold",
-                                      "should be an integer value.")
-                            else:
-                                break
-
-                    while True:
-                        print("Enter blackframe gap time.")
-                        print("This sets the minimum time between",
-                              "blackframes to be considered separate",
-                              "events")
-                        prompt = "({})".format(self.video_gaptime) \
-                            if previous_file else "1"
-                        video_gaptime = input(prompt+"--> ")
-
-                        if len(video_gaptime) == 0 and previous_file:
-                            break
-                        elif len(video_gaptime) == 0:
-                            self.video_gaptime = 1
-                            purge_cache = True
-                            break
-                        elif len(video_gaptime):
-                            try:
-                                self.video_gaptime = int(video_gaptime)
-                                purge_cache = True
-                            except ValueError:
-                                print("Blackframe gap time should be an",
-                                      "integer value.")
-                            else:
-                                break
-
                 while True:
-                    if use_blackframe:
-                        print("Enter number of scenes to skip at the",
-                              "start of the video.")
-                    else:
-                        print("Enter the start time of the video.")
+                    print("Enter the start time of the video.")
 
-                    duration = mpy.VideoFileClip(self.source_video).duration
+                    duration = mpy.VideoFileClip(
+                        self.source_video).duration
                     prompt = "({})".format(self.video_skipstart \
-                        if previous_file else "1" if use_blackframe \
-                                         else "0.0")
+                        if previous_file else "0.0")
                     video_skipstart = input(prompt+"--> ")
 
                     if len(video_skipstart) == 0 and previous_file:
                         if self.video_skipstart < 0.0:
                             print("Start time should be greater than",
                                   "or equal to zero and less than the",
-                                  "video duration of {}.".format(duration))
+                                  "video duration of {}.".format(
+                                      duration))
                         elif self.video_skipstart <= duration:
                             break
                         else:
                             print("Start time should be greater than",
                                   "or equal to zero and less than the",
-                                  "video duration of {}.".format(duration))
+                                  "video duration of {}.".format(
+                                      duration))
                     elif len(video_skipstart) == 0:
-                        self.video_skipstart = 1 if use_blackframe else 0.0
-                        purge_cache = True
+                        self.video_skipstart = 0.0
                         self.sync_racestart = 0.0
                         break
-                    elif len(video_skipstart) != 0 and use_blackframe:
-                        try:
-                            self.video_skipstart = int(video_skipstart)
-                            purge_cache = True
-                            self.sync_racestart = 0.0
-                            break
-                        except ValueError:
-                            print("Number of scenes to skip should be an",
-                                  "integer value.")
-                    elif len(video_skipstart) != 0 and not use_blackframe:
+                    elif len(video_skipstart) != 0:
                         try:
                             video_skipstart = float(video_skipstart)
                             if video_skipstart < 0.0:
@@ -425,27 +342,23 @@ class Configuration:
                             elif video_skipstart <= duration:
                                 self.video_skipstart = \
                                     float(video_skipstart)
-                                purge_cache = True
                                 self.sync_racestart = 0.0
                                 break
                             else:
                                 raise ValueError
                         except ValueError:
-                            print("End time should be greater than zero",
-                                  "and less than the",
-                                  "video duration of {}.".format(duration))
+                            print("End time should be greater than",
+                                  "zero and less than the",
+                                  "video duration of {}.".format(
+                                      duration))
 
                 while True:
-                    if use_blackframe:
-                        print("Enter number of scenes to skip at the",
-                              "end of the video.")
-                    else:
-                        print("Enter the ending time of the video.")
+                    print("Enter the ending time of the video.")
 
-                    duration = mpy.VideoFileClip(self.source_video).duration
+                    duration = mpy.VideoFileClip(
+                        self.source_video).duration
                     prompt = "({})".format(self.video_skipend \
-                        if previous_file else "1" if use_blackframe \
-                                         else str(duration))
+                        if previous_file else str(duration))
                     video_skipend = input(prompt+"--> ")
 
                     if len(video_skipend) == 0 and previous_file:
@@ -454,67 +367,29 @@ class Configuration:
                         elif self.video_skipend <= duration:
                             break
                         else:
-                            print("End time should be greater than the",
-                                  "start time and less than the",
-                                  "video duration of {}.".format(duration))
+                            print("End time should be greater than",
+                                  "the start time and less than the",
+                                  "video duration of {}.".format(
+                                      duration))
                     elif len(video_skipend) == 0:
-                        self.video_skipend = 1 if use_blackframe \
-                            else duration
-                        purge_cache = True
+                        self.video_skipend = duration
                         break
-                    elif len(video_skipend) != 0 and use_blackframe:
-                        try:
-                            self.video_skipend = int(video_skipend)
-                            purge_cache = True
-                            break
-                        except ValueError:
-                            print("Number of scenes to skip should be an",
-                                  "integer value.")
-                    elif len(video_skipend) != 0 and not use_blackframe:
+                    elif len(video_skipend) != 0:
                         try:
                             video_skipend = float(video_skipend)
                             if video_skipend <= self.video_skipstart:
                                 raise ValueError
                             elif video_skipend <= duration:
-                                self.video_skipend = float(video_skipend)
-                                purge_cache = True
+                                self.video_skipend = float(
+                                    video_skipend)
                                 break
                             else:
                                 raise ValueError
                         except ValueError:
                             print("End time should be greater than the",
                                   "start time and less than the",
-                                  "video duration of {}.".format(duration))
-
-                '''
-                while True:
-                    print("Enter file to use as a cache for video data.")
-                    prompt = "({})".format(self.video_cache \
-                        if previous_file else "file.cache")
-                    video_cache = input(prompt+"--> ")
-
-                    if len(video_cache) == 0 and previous_file:
-                        break
-                    elif os.path.isdir(os.path.realpath(video_cache)):
-                        try:
-                            if video_cache[-1] != os.sep:
-                                video_cache += os.sep
-                        except IndexError:
-                            video_cache = os.path.realpath(os.curdir)+os.sep
-                        video_cache += "file.cache"
-                        self.video_cache = video_cache
-                        purge_cache = True
-                        break
-                    elif os.path.isdir(os.path.split(os.path.realpath(
-                            video_cache))[0]):
-                        self.video_cache = video_cache
-                        purge_cache = True
-                        break
-                    else:
-                        print("Location invalid. Please try again.")
-                        print("Directories must be created before",
-                              "running script.")
-                '''
+                                  "video duration of {}.".format(
+                                      duration))
 
             #TODO: Move to module-specific configuration
             while True:
@@ -522,7 +397,8 @@ class Configuration:
                 print("Color should be entered as three integers,",
                       "separated by commas, representing Red, Green,",
                       "and Blue values.")
-                prompt = "({}, {}, {})".format(*self.heading_font_color) \
+                prompt = "({}, {}, {})".format(
+                    *self.heading_font_color) \
                     if previous_file else "(255, 255, 255)"
                 heading_font_color = input(prompt+"--> ")
 
@@ -550,11 +426,13 @@ class Configuration:
                       "separated by commas, representing Red, Green,",
                       "and Blue values.")
                 prompt = "({}, {}, {})".format(*self.heading_color) \
-                    if previous_file else ""
+                    if previous_file else "(0, 0, 0)"
                 heading_color = input(prompt+"--> ")
 
                 if len(heading_color) == 0 and previous_file:
                     break
+                elif len(heading_color) == 0:
+                    self.heading_color = [0, 0, 0]
                 else:
                     try:
                         heading_color = [int(x) \
@@ -579,7 +457,7 @@ class Configuration:
                 if len(backdrop) == 0 and previous_file:
                     break
                 elif backdrop == "-1":
-                    self.backdrop = ""
+                    self.backdrop = None
                     break
                 elif os.path.isfile(os.path.realpath(backdrop)):
                     self.backdrop = backdrop
@@ -598,7 +476,7 @@ class Configuration:
                 if len(logo) == 0 and previous_file:
                     break
                 elif logo == "-1":
-                    self.logo = ""
+                    self.logo = None
                     break
                 elif os.path.isfile(os.path.realpath(logo)):
                     self.logo = logo
@@ -606,7 +484,7 @@ class Configuration:
                 else:
                     print("Not a file. Please try again.")
 
-            if len(self.logo):
+            if self.logo is not None:
                 while True:
                     print("Enter height for logo.")
                     prompt = "({})".format(self.logo_height \
@@ -661,7 +539,7 @@ class Configuration:
                 if len(series_logo) == 0 and previous_file:
                     break
                 elif series_logo == "-1":
-                    self.series_logo = ""
+                    self.series_logo = None
                     break
                 elif os.path.isfile(os.path.realpath(series_logo)):
                     self.series_logo = series_logo
@@ -730,7 +608,7 @@ class Configuration:
                 try:
                     prompt = "({})".format(str(
                         self.point_structure[position])) \
-                        if previous_file else "0"
+                        if previous_file else "(0)"
                 except IndexError:
                     prompt = "(0)"
                 except TypeError:
@@ -775,7 +653,8 @@ class Configuration:
                     bonus_point = input(prompt+"--> ")
 
                     if len(bonus_point) == 0 and previous_file:
-                        point_structure[0] = int(self.point_structure[0])
+                        point_structure[0] = int(
+                            self.point_structure[0])
                         break
                     elif len(bonus_point) == 0:
                         point_structure[0] = int(0)
@@ -791,6 +670,31 @@ class Configuration:
             else:
                 self.point_structure = None
 
+            while True:
+                print("Enter number of results and standings lines to",
+                      "show.")
+                print("Enter -1 for default behavior:")
+                print("Positions scoring points in the race and series")
+                print("ranks with points will be shown, up to 16.")
+                prompt = "({})".format(self.result_lines) \
+                    if previous_file and self.result_lines is not None \
+                    else ""
+                result_lines = input(prompt+"--> ")
+
+                if len(result_lines) == 0 and previous_file:
+                    break
+                elif result_lines == "-1":
+                    self.result_lines = None
+                    break
+                elif len(result_lines):
+                    try:
+                        self.result_lines = int(result_lines)
+                    except ValueError:
+                        print("Result lines should be an integer",
+                              "value.")
+                    else:
+                        break
+
             print("Parsing telemetry data for driver information.")
             print("Please wait...")
 
@@ -802,6 +706,8 @@ class Configuration:
             use_last_car = False
             use_last_team = False
             use_last_points = False
+
+            use_car_class = False
 
             if self.point_structure is None:
                 last_points = None
@@ -820,12 +726,54 @@ class Configuration:
                     use_last_team = True
                     break
 
+            while True:
+                print("Use car classes?")
+                prompt = "[y/N]"
+                use_class = input(prompt+"--> ")
+
+                if len(use_class) == 0 or \
+                        str.lower(use_class) == 'n':
+                    break
+                elif str.lower(use_class) == 'y':
+                    use_car_class = True
+                    break
+
             if previous_file:
                 self.participant_config = {k:v \
                     for k, v in self.participant_config.items() \
                     if k in self.participants}
+
+                car_class_lookup = dict()
+                for car_class, car in {
+                        (
+                            car_class,
+                            car
+                        ) for car_class, data \
+                        in self.car_classes.items() \
+                        for car in data['cars']}:
+                    car_class_lookup[car] = car_class
+
+                car_class_color_lookup = dict()
+                for car_class, car_class_color in {
+                        (
+                            car_class,
+                            tuple(data['color'])
+                        ) for car_class, data in \
+                        self.car_classes.items()}:
+                    car_class_color_lookup[car_class] = car_class_color
+
+                for car_class in self.car_classes:
+                    self.car_classes[car_class]['cars'] = set(
+                        self.car_classes[car_class]['cars'])
+
             if not previous_file:
                 self.participant_config = dict()
+                self.car_classes = dict()
+                car_class_lookup = dict()
+                car_class_color_lookup = dict()
+
+            confirmed_cars = set()
+            confirmed_classes = set()
 
             for participant in sorted(
                     self.participants,
@@ -927,6 +875,8 @@ class Configuration:
                             prompt = "({})".format(
                                 self.participant_config[participant]\
                                     ['car'])
+                            session_car = self.participant_config\
+                                [participant]['car']
                         else:
                             prompt = "({})".format(
                                 last_car) if last_car else ""
@@ -936,21 +886,127 @@ class Configuration:
                                 previous_file and \
                                 self.participant_config[participant]\
                                     ['car'] is not None:
+                            session_car = self.participant_config\
+                                [participant]['car']
                             break
                         elif len(car) == 0 and last_car:
                             self.participant_config[participant]\
                                 ['car'] = last_car
+                            session_car = last_car
                             break
                         elif car == "-1" and last_car:
                             self.participant_config[participant]\
                                 ['car'] = last_car
+                            session_car = last_car
                             use_last_car = True
                             break
                         elif len(car) != 0 and car != "-1":
                             last_car = car
                             self.participant_config[participant]\
                                 ['car'] = last_car
+                            session_car = last_car
                             break
+
+                if use_car_class and \
+                        session_car not in confirmed_cars:
+                    while True:
+                        print("Enter class for {}.".format(
+                            session_car))
+
+                        try:
+                            previous_class = \
+                                car_class_lookup[session_car]
+                            prompt = "({})".format(
+                                previous_class)
+                        except KeyError:
+                            prompt = ""
+                            previous_class = None
+
+                        car_class = input(prompt+"--> ")
+
+                        if len(car_class) == 0 and \
+                                previous_class is not None:
+                            try:
+                                self.car_classes\
+                                    [previous_class]\
+                                    ['cars'].add(session_car)
+                            except KeyError:
+                                self.car_classes\
+                                    [previous_class]\
+                                    ['cars'] = set()
+                                self.car_classes\
+                                    [previous_class]\
+                                    ['cars'].add(session_car)
+                            confirmed_cars.add(session_car)
+                            car_class = previous_class
+                            break
+                        else:
+                            try:
+                                self.car_classes\
+                                    [car_class]\
+                                    ['cars'].add(session_car)
+                            except KeyError:
+                                self.car_classes\
+                                    [car_class] = {
+                                        'cars': set(),
+                                        'color': None}
+                                self.car_classes\
+                                    [car_class]\
+                                    ['cars'].add(session_car)
+                            confirmed_cars.add(session_car)
+                            car_class_lookup[session_car] = car_class
+                            break
+
+                if use_car_class and car_class not in confirmed_classes:
+                    while True:
+                        print("Enter color code for {}.".format(
+                            car_class))
+                        print("Color should be entered as three",
+                              "integers separated by commas,",
+                              "representing Red, Green, and Blue",
+                              "values.")
+                        prompt = "({}, {}, {})".format(
+                            *self.car_classes[car_class]['color']) \
+                            if self.car_classes\
+                                [car_class]['color'] is not None \
+                                else "(255, 255, 255)"
+                        car_class_color = input(prompt+"--> ")
+
+                        if len(car_class_color) == 0 \
+                                and self.car_classes\
+                                [car_class]['color'] \
+                                is not None:
+                            car_class_color_lookup\
+                                [car_class] = self.car_classes\
+                                [car_class]['color']
+                            confirmed_classes.add(car_class)
+                            break
+                        elif len(car_class_color) == 0:
+                            car_class_color_lookup\
+                                [car_class] = [255, 255, 255]
+                            self.car_classes\
+                                [car_class]\
+                                ['color'] = [255, 255, 255]
+                            confirmed_classes.add(car_class)
+                            break
+                        else:
+                            try:
+                                car_class_color = [int(x) \
+                                    for x \
+                                    in car_class_color.split(',')]
+                                if all([x >= 0 and x <= 255 \
+                                        for x in car_class_color]):
+                                    self.car_classes\
+                                        [car_class]\
+                                        ['color'] = car_class_color
+                                    car_class_color_lookup\
+                                        [car_class] = car_class_color
+                                    confirmed_classes.add(car_class)
+                                    break
+                                else:
+                                    raise ValueError
+                            except ValueError:
+                                print("Invalid color value.")
 
                 if use_last_team:
                     self.participant_config[participant]['team'] = \
@@ -992,6 +1048,11 @@ class Configuration:
                             self.participant_config[participant]\
                                 ['team'] = last_team
                             break
+
+                if not len(self.participant_config[participant]\
+                        ['team']):
+                    self.participant_config[participant]['team'] = \
+                        None
 
                 if use_last_points:
                     self.participant_config[participant]\
@@ -1059,7 +1120,8 @@ class Configuration:
             if previous_file:
                 try:
                     self.additional_participant_config = {k:v \
-                        for k, v in self.additional_participant_config.items() \
+                        for k, v \
+                        in self.additional_participant_config.items() \
                         if k in self.additional_participants}
                 except AttributeError:
                     self.additional_participant_config = dict()
@@ -1072,15 +1134,20 @@ class Configuration:
             for additional_participant in sorted(
                     self.additional_participants,
                     key=lambda x: str(x).lower()):
-                print("Modifying data for {}".format(additional_participant))
-                if additional_participant not in self.additional_participant_config.keys():
-                    self.additional_participant_config[additional_participant] = {
-                        'car': None,
-                        'team': None,
-                        'points': 0,
-                        'short_display': None}
+                print("Modifying data for {}".format(
+                    additional_participant))
+                if additional_participant \
+                        not in self.additional_participant_config.\
+                        keys():
+                    self.additional_participant_config\
+                        [additional_participant] = {
+                            'car': None,
+                            'team': None,
+                            'points': 0,
+                            'short_display': None}
                 while True:
-                    print("Edit name for {}.".format(additional_participant))
+                    print("Edit name for {}.".format(
+                        additional_participant))
                     print("Enter -1 to delete.")
                     prompt = "({})".format(
                         additional_participant)
@@ -1088,152 +1155,247 @@ class Configuration:
 
                     if len(additional_participant_name) == 0:
                         break
-                    elif additional_participant_name == additional_participant:
+                    elif additional_participant_name == \
+                            additional_participant:
                         break
                     elif additional_participant_name == "-1":
-                        self.additional_participant_config.pop(additional_participant, None)
-                        self.additional_participants.remove(additional_participant)
+                        self.additional_participant_config.pop(
+                            additional_participant, None)
+                        self.additional_participants.remove(
+                            additional_participant)
                         break
                     else:
-                        self.additional_participants.append(additional_participant_name)
-                        self.additional_participants.remove(additional_participant)
-                        self.additional_participant_config[additional_participant_name] = self.additional_participant_config[additional_participant]
-                        self.additional_participant_config.pop(additional_participant, None)
-                        additional_participant = additional_participant_name
-                
+                        self.additional_participants.append(
+                            additional_participant_name)
+                        self.additional_participants.remove(
+                            additional_participant)
+                        self.additional_participant_config\
+                            [additional_participant_name] = \
+                            self.additional_participant_config\
+                            [additional_participant]
+                        self.additional_participant_config.pop(
+                            additional_participant, None)
+                        additional_participant = \
+                            additional_participant_name
+
                 try:
                     while True:
                         print("Enter abbreviated name override for",
                               "{}.".format(additional_participant))
-                        print("(Used by some modules for space saving.)")
+                        print("(Used by some modules for space",
+                              "saving.)")
 
-                        if self.additional_participant_config[additional_participant]\
+                        if self.additional_participant_config\
+                            [additional_participant]\
                                 ['short_display'] is not None:
                             prompt = "({})".format(
-                                self.additional_participant_config[additional_participant]\
+                                self.additional_participant_config\
+                                    [additional_participant]\
                                     ['short_display'])
                         else:
                             prompt = "({})".format(
-                                additional_participant.split(" ")[0][0] + \
+                                additional_participant.split(
+                                    " ")[0][0] + \
                                 ". " + \
-                                additional_participant.split(" ")[-1] \
-                                if len(additional_participant.split(" ")) > 1 \
+                                additional_participant.split(
+                                    " ")[-1] \
+                                if len(
+                                    additional_participant.split(
+                                        " ")) > 1 \
                                 else additional_participant)
 
                         short_display_name = input(prompt+"--> ")
 
                         if len(short_display_name) == 0 and \
                                 previous_file and \
-                                self.additional_participant_config[additional_participant]['short_display'] is not None:
+                                self.additional_participant_config\
+                                    [additional_participant]\
+                                    ['short_display'] is not None:
                             break
                         elif len(short_display_name) == 0:
-                            self.additional_participant_config[additional_participant]['short_display'] = \
-                                additional_participant.split(" ")[0][0] + \
+                            self.additional_participant_config\
+                                [additional_participant]\
+                                ['short_display'] = \
+                                additional_participant.split(
+                                    " ")[0][0] + \
                                 ". " + \
-                                additional_participant.split(" ")[-1] \
-                                if len(additional_participant.split(" ")) > 1 \
+                                additional_participant.split(
+                                    " ")[-1] \
+                                if len(
+                                    additional_participant.split(
+                                        " ")) > 1 \
                                 else additional_participant
                             break
                         else:
-                            self.additional_participant_config[additional_participant]['short_display'] = short_display_name
+                            self.additional_participant_config\
+                                [additional_participant]\
+                                ['short_display'] = short_display_name
                             break
 
                     if use_last_car:
-                        self.additional_participant_config[additional_participant]['car'] = last_car
+                        self.additional_participant_config\
+                            [additional_participant]\
+                            ['car'] = last_car
                     else:
                         while True:
-                            print("Enter car for {}.".format(additional_participant))
+                            print("Enter car for {}.".format(
+                                additional_participant))
                             if last_car:
-                                print("Enter -1 to use {}".format(last_car), "for remaining drivers.")
+                                print("Enter -1 to use",
+                                      "{}".format(last_car),
+                                      "for remaining drivers.")
 
-                            if self.additional_participant_config[additional_participant]['car'] is not None:
-                                prompt = "({})".format(self.additional_participant_config[additional_participant]['car'])
+                            if self.additional_participant_config\
+                                    [additional_participant]\
+                                    ['car'] is not None:
+                                prompt = "({})".format(
+                                    self.additional_participant_config\
+                                        [additional_participant]\
+                                        ['car'])
                             else:
-                                prompt = "({})".format(last_car) if last_car else ""
+                                prompt = "({})".format(last_car) \
+                                    if last_car else ""
                             car = input(prompt+"--> ")
 
-                            if len(car) == 0 and previous_file and self.additional_participant_config[additional_participant] is not None:
+                            if len(car) == 0 \
+                                    and previous_file \
+                                    and self.\
+                                        additional_participant_config\
+                                        [additional_participant] \
+                                    is not None:
                                 break
                             elif len(car) == 0 and last_car:
-                                self.additional_participant_config[additional_participant]['car'] = last_car
+                                self.additional_participant_config\
+                                    [additional_participant]\
+                                    ['car'] = last_car
                                 break
                             elif car == "-1" and last_car:
-                                self.additional_participant_config[additional_participant]['car'] = last_car
+                                self.additional_participant_config\
+                                    [additional_participant]\
+                                    ['car'] = last_car
                                 use_last_car = True
                                 break
                             elif len(car) != 0 and car != "-1":
                                 last_car = car
-                                self.additional_participant_config[additional_participant]['car'] = last_car
+                                self.additional_participant_config\
+                                    [additional_participant]\
+                                    ['car'] = last_car
                                 break
 
                     if use_last_team:
-                        self.additional_participant_config[additional_participant]['team'] = last_team
+                        self.additional_participant_config\
+                            [additional_participant]\
+                            ['team'] = last_team
                     else:
                         while True:
-                            print("Enter team for {}.".format(additional_participant))
+                            print("Enter team for {}.".format(
+                                additional_participant))
                             if last_team:
-                                print("Enter -1 to use {}".format(last_team), "for remaining drivers.")
+                                print("Enter -1 to use",
+                                      "{}".format(last_team),
+                                      "for remaining drivers.")
 
-                            if self.additional_participant_config[additional_participant]['team'] is not None:
-                                prompt = "({})".format(self.additional_participant_config[additional_participant]['team'])
+                            if self.additional_participant_config\
+                                    [additional_participant]\
+                                    ['team'] is not None:
+                                prompt = "({})".format(
+                                    self.additional_participant_config\
+                                        [additional_participant]\
+                                        ['team'])
                             else:
-                                prompt = "({})".format(last_team) if last_team else ""
+                                prompt = "({})".format(last_team) \
+                                    if last_team else ""
                             team = input(prompt+"--> ")
 
-                            if len(team) == 0 and previous_file and self.additional_participant_config[additional_participant] is not None:
+                            if len(team) == 0 \
+                                    and previous_file \
+                                    and self.\
+                                        additional_participant_config\
+                                        [additional_participant] \
+                                        is not None:
                                 break
                             elif len(team) == 0 and last_team:
-                                self.additional_participant_config[additional_participant]['team'] = last_team
+                                self.additional_participant_config\
+                                    [additional_participant]\
+                                    ['team'] = last_team
                                 break
                             elif team == "-1" and last_team:
-                                self.additional_participant_config[additional_participant]['team'] = last_team
+                                self.additional_participant_config\
+                                    [additional_participant]\
+                                    ['team'] = last_team
                                 use_last_team = True
                                 break
                             elif len(team) != 0 and team != "-1":
                                 last_team = team
-                                self.additional_participant_config[additional_participant]['team'] = last_team
+                                self.additional_participant_config\
+                                    [additional_participant]\
+                                    ['team'] = last_team
                                 break
 
                     if use_last_points:
-                        self.additional_participant_config[additional_participant]['points'] = last_points
+                        self.additional_participant_config\
+                            [additional_participant]\
+                            ['points'] = last_points
                     else:
                         while True:
-                            print("Enter previous series points for {}.".format(additional_participant))
+                            print("Enter previous series points for",
+                                  "{}.".format(additional_participant))
                             if last_points:
-                                print("Enter -1 to use {}".format(last_points), "for remaining drivers.")
+                                print("Enter -1 to use",
+                                      "{}".format(last_points),
+                                      "for remaining drivers.")
 
-                            if self.additional_participant_config[additional_participant]['points'] is not None:
-                                prompt = "({})".format(self.additional_participant_config[additional_participant]['points'])
+                            if self.additional_participant_config\
+                                    [additional_participant]\
+                                    ['points'] is not None:
+                                prompt = "({})".format(
+                                    self.additional_participant_config\
+                                    [additional_participant]['points'])
                             else:
                                 prompt = "({})".format(last_points)
                             points = input(prompt+"--> ")
 
-                            if len(points) == 0 and previous_file and self.additional_participant_config[additional_participant]['points'] is not None:
+                            if len(points) == 0 \
+                                    and previous_file \
+                                    and self.\
+                                        additional_participant_config\
+                                        [additional_participant]\
+                                        ['points'] is not None:
                                 break
                             elif len(points) == 0:
-                                self.additional_participant_config[additional_participant]['points'] = last_points
+                                self.additional_participant_config\
+                                    [additional_participant]\
+                                    ['points'] = last_points
                                 break
                             elif points == "-1":
-                                self.additional_participant_config[additional_participant]['points'] = last_points
+                                self.additional_participant_config\
+                                    [additional_participant]\
+                                    ['points'] = last_points
                                 use_last_points = True
                                 break
                             elif len(points) != 0 and points != "-1":
                                 try:
                                     last_points = int(points)
-                                    self.additional_participant_config[additional_participant]['points'] = last_points
+                                    self.additional_participant_config\
+                                        [additional_participant]\
+                                        ['points'] = last_points
                                     break
                                 except ValueError:
-                                    print("Point values should be integers.")
+                                    print("Point values should be",
+                                          "integers.")
                 except KeyError:
                     #This should only occur on delete.
-                    print("Additional participant deleted or not found.")
+                    print("Additional participant deleted or not",
+                          "found.")
 
             while True:
                 add_additional_participant = True
                 while True:
                     print("Enter additional participant.")
-                    print("(Used for series participants not in the current race.)")
-                    print("Enter -1 to stop entering additional participants.")
+                    print("(Used for series participants not in the",
+                          "current race.)")
+                    print("Enter -1 to stop entering additional",
+                          "participants.")
                     prompt = ""
                     additional_participant_name = input(prompt+"--> ")
 
@@ -1241,11 +1403,19 @@ class Configuration:
                         add_additional_participant = False
                         break
                     elif len(additional_participant_name):
-                        self.additional_participants.append(additional_participant_name)
-                        self.additional_participant_config[additional_participant_name] = {'car': None, 'team': None, 'points': 0, 'short_display': None}
-                        additional_participant = additional_participant_name
+                        self.additional_participants.append(
+                            additional_participant_name)
+                        self.additional_participant_config\
+                            [additional_participant_name] = \
+                            {
+                                'car': None,
+                                'team': None,
+                                'points': 0,
+                                'short_display': None}
+                        additional_participant = \
+                            additional_participant_name
                         break
-                
+
                 if not add_additional_participant:
                     break
 
@@ -1254,128 +1424,201 @@ class Configuration:
                           "{}.".format(additional_participant))
                     print("(Used by some modules for space saving.)")
 
-                    if self.additional_participant_config[additional_participant]\
+                    if self.additional_participant_config\
+                            [additional_participant]\
                             ['short_display'] is not None:
                         prompt = "({})".format(
-                            self.additional_participant_config[additional_participant]\
+                            self.additional_participant_config\
+                                [additional_participant]\
                                 ['short_display'])
                     else:
                         prompt = "({})".format(
-                            additional_participant.split(" ")[0][0] + \
+                            additional_participant.split(
+                                " ")[0][0] + \
                             ". " + \
-                            additional_participant.split(" ")[-1] \
-                            if len(additional_participant.split(" ")) > 1 \
+                            additional_participant.split(
+                                " ")[-1] \
+                            if len(
+                                additional_participant.split(
+                                    " ")) > 1 \
                             else additional_participant)
 
                     short_display_name = input(prompt+"--> ")
 
                     if len(short_display_name) == 0 and \
                             previous_file and \
-                            self.additional_participant_config[additional_participant]['short_display'] is not None:
+                            self.additional_participant_config\
+                                [additional_participant]\
+                                ['short_display'] is not None:
                         break
                     elif len(short_display_name) == 0:
-                        self.additional_participant_config[additional_participant]['short_display'] = \
+                        self.additional_participant_config\
+                            [additional_participant]\
+                            ['short_display'] = \
                             additional_participant.split(" ")[0][0] + \
                             ". " + \
                             additional_participant.split(" ")[-1] \
-                            if len(additional_participant.split(" ")) > 1 \
+                            if len(
+                                additional_participant.split(" ")) > 1 \
                             else additional_participant
                         break
                     else:
-                        self.additional_participant_config[additional_participant]['short_display'] = short_display_name
+                        self.additional_participant_config\
+                            [additional_participant]\
+                            ['short_display'] = short_display_name
                         break
 
                 if use_last_car:
-                    self.additional_participant_config[additional_participant]['car'] = last_car
+                    self.additional_participant_config\
+                        [additional_participant]\
+                        ['car'] = last_car
                 else:
                     while True:
-                        print("Enter car for {}.".format(additional_participant))
+                        print("Enter car for {}.".format(
+                            additional_participant))
                         if last_car:
-                            print("Enter -1 to use {}".format(last_car), "for remaining drivers.")
+                            print("Enter -1 to use",
+                                  "{}".format(last_car),
+                                  "for remaining drivers.")
 
-                        if self.additional_participant_config[additional_participant]['car'] is not None:
-                            prompt = "({})".format(self.additional_participant_config[additional_participant]['car'])
+                        if self.additional_participant_config\
+                                [additional_participant]\
+                                ['car'] is not None:
+                            prompt = "({})".format(
+                                self.additional_participant_config\
+                                    [additional_participant]['car'])
                         else:
-                            prompt = "({})".format(last_car) if last_car else ""
+                            prompt = "({})".format(last_car) \
+                                if last_car else ""
                         car = input(prompt+"--> ")
 
-                        if len(car) == 0 and previous_file and self.additional_participant_config[additional_participant] is not None:
+                        if len(car) == 0 \
+                                and previous_file \
+                                and self.additional_participant_config\
+                                    [additional_participant] \
+                                    is not None:
                             break
                         elif len(car) == 0 and last_car:
-                            self.additional_participant_config[additional_participant]['car'] = last_car
+                            self.additional_participant_config\
+                                [additional_participant]\
+                                ['car'] = last_car
                             break
                         elif car == "-1" and last_car:
-                            self.additional_participant_config[additional_participant]['car'] = last_car
+                            self.additional_participant_config\
+                                [additional_participant]\
+                                ['car'] = last_car
                             use_last_car = True
                             break
                         elif len(car) != 0 and car != "-1":
                             last_car = car
-                            self.additional_participant_config[additional_participant]['car'] = last_car
+                            self.additional_participant_config\
+                                [additional_participant]\
+                                ['car'] = last_car
                             break
 
                 if use_last_team:
-                    self.additional_participant_config[additional_participant]['team'] = last_team
+                    self.additional_participant_config\
+                        [additional_participant]\
+                        ['team'] = last_team
                 else:
                     while True:
-                        print("Enter team for {}.".format(additional_participant))
+                        print("Enter team for {}.".format(
+                            additional_participant))
                         if last_team:
-                            print("Enter -1 to use {}".format(last_team), "for remaining drivers.")
+                            print("Enter -1 to use ",
+                                  "{}".format(last_team),
+                                  "for remaining drivers.")
 
-                        if self.additional_participant_config[additional_participant]['team'] is not None:
-                            prompt = "({})".format(self.additional_participant_config[additional_participant]['team'])
+                        if self.additional_participant_config\
+                                [additional_participant]\
+                                ['team'] is not None:
+                            prompt = "({})".format(
+                                self.additional_participant_config\
+                                    [additional_participant]['team'])
                         else:
-                            prompt = "({})".format(last_team) if last_team else ""
+                            prompt = "({})".format(last_team) \
+                                if last_team else ""
                         team = input(prompt+"--> ")
 
-                        if len(team) == 0 and previous_file and self.additional_participant_config[additional_participant] is not None:
+                        if len(team) == 0 \
+                                and previous_file \
+                                and self.additional_participant_config\
+                                    [additional_participant] \
+                                    is not None:
                             break
                         elif len(team) == 0 and last_team:
-                            self.additional_participant_config[additional_participant]['team'] = last_team
+                            self.additional_participant_config\
+                                [additional_participant]\
+                                ['team'] = last_team
                             break
                         elif team == "-1" and last_team:
-                            self.additional_participant_config[additional_participant]['team'] = last_team
+                            self.additional_participant_config\
+                                [additional_participant]\
+                                ['team'] = last_team
                             use_last_team = True
                             break
                         elif len(team) != 0 and team != "-1":
                             last_team = team
-                            self.additional_participant_config[additional_participant]['team'] = last_team
+                            self.additional_participant_config\
+                                [additional_participant]\
+                                ['team'] = last_team
                             break
 
                 if use_last_points:
-                    self.additional_participant_config[additional_participant]['points'] = last_points
+                    self.additional_participant_config\
+                        [additional_participant]\
+                        ['points'] = last_points
                 else:
                     while True:
-                        print("Enter previous series points for {}.".format(additional_participant))
+                        print("Enter previous series points for",
+                              "{}.".format(additional_participant))
                         if last_points:
-                            print("Enter -1 to use {}".format(last_points), "for remaining drivers.")
+                            print("Enter -1 to use {}".format(
+                                last_points), "for remaining drivers.")
 
-                        if self.additional_participant_config[additional_participant]['points'] is not None:
-                            prompt = "({})".format(self.additional_participant_config[additional_participant]['points'])
+                        if self.additional_participant_config\
+                                [additional_participant]\
+                                ['points'] is not None:
+                            prompt = "({})".format(
+                                self.additional_participant_config\
+                                    [additional_participant]\
+                                    ['points'])
                         else:
                             prompt = "({})".format(last_points)
                         points = input(prompt+"--> ")
 
-                        if len(points) == 0 and previous_file and self.additional_participant_config[additional_participant]['points'] is not None:
+                        if len(points) == 0 \
+                                and previous_file \
+                                and self.additional_participant_config\
+                                    [additional_participant]\
+                                    ['points'] is not None:
                             break
                         elif len(points) == 0:
-                            self.additional_participant_config[additional_participant]['points'] = last_points
+                            self.additional_participant_config\
+                                [additional_participant]\
+                                ['points'] = last_points
                             break
                         elif points == "-1":
-                            self.additional_participant_config[additional_participant]['points'] = last_points
+                            self.additional_participant_config\
+                                [additional_participant]\
+                                ['points'] = last_points
                             use_last_points = True
                             break
                         elif len(points) != 0 and points != "-1":
                             try:
                                 last_points = int(points)
-                                self.additional_participant_config[additional_participant]['points'] = last_points
+                                self.additional_participant_config\
+                                    [additional_participant]\
+                                    ['points'] = last_points
                                 break
                             except ValueError:
-                                print("Point values should be integers.")
+                                print(
+                                    "Point values should be integers.")
 
 
 
 
-            
+
         except KeyboardInterrupt:
             print("\n\nExiting. No configuration data written.")
             raise KeyboardInterrupt
@@ -1385,33 +1628,6 @@ class Configuration:
                 json.dump(self.__get_values(), config_file, indent=4)
             print("\n\nConfiguration data written to {}".format(
                 self.config_file))
-
-            '''
-            if purge_cache:
-                try:
-                    with open(os.path.realpath(self.video_cache), 'r') \
-                            as cache_file:
-                        cache_data = cache_file.read()
-
-                    matches = re.findall(
-                        r"(^"+re.escape(
-                            os.path.realpath(
-                                self.source_video))+".*$)",
-                        cache_data, re.M)
-                    if len(matches):
-                        for match in matches:
-                            cache_data = cache_data.replace(match, "")
-
-                    with open(
-                        os.path.realpath(
-                            self.video_cache), 'w') as cache_file:
-                        cache_file.write(cache_data)
-                except FileNotFoundError:
-                    pass
-
-                print("\n\nFile cache modified at {}".format(
-                    self.video_cache))
-            '''
 
     def modify_racestart(self):
         """
@@ -1477,120 +1693,34 @@ class Configuration:
                   "will be reset to 0.0")
             print("Press CTRL+C at any time to abort.")
 
-            purge_cache = False
-            use_blackframe = False
-            '''
-            while True:
-                print("Use blackframe detection to crop video?")
-                print("Choose YES (default) to trim video based on",
-                      "fade-through-blacks present in most Project",
-                      "CARS replays.")
-                print("Choose NO to manually enter, in seconds, the",
-                      "start and stop time of the video.")
-                use_blackframe = input("[Y/n]--> ")
-                if len(use_blackframe) == 0 or \
-                        str.lower(use_blackframe) == 'y':
-                    use_blackframe = True
-                    break
-                elif str.lower(use_blackframe) == 'n':
-                    use_blackframe = False
-                    break
-            '''
-
             if self.source_video is not None:
-                if use_blackframe:
-                    while True:
-                        print("Enter blackframe detection threshold.")
-                        print("This sets how dark the screen must be to",
-                              "be recognized as a fade.")
-                        prompt = "({})".format(self.video_threshold) \
-                            if previous_file else "1"
-                        video_threshold = input(prompt+"--> ")
-
-                        if len(video_threshold) == 0 and previous_file:
-                            break
-                        elif len(video_threshold) == 0:
-                            self.video_threshold = 1
-                            purge_cache = True
-                            self.sync_racestart = 0.0
-                            break
-                        elif len(video_threshold) != 0:
-                            try:
-                                self.video_threshold = int(video_threshold)
-                                purge_cache = True
-                                self.sync_racestart = 0.0
-                            except ValueError:
-                                print("Blackframe detection threshold",
-                                      "should be an integer value.")
-                            else:
-                                break
-
-                    while True:
-                        print("Enter blackframe gap time.")
-                        print("This sets the minimum time between",
-                              "blackframes to be considered separate",
-                              "events")
-                        prompt = "({})".format(self.video_gaptime) \
-                            if previous_file else "1"
-                        video_gaptime = input(prompt+"--> ")
-
-                        if len(video_gaptime) == 0 and previous_file:
-                            break
-                        elif len(video_gaptime) == 0:
-                            self.video_gaptime = 1
-                            purge_cache = True
-                            self.sync_racestart = 0.0
-                            break
-                        elif len(video_gaptime):
-                            try:
-                                self.video_gaptime = int(video_gaptime)
-                                purge_cache = True
-                                self.sync_racestart = 0.0
-                            except ValueError:
-                                print("Blackframe gap time should be an",
-                                      "integer value.")
-                            else:
-                                break
-
                 while True:
-                    if use_blackframe:
-                        print("Enter number of scenes to skip at the",
-                              "start of the video.")
-                    else:
-                        print("Enter the start time of the video.")
+                    print("Enter the start time of the video.")
 
-                    duration = mpy.VideoFileClip(self.source_video).duration
+                    duration = mpy.VideoFileClip(
+                        self.source_video).duration
                     prompt = "({})".format(self.video_skipstart \
-                        if previous_file else "1" if use_blackframe \
-                                         else "0.0")
+                        if previous_file else "0.0")
                     video_skipstart = input(prompt+"--> ")
 
                     if len(video_skipstart) == 0 and previous_file:
                         if self.video_skipstart < 0.0:
                             print("Start time should be greater than",
                                   "or equal to zero and less than the",
-                                  "video duration of {}.".format(duration))
+                                  "video duration of {}.".format(
+                                      duration))
                         elif self.video_skipstart <= duration:
                             break
                         else:
                             print("Start time should be greater than",
                                   "or equal to zero and less than the",
-                                  "video duration of {}.".format(duration))
+                                  "video duration of {}.".format(
+                                      duration))
                     elif len(video_skipstart) == 0:
-                        self.video_skipstart = 1 if use_blackframe else 0.0
-                        purge_cache = True
+                        self.video_skipstart = 0.0
                         self.sync_racestart = 0.0
                         break
-                    elif len(video_skipstart) != 0 and use_blackframe:
-                        try:
-                            self.video_skipstart = int(video_skipstart)
-                            purge_cache = True
-                            self.sync_racestart = 0.0
-                            break
-                        except ValueError:
-                            print("Number of scenes to skip should be an",
-                                  "integer value.")
-                    elif len(video_skipstart) != 0 and not use_blackframe:
+                    elif len(video_skipstart) != 0:
                         try:
                             video_skipstart = float(video_skipstart)
                             if video_skipstart < 0.0:
@@ -1598,27 +1728,23 @@ class Configuration:
                             elif video_skipstart <= duration:
                                 self.video_skipstart = float(
                                     video_skipstart)
-                                purge_cache = True
                                 self.sync_racestart = 0.0
                                 break
                             else:
                                 raise ValueError
                         except ValueError:
-                            print("End time should be greater than zero",
-                                  "and less than the",
-                                  "video duration of {}.".format(duration))
+                            print("End time should be greater than",
+                                  "zero and less than the",
+                                  "video duration of {}.".format(
+                                      duration))
 
                 while True:
-                    if use_blackframe:
-                        print("Enter number of scenes to skip at the",
-                              "end of the video.")
-                    else:
-                        print("Enter the ending time of the video.")
+                    print("Enter the ending time of the video.")
 
-                    duration = mpy.VideoFileClip(self.source_video).duration
+                    duration = mpy.VideoFileClip(
+                        self.source_video).duration
                     prompt = "({})".format(self.video_skipend \
-                        if previous_file else "1" if use_blackframe \
-                                         else str(duration))
+                        if previous_file else str(duration))
                     video_skipend = input(prompt+"--> ")
 
                     if len(video_skipend) == 0 and previous_file:
@@ -1629,66 +1755,28 @@ class Configuration:
                         else:
                             print("End time should be greater than the",
                                   "start time and less than the",
-                                  "video duration of {}.".format(duration))
+                                  "video duration of {}.".format(
+                                      duration))
 
                     elif len(video_skipend) == 0:
-                        self.video_skipend = 1 if use_blackframe \
-                            else duration
-                        purge_cache = True
+                        self.video_skipend = duration
                         break
-                    elif len(video_skipend) != 0 and use_blackframe:
-                        try:
-                            self.video_skipend = int(video_skipend)
-                            purge_cache = True
-                            break
-                        except ValueError:
-                            print("Number of scenes to skip should be an",
-                                  "integer value.")
-                    elif len(video_skipend) != 0 and not use_blackframe:
+                    elif len(video_skipend) != 0:
                         try:
                             video_skipend = float(video_skipend)
                             if video_skipend <= self.video_skipstart:
                                 raise ValueError
                             elif video_skipend <= duration:
-                                self.video_skipend = float(video_skipend)
-                                purge_cache = True
+                                self.video_skipend = float(
+                                    video_skipend)
                                 break
                             else:
                                 raise ValueError
                         except ValueError:
                             print("End time should be greater than the",
                                   "start time and less than the",
-                                  "video duration of {}.".format(duration))
-
-                '''
-                while True:
-                    print("Enter file to use as a cache for video data.")
-                    prompt = "({})".format(self.video_cache \
-                        if previous_file else "file.cache")
-                    video_cache = input(prompt+"--> ")
-
-                    if len(video_cache) == 0 and previous_file:
-                        break
-                    elif os.path.isdir(os.path.realpath(video_cache)):
-                        try:
-                            if video_cache[-1] != os.sep:
-                                video_cache += os.sep
-                        except IndexError:
-                            video_cache = os.path.realpath(os.curdir)+os.sep
-                        video_cache += "file.cache"
-                        self.video_cache = video_cache
-                        purge_cache = True
-                        break
-                    elif os.path.isdir(os.path.split(os.path.realpath(
-                            video_cache))[0]):
-                        self.video_cache = video_cache
-                        purge_cache = True
-                        break
-                    else:
-                        print("Location invalid. Please try again.")
-                        print("Directories must be created before",
-                              "running script.")
-                '''
+                                  "video duration of {}.".format(
+                                      duration))
 
         except KeyboardInterrupt:
             print("\n\nExiting. No configuration data written.")
@@ -1701,37 +1789,6 @@ class Configuration:
                 json.dump(self.__get_values(), config_file, indent=4)
             print("\n\nConfiguration data written to {}".format(
                 self.config_file))
-
-            '''
-            if purge_cache:
-                try:
-                    with open(
-                        os.path.realpath(
-                            self.video_cache),
-                        'r') as cache_file:
-                        cache_data = cache_file.read()
-
-                    matches = re.findall(
-                        r"(^"+re.escape(
-                            os.path.realpath(
-                                self.source_video))+".*$)",
-                        cache_data,
-                        re.M)
-                    if len(matches):
-                        for match in matches:
-                            cache_data = cache_data.replace(match, "")
-
-                    with open(
-                        os.path.realpath(
-                            self.video_cache),
-                        'w') as cache_file:
-                        cache_file.write(cache_data)
-                except FileNotFoundError:
-                    pass
-
-                print("\n\nFile cache modified at",
-                      "{}".format(self.video_cache))
-            '''
 
     def __get_values(self):
         additional_participant_config = OrderedDict(sorted(
@@ -1751,6 +1808,10 @@ class Configuration:
             participant_config[name] = OrderedDict(sorted(
                 data.items(),
                 key=lambda x: x[0].lower()))
+
+        for car_class in self.car_classes:
+            self.car_classes[car_class]['cars'] = list(
+                self.car_classes[car_class]['cars'])
 
         output = {'font': self.font,
                   'font_size': self.font_size,
@@ -1772,17 +1833,20 @@ class Configuration:
                   'source_video': self.source_video,
                   'source_telemetry': self.source_telemetry,
                   'output_video': self.output_video,
+                  'car_classes': self.car_classes,
                   'participant_config': participant_config,
-                  'additional_participant_config': additional_participant_config,
+                  'additional_participant_config': \
+                        additional_participant_config,
                   'point_structure': self.point_structure,
                   'video_threshold': self.video_threshold,
                   'video_gaptime': self.video_gaptime,
                   'video_skipstart': self.video_skipstart,
                   'video_skipend': self.video_skipend,
                   'video_cache': self.video_cache,
-                  'sync_racestart': self.sync_racestart}
+                  'sync_racestart': self.sync_racestart,
+                  'result_lines': self.result_lines}
         return OrderedDict(sorted(
-            output.items(), 
+            output.items(),
             key=lambda x: x[0].lower()))
 
     @staticmethod
@@ -1829,19 +1893,18 @@ class Configuration:
 
                             pack_string += "64x"
 
-                        '''
-                        csvfile.write(",".join(str(
-                            x,
-                            encoding='utf-8', errors='ignore').\
-                            replace('\x00', '') \
-                            if isinstance(x, bytes) \
-                            else str(x).replace('\x00', '') \
-                            for x in unpack(
-                                pack_string, pack_data)+\
-                                    (tele_file,))+"\n")
-                        '''
                         writer = csv.writer(csvfile, encoding='utf-8')
-                        data = [str(x, encoding='utf-8', errors='ignore').replace('\x00', '') if isinstance(x, bytes) else str(x).replace('\x00', '') for x in unpack(pack_string, pack_data)+(tele_file,)]
+                        data = [str(
+                            x,
+                            encoding='utf-8',
+                            errors='ignore').replace(
+                                '\x00', '') \
+                            if isinstance(x, bytes) \
+                            else str(x).replace(
+                                '\x00', '') \
+                            for x in unpack(
+                                pack_string,
+                                pack_data)+(tele_file,)]
                         _ = writer.writerow(tuple(data))
                         progress_bar.update()
 
@@ -1853,7 +1916,9 @@ class Configuration:
             tele_file = open(source_telemetry+telemetry_file, 'rb')
         finally:
             index = 0
-            with open(source_telemetry+telemetry_file, 'rb') as csv_file:
+            with open(
+                source_telemetry+telemetry_file,
+                'rb') as csv_file:
                 csvdata2 = csv.reader(csv_file, encoding='utf-8')
                 for row in csvdata2:
                     index += 1
@@ -1964,20 +2029,17 @@ class Configuration:
         self.font = json_data['font']
         self.font_size = json_data['font_size']
 
-        try:
-            self.font_color = tuple(json_data['font_color'])
-        except KeyError:
-            self.font_color = (0, 0, 0)
+        self.font_color = tuple(json_data['font_color'])
 
         self.heading_font = json_data['heading_font']
         self.heading_font_size = json_data['heading_font_size']
 
-        try:
-            self.heading_font_color = tuple(json_data['heading_font_color'])
-        except KeyError:
-            self.heading_font_color = (255, 255, 255)
+        self.heading_font_color = tuple(
+            json_data['heading_font_color'])
 
         self.heading_color = tuple(json_data['heading_color'])
+
+        self.result_lines = json_data['result_lines']
 
         self.backdrop = json_data['backdrop']
         self.logo = json_data['logo']
@@ -1998,20 +2060,20 @@ class Configuration:
         self.telemetry_file = 'tele.csv'
         self.output_video = json_data['output_video']
 
+        self.car_classes = json_data['car_classes']
+        for _, data in self.car_classes.items():
+            data['cars'] = set(data['cars'])
+
         self.participant_config = {k:v \
             for k, v \
             in json_data['participant_config'].items()}
 
-        try:
-            self.additional_participants = \
-                [x for x \
-                in json_data['additional_participant_config'].keys()]
-            self.additional_participant_config = {k:v \
-                for k, v \
-                in json_data['additional_participant_config'].items()}
-        except KeyError:
-            self.additional_participants = None
-            self.additional_participant_config = None
+        self.additional_participants = \
+            [x for x \
+            in json_data['additional_participant_config'].keys()]
+        self.additional_participant_config = {k:v \
+            for k, v \
+            in json_data['additional_participant_config'].items()}
 
         self.point_structure = json_data['point_structure']
 
