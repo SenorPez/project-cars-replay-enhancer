@@ -8,18 +8,6 @@ import unittest
 from replayenhancer import RaceData
 
 
-class TestInvalidDirectory(unittest.TestCase):
-    """
-    Unit tests for a directory that doesn't exist.
-    """
-    telemetry_data = None
-
-    def test_invalid_directory(self):
-        self.assertRaises(
-            NotADirectoryError,
-            lambda: RaceData.TelemetryData('fakedir'),
-        )
-
 class GroupExists(object):
     """
     Common tests against directory and descriptor existence.
@@ -31,6 +19,7 @@ class GroupExists(object):
     def test_descriptor_exists(self):
         self.assertTrue(
             os.path.exists(self.descriptor_file))
+
 
 class GroupRace1Telemetry(object):
     """
@@ -60,12 +49,25 @@ class GroupRace1Telemetry(object):
             type((x for x in range(10))))
 
 
+class TestInvalidDirectory(unittest.TestCase):
+    """
+    Unit tests for a directory that doesn't exist.
+    """
+    telemetry_data = None
+
+    def test_invalid_directory(self):
+        self.assertRaises(
+            NotADirectoryError,
+            lambda: RaceData.TelemetryData('fakedir'),
+        )
+
+
 class TestValidDirectoryDescriptor(
         unittest.TestCase,
         GroupExists,
         GroupRace1Telemetry):
     """
-    Unit tests for data that don't include a descriptor.
+    Unit tests for data that includes a descriptor.
     """
     telemetry_data = None
     telemetry_directory = 'assets/race1-descriptor'
@@ -108,6 +110,7 @@ class TestValidDataNoDescriptor(
         os.remove(cls.descriptor_file)
         del cls.telemetry_data
         del cls.descriptor
+
 
 if __name__ == "__main__":
     unittest.main()
