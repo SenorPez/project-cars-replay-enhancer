@@ -26,11 +26,12 @@ class TelemetryData:
     Reads a directory of telemetry data and returns it as requested.
     """
     def __init__(self, telemetry_directory, *,
-                 reverse=False, descriptor_filename='descriptor.json'):
+                 reverse=False,
+                 descriptor_filename='descriptor.json'):
         if not os.path.isdir(telemetry_directory):
             raise NotADirectoryError
 
-        self.telemetry_directory = telemetry_directory
+        self._telemetry_directory = telemetry_directory
         descriptor = None
         try:
             with open(os.path.join(
@@ -43,13 +44,18 @@ class TelemetryData:
                 telemetry_directory,
                 descriptor_filename)
         finally:
-            self.telemetry_data = self._get_telemetry_data(
+            self._telemetry_data = self._get_telemetry_data(
                 telemetry_directory,
-                descriptor)
+                descriptor,
+                reverse=reverse)
 
     @property
     def packet_count(self):
-        return len(glob(self.telemetry_directory+os.sep+'pdata*'))
+        return len(glob(self._telemetry_directory + os.sep + 'pdata*'))
+
+    @property
+    def telemetry_data(self):
+        return self._telemetry_data
 
     def _build_descriptor(self, telemetry_directory,
                           descriptor_filename):
@@ -59,8 +65,7 @@ class TelemetryData:
             'race_start': None}
         telemetry_data = self._get_telemetry_data(
             telemetry_directory,
-            reverse=True,
-            elapsed_time=False)
+            reverse=True)
         progress = tqdm(
             desc='Analyzing Telemetry Data',
             total=self.packet_count,
@@ -89,8 +94,8 @@ class TelemetryData:
             packet = next(telemetry_data)
             progress.update()
             if packet.packet_type == 0 and (
-                packet.race_state == 0 or \
-                packet.race_state == 1):
+                    packet.race_state == 0 or
+                    packet.race_state == 1):
                 break
 
         # Exhaust packets after the race start, except one.
@@ -100,7 +105,7 @@ class TelemetryData:
                 packet = next(telemetry_data)
                 progress.update()
                 if packet.packet_type == 0 and (
-                        packet.session_state != 5 or \
+                        packet.session_state != 5 or
                         packet.game_state != 2):
                     break
         # None found (no restarts?) so use the first packet.
@@ -121,7 +126,7 @@ class TelemetryData:
 
     @staticmethod
     def _get_telemetry_data(telemetry_directory, descriptor=None, *,
-                            reverse=False, elapsed_time=True):
+                            reverse=False):
         find_start = False if descriptor is None else True
         find_populate = False
 
@@ -143,9 +148,10 @@ class TelemetryData:
             elif find_populate and \
                     len(packet_data) == 1367:
                 packet = TelemetryDataPacket(packet_data)
-                if not any([participant.race_position
+                if not any(
+                    [participant.race_position
                         for participant
-                        in packet.participant_info]\
+                        in packet.participant_info]
                         [:packet.participant_info]):
                     continue
                 else:

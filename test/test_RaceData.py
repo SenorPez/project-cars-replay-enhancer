@@ -17,8 +17,41 @@ class TestInvalidDirectory(unittest.TestCase):
             lambda: RaceData.TelemetryData('fakedir'),
         )
 
+class TestExists(object):
+    def test_directory_exists(self):
+        self.assertTrue(
+            os.path.isdir(self.telemetry_directory))
 
-class TestValidDirectoryDescriptor(unittest.TestCase):
+    def test_descriptor_exists(self):
+        self.assertTrue(
+            os.path.exists(self.descriptor_file))
+
+class TestRace1Telemetry(object):
+    def test_descriptor_race_start(self):
+        self.assertEqual(
+            self.descriptor['race_start'],
+            'c41bc2075b38420283507728b8391387')
+
+    def test_descriptor_race_finish(self):
+        self.assertEqual(
+            self.descriptor['race_finish'],
+            '8fa2d6601799e5dc042737a92d565d5d')
+
+    def test_descriptor_race_end(self):
+        self.assertEqual(
+            self.descriptor['race_end'],
+            'cd14b42cce4e60623462e491d9a77455')
+
+    def test_property_packet_count(self):
+        self.assertEqual(self.telemetry_data.packet_count, 10992)
+
+    def test_property_telemetry_data(self):
+        self.assertEqual(
+            type(self.telemetry_data.telemetry_data),
+            type((x for x in range(10))))
+
+
+class TestValidDirectoryDescriptor(unittest.TestCase, TestExists, TestRace1Telemetry):
     """
     Unit tests for data that doesn't include a descriptor.
     """
@@ -33,49 +66,13 @@ class TestValidDirectoryDescriptor(unittest.TestCase):
             cls.telemetry_directory)
         cls.descriptor = json.load(open(cls.descriptor_file))
 
-    def test_directory_exists(self):
-        self.assertTrue(
-            os.path.isdir(self.telemetry_directory))
-
-    def test_descriptor_exists(self):
-        self.assertTrue(
-            os.path.exists(self.descriptor_file))
-
-    def test_descriptor_race_start(self):
-        self.assertEqual(
-            self.descriptor['race_start'],
-            'c41bc2075b38420283507728b8391387')
-
-    def test_descriptor_race_finish(self):
-        self.assertEqual(
-            self.descriptor['race_finish'],
-            '8fa2d6601799e5dc042737a92d565d5d')
-
-    def test_descriptor_race_end(self):
-        self.assertEqual(
-            self.descriptor['race_end'],
-            'cd14b42cce4e60623462e491d9a77455')
-
-    def test_property_telemetry_directory(self):
-        self.assertEqual(
-            self.telemetry_data.telemetry_directory,
-            'assets/race1-descriptor')
-
-    def test_property_packet_count(self):
-        self.assertEqual(self.telemetry_data.packet_count, 10992)
-
-    def test_property_telemetry_data(self):
-        self.assertEqual(
-            type(self.telemetry_data.telemetry_data),
-            type((x for x in range(10))))
-
     @classmethod
     def tearDownClass(cls):
         del cls.telemetry_data
         del cls.descriptor
 
 
-class TestValidDataNoDescriptor(unittest.TestCase):
+class TestValidDataNoDescriptor(unittest.TestCase, TestExists, TestRace1Telemetry):
     """
     Unit tests for data that doesn't include a descriptor.
     """
@@ -90,42 +87,6 @@ class TestValidDataNoDescriptor(unittest.TestCase):
             'assets/race1-no-descriptor')
         cls.descriptor = json.load(open(
             'assets/race1-no-descriptor/descriptor.json'))
-
-    def test_directory_exists(self):
-        self.assertTrue(
-            os.path.isdir(self.telemetry_directory))
-
-    def test_descriptor_exists(self):
-        self.assertTrue(
-            os.path.exists(self.descriptor_file))
-
-    def test_descriptor_race_start(self):
-        self.assertEqual(
-            self.descriptor['race_start'],
-            'c41bc2075b38420283507728b8391387')
-
-    def test_descriptor_race_finish(self):
-        self.assertEqual(
-            self.descriptor['race_finish'],
-            '8fa2d6601799e5dc042737a92d565d5d')
-
-    def test_descriptor_race_end(self):
-        self.assertEqual(
-            self.descriptor['race_end'],
-            'cd14b42cce4e60623462e491d9a77455')
-
-    def test_property_telemetry_directory(self):
-        self.assertEqual(
-            self.telemetry_data.telemetry_directory,
-            'assets/race1-no-descriptor')
-
-    def test_property_packet_count(self):
-        self.assertEqual(self.telemetry_data.packet_count, 10992)
-
-    def test_property_telemetry_data(self):
-        self.assertEqual(
-            type(self.telemetry_data.telemetry_data),
-            type((x for x in range(10))))
 
     @classmethod
     def tearDownClass(cls):
