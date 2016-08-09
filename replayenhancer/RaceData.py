@@ -35,8 +35,8 @@ class TelemetryData:
         descriptor = None
         try:
             with open(os.path.join(
-                    os.path.realpath(telemetry_directory),
-                    os.path.relpath(descriptor_filename))) \
+                os.path.realpath(telemetry_directory),
+                os.path.relpath(descriptor_filename))) \
                     as descriptor_file:
                 descriptor = json.load(descriptor_file)
         except (FileNotFoundError, ValueError):
@@ -51,10 +51,16 @@ class TelemetryData:
 
     @property
     def packet_count(self):
+        """
+        Returns the number of packets in the directory.
+        """
         return len(glob(self._telemetry_directory + os.sep + 'pdata*'))
 
     @property
     def telemetry_data(self):
+        """
+        Returns an iterator containing the telemetry data.
+        """
         return self._telemetry_data
 
     def _build_descriptor(self, telemetry_directory,
@@ -117,8 +123,8 @@ class TelemetryData:
         descriptor['race_start'] = old_packet.data_hash
 
         with open(os.path.join(
-                os.path.realpath(telemetry_directory),
-                os.path.relpath(descriptor_filename)), 'w') \
+            os.path.realpath(telemetry_directory),
+            os.path.relpath(descriptor_filename)), 'w') \
                 as descriptor_file:
             json.dump(descriptor, descriptor_file)
 
@@ -148,15 +154,15 @@ class TelemetryData:
             elif find_populate and \
                     len(packet_data) == 1367:
                 packet = TelemetryDataPacket(packet_data)
-                if not any(
-                    [participant.race_position
+                if not any([
+                        participant.race_position
                         for participant
                         in packet.participant_info]
-                        [:packet.participant_info]):
+                           [:packet.num_participants]):
                     continue
                 else:
                     find_populate = False
-                    yield(packet)
+                    yield packet
             elif len(packet_data) == 1367:
                 yield TelemetryDataPacket(packet_data)
             elif len(packet_data) == 1347:

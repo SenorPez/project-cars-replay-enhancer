@@ -1,3 +1,6 @@
+"""
+Tests RaceData.py.
+"""
 import json
 import os
 import unittest
@@ -17,7 +20,10 @@ class TestInvalidDirectory(unittest.TestCase):
             lambda: RaceData.TelemetryData('fakedir'),
         )
 
-class TestExists(object):
+class GroupExists(object):
+    """
+    Common tests against directory and descriptor existence.
+    """
     def test_directory_exists(self):
         self.assertTrue(
             os.path.isdir(self.telemetry_directory))
@@ -26,7 +32,10 @@ class TestExists(object):
         self.assertTrue(
             os.path.exists(self.descriptor_file))
 
-class TestRace1Telemetry(object):
+class GroupRace1Telemetry(object):
+    """
+    Common tests against the "race1" telemetry data.
+    """
     def test_descriptor_race_start(self):
         self.assertEqual(
             self.descriptor['race_start'],
@@ -51,9 +60,12 @@ class TestRace1Telemetry(object):
             type((x for x in range(10))))
 
 
-class TestValidDirectoryDescriptor(unittest.TestCase, TestExists, TestRace1Telemetry):
+class TestValidDirectoryDescriptor(
+        unittest.TestCase,
+        GroupExists,
+        GroupRace1Telemetry):
     """
-    Unit tests for data that doesn't include a descriptor.
+    Unit tests for data that don't include a descriptor.
     """
     telemetry_data = None
     telemetry_directory = 'assets/race1-descriptor'
@@ -72,9 +84,12 @@ class TestValidDirectoryDescriptor(unittest.TestCase, TestExists, TestRace1Telem
         del cls.descriptor
 
 
-class TestValidDataNoDescriptor(unittest.TestCase, TestExists, TestRace1Telemetry):
+class TestValidDataNoDescriptor(
+        unittest.TestCase,
+        GroupExists,
+        GroupRace1Telemetry):
     """
-    Unit tests for data that doesn't include a descriptor.
+    Unit tests for data that don't include a descriptor.
     """
     telemetry_data = None
     telemetry_directory = 'assets/race1-no-descriptor'
