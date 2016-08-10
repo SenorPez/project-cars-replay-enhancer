@@ -25,12 +25,11 @@ class RaceData:
     """
     Holds data regarding the race.
     """
-    _telemetry_data = None
-    _telemetry_directory = None
-    _driver_lookup = dict()
-
     def __init__(self, telemetry_directory, *,
                  descriptor_filename='descriptor.json'):
+        self._driver_lookup = dict()
+        self._starting_grid = list()
+
         self._descriptor_filename = descriptor_filename
         self._telemetry_directory = telemetry_directory
         self._telemetry_data = TelemetryData(
@@ -95,6 +94,27 @@ class RaceData:
     @property
     def drivers(self):
         return set(self.driver_lookup.values())
+
+    @property
+    def starting_grid(self):
+        if len(self._starting_grid):
+            return self._starting_grid
+        else:
+            grid_data = TelemetryData(
+                self._telemetry_directory,
+                descriptor_filename=self._descriptor_filename)
+            packet = None
+            while packet is None or packet.packet_type != 0:
+                packet = next(grid_data.telemetry_data)
+
+            self._starting_grid = [(
+                participant_info.race_position,
+                index)
+                for index, participant_info
+                in enumerate(packet.participant_info)
+                if packet.participant_info[index].is_active]\
+                [:packet.num_participants]
+            return self._starting_grid
 
     @property
     def telemetry_data(self):

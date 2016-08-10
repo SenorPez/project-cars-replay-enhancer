@@ -82,6 +82,22 @@ class GroupRace1Telemetry(object):
              'Don Damis',
              'Jesús Carrillo Resino'})
 
+    def test_property_race_data_starting_grid(self):
+        self.assertListEqual(
+            sorted(self.race_data.starting_grid),
+            sorted([(1, 3),
+                    (2, 8),
+                    (3, 10),
+                    (4, 1),
+                    (5, 7),
+                    (6, 0),
+                    (7, 4),
+                    (8, 2),
+                    (9, 6),
+                    (10, 11),
+                    (11, 9),
+                    (12, 5)]))
+
 class GroupFA1Telemetry(object):
     """
     Common tests against the "fa1" telemetry data.
@@ -112,7 +128,6 @@ class GroupFA1Telemetry(object):
             type((x for x in range(10))))
 
     def test_property_race_data_driver_lookup(self):
-        self.maxDiff = None
         self.assertDictEqual(
             self.race_data.driver_lookup,
             {'chrand14': 'chrand14',
@@ -148,6 +163,23 @@ class GroupFA1Telemetry(object):
              'perol825',
              'renaud8457R',
              'tortuepirate42'})
+
+    def test_property_race_data_starting_grid(self):
+        self.assertListEqual(
+            sorted(self.race_data.starting_grid),
+            sorted([(1,0),
+                    (2, 3),
+                    (3, 11),
+                    (4, 2),
+                    (5, 9),
+                    (6, 1),
+                    (7, 6),
+                    (8, 7),
+                    (9, 10),
+                    (10, 4),
+                    (11, 8),
+                    (12, 12),
+                    (13, 5)]))
 
 
 class TestInvalidDirectory(unittest.TestCase):
