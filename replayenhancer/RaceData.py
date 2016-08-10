@@ -21,6 +21,87 @@ from replayenhancer.RETelemetryDataPacket \
     as TelemetryDataPacket
 
 
+class RaceData:
+    """
+    Holds data regarding the race.
+    """
+    _telemetry_data = None
+    _telemetry_directory = None
+    _driver_lookup = dict()
+
+    def __init__(self, telemetry_directory, *,
+                 descriptor_filename='descriptor.json'):
+        self._descriptor_filename = descriptor_filename
+        self._telemetry_directory = telemetry_directory
+        self._telemetry_data = TelemetryData(
+            telemetry_directory,
+            descriptor_filename=descriptor_filename)
+
+    @property
+    def driver_lookup(self):
+        if len(self._driver_lookup):
+            return self._driver_lookup
+        else:
+            driver_data = TelemetryData(
+                self._telemetry_directory,
+                descriptor_filename=self._descriptor_filename)
+            progress = tqdm(
+                desc='Getting Drivers',
+                total=driver_data.packet_count,
+                unit='packets')
+            packet = None
+
+            while True:
+                try:
+                    if len(self._driver_lookup) < \
+                            packet.num_participants:
+                        drivers = self._populate_drivers(
+                            driver_data,
+                            packet.num_participants,
+                            progress=progress)
+                        self._driver_lookup = {name: name
+                                               for name in drivers}
+                    else:
+                        packet = next(driver_data.telemetry_data)
+                        progress.update()
+
+                except AttributeError:
+                    packet = next(driver_data.telemetry_data)
+                    progress.update()
+
+                except StopIteration:
+                    progress.close()
+                    return self._driver_lookup
+
+    @property
+    def drivers(self):
+        return set(self.driver_lookup.values())
+
+    @property
+    def telemetry_data(self):
+        return self._telemetry_data
+
+    @staticmethod
+    def _populate_drivers(driver_data, count, *, progress=None):
+        drivers = list()
+        packet = next(driver_data.telemetry_data)
+        if progress is not None:
+            progress.update()
+
+        while len(drivers) < count:
+            if packet.packet_type == 0 \
+                    and packet.num_participants != count:
+                raise ValueError(
+                    "Participants not populated before break.")
+            elif packet.packet_type == 1 or packet.packet_type == 2:
+                drivers.extend(packet.name)
+            packet = next(driver_data.telemetry_data)
+            if progress is not None:
+                progress.update()
+
+        return drivers[:count]
+
+
 class TelemetryData:
     """
     Reads a directory of telemetry data and returns it as requested.
