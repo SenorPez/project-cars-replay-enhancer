@@ -100,6 +100,17 @@ class GroupRace1Telemetry(object):
                     (11, 9, 'Don Damis'),
                     (12, 5, 'Bastian Schubert')]))
 
+    def test_property_race_data_classification_start(self):
+        self.assertListEqual(
+            sorted(
+                [(driver.driver_index, driver.driver_name,
+                  driver.laps_completed, driver.race_time,
+                  driver.best_lap, driver.best_sector_1,
+                  driver.best_sector_2, driver.best_sector_3)
+                 for driver in self.race_data.classification],
+                key=lambda x: (-x[2], x[3])),
+            sorted(list()))
+
 class GroupFA1Telemetry(object):
     """
     Common tests against the "fa1" telemetry data.
@@ -169,7 +180,9 @@ class GroupFA1Telemetry(object):
     def test_property_race_data_starting_grid(self):
         self.assertListEqual(
             sorted(
-                [(driver.position, driver.driver_index, driver.driver_name) for driver in self.race_data.starting_grid],
+                [(driver.position, driver.driver_index,
+                  driver.driver_name)
+                 for driver in self.race_data.starting_grid],
                 key=lambda x: x[0]),
             sorted([(1, 0, 'PALESCHI6v'),
                     (2, 3, 'perol825'),
@@ -184,6 +197,17 @@ class GroupFA1Telemetry(object):
                     (11, 8, 'losfaineantos'),
                     (12, 12, 'Adolfus900'),
                     (13, 5, 'Nico451783')]))
+
+    def test_property_race_data_classification_start(self):
+        self.assertListEqual(
+            sorted(
+                [(driver.driver_index, driver.driver_name,
+                  driver.laps_completed, driver.race_time,
+                  driver.best_lap, driver.best_sector_1,
+                  driver.best_sector_2, driver.best_sector_3)
+                 for driver in self.race_data.classification],
+                key=lambda x: (-x[2], x[3])),
+            sorted(list()))
 
 
 class TestInvalidDirectory(unittest.TestCase):

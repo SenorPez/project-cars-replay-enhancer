@@ -4,7 +4,6 @@ CARS telemetry data.
 """
 from glob import glob
 from hashlib import md5
-from itertools import tee
 import json
 import os.path
 
@@ -30,6 +29,8 @@ class RaceData:
                  descriptor_filename='descriptor.json'):
         self._driver_name_lookup = dict()
         self._driver_index_lookup = list()
+
+        self._classification = list()
         self._starting_grid = list()
 
         self._descriptor_filename = descriptor_filename
@@ -37,6 +38,10 @@ class RaceData:
         self._telemetry_data = TelemetryData(
             telemetry_directory,
             descriptor_filename=descriptor_filename)
+
+    @property
+    def classification(self):
+        return self._classification
 
     @property
     def driver_name_lookup(self):
@@ -168,6 +173,89 @@ class RaceData:
         elif driver_name_1 not in driver_lookup:
             driver_lookup[driver_name_1] = driver_name_1
         return driver_lookup
+
+
+class ClassificationEntry:
+    """
+    Represents an entry on the classification table.
+    """
+    def __init__(self, driver_index, driver_name, sector_times):
+        self._driver_index = driver_index
+        self._driver_name = driver_name
+        self._sector_times = sector_times
+
+    @property
+    def best_lap(self):
+        return min(self.lap_times)
+
+    @property
+    def best_sector_1(self):
+        return min([data.time for data in self.sector_times
+                    if data.sector == 1])
+
+    @property
+    def best_sector_2(self):
+        return min([data.time for data in self.sector_times
+                    if data.sector == 2])
+
+    @property
+    def best_sector_3(self):
+        return min([data.time for data in self.sector_times
+                    if data.sector == 3])
+
+    @property
+    def laps_completed(self):
+        return len(self.lap_times)
+
+    @property
+    def lap_times(self):
+        return [sum(times) for times in zip(
+            *[iter([data.time for data in self.sector_times])])]
+
+    @property
+    def race_time(self):
+        return sum([data.time for data in self.sector_times])
+
+    @property
+    def sector_times(self):
+        return self._sector_times
+
+
+class SectorTime:
+    """
+    Represents a sector time.
+    """
+    def __init__(self, time, sector, valid):
+        self._time = time
+        self._sector = sector
+        self._valid = valid
+
+    @property
+    def sector(self):
+        return self._sector
+
+    @sector.setter
+    def sector(self, value):
+        if value < 1 or value > 3:
+            raise ValueError("Invalid sector number.")
+        else:
+            self._sector = value
+
+    @property
+    def time(self):
+        return self._time
+
+    @time.setter
+    def time(self, value):
+        self._time = value
+
+    @property
+    def valid(self):
+        return self._valid
+
+    @valid.setter
+    def valid(self, value):
+        self._valid = value
 
 
 class StartingGridEntry:
