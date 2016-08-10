@@ -39,6 +39,8 @@ class RaceData:
 
     @property
     def driver_lookup(self):
+        last_drivers = list()
+
         if len(self._driver_lookup):
             return self._driver_lookup
         else:
@@ -53,14 +55,31 @@ class RaceData:
 
             while True:
                 try:
-                    if len(self._driver_lookup) < \
-                            packet.num_participants:
-                        drivers = self._populate_drivers(
+                    if packet.num_participants != len(last_drivers):
+                        drivers = self._get_drivers(
                             driver_data,
                             packet.num_participants,
                             progress=progress)
-                        self._driver_lookup = {name: name
-                                               for name in drivers}
+
+                        if len(last_drivers) < packet.num_participants:
+                            for driver in drivers:
+                                self._driver_lookup = self._set_driver(
+                                    self._driver_lookup, driver)
+                        else:
+                            for index, driver in enumerate(drivers):
+                                if last_drivers[index] \
+                                        != drivers[index]:
+                                    self._driver_lookup = \
+                                        self._set_driver(
+                                            self._driver_lookup,
+                                            drivers[index],
+                                            last_drivers[-1])
+                                else:
+                                    self._driver_lookup = \
+                                        self._set_driver(
+                                            self._driver_lookup,
+                                            drivers[index])
+                        last_drivers = drivers
                     else:
                         packet = next(driver_data.telemetry_data)
                         progress.update()
@@ -82,7 +101,7 @@ class RaceData:
         return self._telemetry_data
 
     @staticmethod
-    def _populate_drivers(driver_data, count, *, progress=None):
+    def _get_drivers(driver_data, count, *, progress=None):
         drivers = list()
         packet = next(driver_data.telemetry_data)
         if progress is not None:
@@ -100,6 +119,17 @@ class RaceData:
                 progress.update()
 
         return drivers[:count]
+
+    @staticmethod
+    def _set_driver(driver_lookup, driver_name_1, driver_name_2=None):
+        if driver_name_2 is not None:
+            common = os.path.commonprefix([driver_name_1,
+                                           driver_name_2])
+            driver_lookup[driver_name_1] = common
+            driver_lookup[driver_name_2] = common
+        elif driver_name_1 not in driver_lookup:
+            driver_lookup[driver_name_1] = driver_name_1
+        return driver_lookup
 
 
 class TelemetryData:
