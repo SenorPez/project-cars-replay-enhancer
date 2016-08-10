@@ -4,6 +4,7 @@ CARS telemetry data.
 """
 from glob import glob
 from hashlib import md5
+from itertools import tee
 import json
 import os.path
 
@@ -27,7 +28,8 @@ class RaceData:
     """
     def __init__(self, telemetry_directory, *,
                  descriptor_filename='descriptor.json'):
-        self._driver_lookup = dict()
+        self._driver_name_lookup = dict()
+        self._driver_index_lookup = list()
         self._starting_grid = list()
 
         self._descriptor_filename = descriptor_filename
@@ -37,11 +39,11 @@ class RaceData:
             descriptor_filename=descriptor_filename)
 
     @property
-    def driver_lookup(self):
+    def driver_name_lookup(self):
         last_drivers = list()
 
-        if len(self._driver_lookup):
-            return self._driver_lookup
+        if len(self._driver_name_lookup):
+            return self._driver_name_lookup
         else:
             driver_data = TelemetryData(
                 self._telemetry_directory,
@@ -62,21 +64,24 @@ class RaceData:
 
                         if len(last_drivers) < packet.num_participants:
                             for driver in drivers:
-                                self._driver_lookup = self._set_driver(
-                                    self._driver_lookup, driver)
+                                self._driver_name_lookup = \
+                                    self._set_driver(
+                                        self._driver_name_lookup,
+                                        driver)
+                                self._driver_index_lookup = drivers
                         else:
                             for index, driver in enumerate(drivers):
                                 if last_drivers[index] \
                                         != drivers[index]:
-                                    self._driver_lookup = \
+                                    self._driver_name_lookup = \
                                         self._set_driver(
-                                            self._driver_lookup,
+                                            self._driver_name_lookup,
                                             drivers[index],
                                             last_drivers[-1])
                                 else:
-                                    self._driver_lookup = \
+                                    self._driver_name_lookup = \
                                         self._set_driver(
-                                            self._driver_lookup,
+                                            self._driver_name_lookup,
                                             drivers[index])
                         last_drivers = drivers
                     else:
@@ -89,11 +94,11 @@ class RaceData:
 
                 except StopIteration:
                     progress.close()
-                    return self._driver_lookup
+                    return self._driver_name_lookup
 
     @property
     def drivers(self):
-        return set(self.driver_lookup.values())
+        return set(self.driver_name_lookup.values())
 
     @property
     def starting_grid(self):
@@ -103,17 +108,30 @@ class RaceData:
             grid_data = TelemetryData(
                 self._telemetry_directory,
                 descriptor_filename=self._descriptor_filename)
+            progress = tqdm(
+                desc='Calculating Starting Grid',
+                total=grid_data.packet_count,
+                unit='packets')
             packet = None
+
             while packet is None or packet.packet_type != 0:
                 packet = next(grid_data.telemetry_data)
 
-            self._starting_grid = [(
-                participant_info.race_position,
-                index)
+            drivers = self._get_drivers(grid_data,
+                                        packet.num_participants,
+                                        progress=progress)
+
+            self._starting_grid = [
+                StartingGridEntry(
+                    participant_info.race_position,
+                    index,
+                    drivers[index] if len(drivers) > index else None)
                 for index, participant_info
                 in enumerate(packet.participant_info)
                 if packet.participant_info[index].is_active]\
                 [:packet.num_participants]
+
+            progress.close()
             return self._starting_grid
 
     @property
@@ -121,9 +139,9 @@ class RaceData:
         return self._telemetry_data
 
     @staticmethod
-    def _get_drivers(driver_data, count, *, progress=None):
+    def _get_drivers(telemetry_data, count, *, progress=None):
         drivers = list()
-        packet = next(driver_data.telemetry_data)
+        packet = next(telemetry_data.telemetry_data)
         if progress is not None:
             progress.update()
 
@@ -134,7 +152,7 @@ class RaceData:
                     "Participants not populated before break.")
             elif packet.packet_type == 1 or packet.packet_type == 2:
                 drivers.extend(packet.name)
-            packet = next(driver_data.telemetry_data)
+            packet = next(telemetry_data.telemetry_data)
             if progress is not None:
                 progress.update()
 
@@ -150,6 +168,28 @@ class RaceData:
         elif driver_name_1 not in driver_lookup:
             driver_lookup[driver_name_1] = driver_name_1
         return driver_lookup
+
+
+class StartingGridEntry:
+    """
+    Represents an entry on the starting grid.
+    """
+    def __init__(self, position, driver_index, driver_name):
+        self._position = position
+        self._driver_index = driver_index
+        self._driver_name = driver_name
+
+    @property
+    def driver_index(self):
+        return self._driver_index
+
+    @property
+    def driver_name(self):
+        return self._driver_name
+
+    @property
+    def position(self):
+        return self._position
 
 
 class TelemetryData:

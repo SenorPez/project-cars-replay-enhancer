@@ -52,7 +52,7 @@ class GroupRace1Telemetry(object):
 
     def test_property_race_data_driver_lookup(self):
         self.assertDictEqual(
-            self.race_data.driver_lookup,
+            self.race_data.driver_name_lookup,
             {'Bastian Schubert': 'Bastian Schubert',
              'Kobernulf Monnur': 'Kobernulf Monnur',
              'Friedhelm Lipps': 'Friedhelm Lipps',
@@ -84,19 +84,21 @@ class GroupRace1Telemetry(object):
 
     def test_property_race_data_starting_grid(self):
         self.assertListEqual(
-            sorted(self.race_data.starting_grid),
-            sorted([(1, 3),
-                    (2, 8),
-                    (3, 10),
-                    (4, 1),
-                    (5, 7),
-                    (6, 0),
-                    (7, 4),
-                    (8, 2),
-                    (9, 6),
-                    (10, 11),
-                    (11, 9),
-                    (12, 5)]))
+            sorted(
+                [(driver.position, driver.driver_index, driver.driver_name) for driver in self.race_data.starting_grid],
+                key=lambda x: x[0]),
+            sorted([(1, 3, 'Gunars Salenieks'),
+                    (2, 8, 'Scott Winstead'),
+                    (3, 10, 'Thomas Deuerling'),
+                    (4, 1, 'Timon Putzker'),
+                    (5, 7, 'Wesley Daniel'),
+                    (6, 0, 'Kobernulf Monnur'),
+                    (7, 4, 'Brian Vang Villadsen'),
+                    (8, 2, 'Jesús Carrillo Resino'),
+                    (9, 6, 'Jürgen Bell'),
+                    (10, 11, 'Friedhelm Lipps'),
+                    (11, 9, 'Don Damis'),
+                    (12, 5, 'Bastian Schubert')]))
 
 class GroupFA1Telemetry(object):
     """
@@ -129,7 +131,7 @@ class GroupFA1Telemetry(object):
 
     def test_property_race_data_driver_lookup(self):
         self.assertDictEqual(
-            self.race_data.driver_lookup,
+            self.race_data.driver_name_lookup,
             {'chrand14': 'chrand14',
              'KdeumilNL': 'KdeumilNL',
              'tortuepirate42': 'tortuepirate42',
@@ -166,20 +168,22 @@ class GroupFA1Telemetry(object):
 
     def test_property_race_data_starting_grid(self):
         self.assertListEqual(
-            sorted(self.race_data.starting_grid),
-            sorted([(1,0),
-                    (2, 3),
-                    (3, 11),
-                    (4, 2),
-                    (5, 9),
-                    (6, 1),
-                    (7, 6),
-                    (8, 7),
-                    (9, 10),
-                    (10, 4),
-                    (11, 8),
-                    (12, 12),
-                    (13, 5)]))
+            sorted(
+                [(driver.position, driver.driver_index, driver.driver_name) for driver in self.race_data.starting_grid],
+                key=lambda x: x[0]),
+            sorted([(1, 0, 'PALESCHI6v'),
+                    (2, 3, 'perol825'),
+                    (3, 11, 'tortuepirate42'),
+                    (4, 2, 'KdeumilNL'),
+                    (5, 9, 'Finnovicrift'),
+                    (6, 1, 'Dri33leE'),
+                    (7, 6, 'Jardelmarigo'),
+                    (8, 7, 'renaud8457R'),
+                    (9, 10, 'Michel--NL'),
+                    (10, 4, 'chrand14'),
+                    (11, 8, 'losfaineantos'),
+                    (12, 12, 'Adolfus900'),
+                    (13, 5, 'Nico451783')]))
 
 
 class TestInvalidDirectory(unittest.TestCase):
