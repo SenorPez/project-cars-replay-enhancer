@@ -1,6 +1,7 @@
 """
 Tests RaceData.py.
 """
+import collections
 import json
 import os
 import unittest
@@ -46,9 +47,13 @@ class GroupRace1Telemetry(object):
             10992)
 
     def test_property_telemetry_data_telemetry_data(self):
-        self.assertEqual(
-            type(self.race_data.telemetry_data.telemetry_data),
-            type((x for x in range(10))))
+        # self.assertEqual(
+        #     type(self.race_data.telemetry_data),
+        #     type((x for x in range(10))))
+        self.assertTrue(
+            isinstance(
+                self.race_data.telemetry_data,
+                collections.Iterator))
 
     def test_property_race_data_driver_lookup(self):
         self.assertDictEqual(
@@ -136,9 +141,13 @@ class GroupFA1Telemetry(object):
             26113)
 
     def test_property_telemetry_data_telemetry_data(self):
-        self.assertEqual(
-            type(self.race_data.telemetry_data.telemetry_data),
-            type((x for x in range(10))))
+        # self.assertEqual(
+        #     type(self.race_data.telemetry_data),
+        #     type((x for x in range(10))))
+        self.assertTrue(
+            isinstance(
+                self.race_data.telemetry_data,
+                collections.Iterator))
 
     def test_property_race_data_driver_lookup(self):
         self.assertDictEqual(

@@ -90,11 +90,11 @@ class RaceData:
                                             drivers[index])
                         last_drivers = drivers
                     else:
-                        packet = next(driver_data.telemetry_data)
+                        packet = next(driver_data)
                         progress.update()
 
                 except AttributeError:
-                    packet = next(driver_data.telemetry_data)
+                    packet = next(driver_data)
                     progress.update()
 
                 except StopIteration:
@@ -120,7 +120,7 @@ class RaceData:
             packet = None
 
             while packet is None or packet.packet_type != 0:
-                packet = next(grid_data.telemetry_data)
+                packet = next(grid_data)
 
             drivers = self._get_drivers(grid_data,
                                         packet.num_participants,
@@ -134,7 +134,7 @@ class RaceData:
                 for index, participant_info
                 in enumerate(packet.participant_info)
                 if packet.participant_info[index].is_active]\
-                [:packet.num_participants]
+                    [:packet.num_participants]
 
             progress.close()
             return self._starting_grid
@@ -146,7 +146,7 @@ class RaceData:
     @staticmethod
     def _get_drivers(telemetry_data, count, *, progress=None):
         drivers = list()
-        packet = next(telemetry_data.telemetry_data)
+        packet = next(telemetry_data)
         if progress is not None:
             progress.update()
 
@@ -157,7 +157,7 @@ class RaceData:
                     "Participants not populated before break.")
             elif packet.packet_type == 1 or packet.packet_type == 2:
                 drivers.extend(packet.name)
-            packet = next(telemetry_data.telemetry_data)
+            packet = next(telemetry_data)
             if progress is not None:
                 progress.update()
 
@@ -290,7 +290,8 @@ class TelemetryData:
         if not os.path.isdir(telemetry_directory):
             raise NotADirectoryError
 
-        self._telemetry_directory = telemetry_directory
+        self._packet_count = len(
+            glob(telemetry_directory + os.sep + 'pdata*'))
         descriptor = None
         try:
             with open(os.path.join(
@@ -308,19 +309,18 @@ class TelemetryData:
                 descriptor,
                 reverse=reverse)
 
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return next(self._telemetry_data)
+
     @property
     def packet_count(self):
         """
         Returns the number of packets in the directory.
         """
-        return len(glob(self._telemetry_directory + os.sep + 'pdata*'))
-
-    @property
-    def telemetry_data(self):
-        """
-        Returns an iterator containing the telemetry data.
-        """
-        return self._telemetry_data
+        return self._packet_count
 
     def _build_descriptor(self, telemetry_directory,
                           descriptor_filename):
