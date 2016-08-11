@@ -60,10 +60,6 @@ class RaceData:
         """
         return self._current_drivers
 
-    @current_drivers.setter
-    def current_drivers(self, value):
-        self._current_drivers = value
-
     @property
     def driver_name_lookup(self):
         """
@@ -92,7 +88,7 @@ class RaceData:
                             packet.num_participants,
                             progress=progress)
 
-                        self.driver_name_lookup = (
+                        self._build_driver_name_lookup(
                             drivers,
                             last_drivers,
                             packet.num_participants)
@@ -110,37 +106,14 @@ class RaceData:
                     progress.close()
                     return self._driver_name_lookup
 
-    @driver_name_lookup.setter
-    def driver_name_lookup(self, value):
-        drivers, last_drivers, count = value
-        if len(last_drivers) < count:
-            for driver in drivers:
-                self._driver_name_lookup = \
-                    self._set_driver(
-                        self._driver_name_lookup,
-                        driver)
-                self._driver_index_lookup = drivers
-        else:
-            for index, driver in enumerate(drivers):
-                if last_drivers[index] \
-                        != drivers[index]:
-                    self._driver_name_lookup = \
-                        self._set_driver(
-                            self._driver_name_lookup,
-                            drivers[index],
-                            last_drivers[-1])
-                else:
-                    self._driver_name_lookup = \
-                        self._set_driver(
-                            self._driver_name_lookup,
-                            drivers[index])
-
     @property
     def drivers(self):
         """
         Returns best guess names for all drivers in race.
         """
-        return set(self.driver_name_lookup.values())
+        return {
+            driver.real_name for driver
+            in self.driver_name_lookup.values()}
 
     @property
     def elapsed_time(self):
@@ -178,7 +151,7 @@ class RaceData:
                 StartingGridEntry(
                     participant_info.race_position,
                     index,
-                    drivers[index] if len(drivers) > index else None)
+                    drivers[index].name if len(drivers) > index else None)
                 for index, participant_info
                 in enumerate(packet.participant_info)
                 if packet.participant_info[index].is_active]\
@@ -229,6 +202,29 @@ class RaceData:
 
         return self._next_packet
 
+    def _build_driver_name_lookup(self, drivers, last_drivers, count):
+        if len(last_drivers) < count:
+            for driver in drivers:
+                self._driver_name_lookup = \
+                    self._set_driver(
+                        self._driver_name_lookup,
+                        driver)
+                self._driver_index_lookup = drivers
+        else:
+            for index, driver in enumerate(drivers):
+                if last_drivers[index].name \
+                        != drivers[index].name:
+                    self._driver_name_lookup = \
+                        self._set_driver(
+                            self._driver_name_lookup,
+                            drivers[index],
+                            last_drivers[-1])
+                else:
+                    self._driver_name_lookup = \
+                        self._set_driver(
+                            self._driver_name_lookup,
+                            drivers[index])
+
     @staticmethod
     def _get_drivers(telemetry_data, count, *, progress=None):
         drivers = list()
@@ -241,8 +237,15 @@ class RaceData:
                     and packet.num_participants != count:
                 raise ValueError(
                     "Participants not populated before break.")
-            elif packet.packet_type == 1 or packet.packet_type == 2:
-                drivers.extend(packet.name)
+            elif packet.packet_type == 1:
+                for index, name in enumerate(packet.name):
+                    drivers.append(Driver(index, name))
+            elif packet.packet_type == 2:
+                for index, name in enumerate(
+                        packet.name,
+                        packet.offset):
+                    drivers.append(Driver(index, name))
+
             packet = next(telemetry_data)
             if progress is not None:
                 progress.update()
@@ -250,14 +253,15 @@ class RaceData:
         return drivers[:count]
 
     @staticmethod
-    def _set_driver(driver_lookup, driver_name_1, driver_name_2=None):
-        if driver_name_2 is not None:
-            common = os.path.commonprefix([driver_name_1,
-                                           driver_name_2])
-            driver_lookup[driver_name_1] = common
-            driver_lookup[driver_name_2] = common
-        elif driver_name_1 not in driver_lookup:
-            driver_lookup[driver_name_1] = driver_name_1
+    def _set_driver(driver_lookup, driver_1, driver_2=None):
+        if driver_2 is not None:
+            common = os.path.commonprefix([driver_1.name,
+                                           driver_2.name])
+            driver_1.real_name = common
+            driver_lookup[driver_1.name] = driver_1
+            driver_lookup[driver_2.name] = driver_1
+        elif driver_1.name not in driver_lookup:
+            driver_lookup[driver_1.name] = driver_1
         return driver_lookup
 
 
@@ -331,6 +335,32 @@ class ClassificationEntry:
         return self._sector_times
 
 
+class Driver:
+    """
+    Represents a driver in the race.
+    """
+    def __init__(self, index, name):
+        self._index = index
+        self._name = name
+        self._real_name = name
+
+    @property
+    def index(self):
+        return self._index
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def real_name(self):
+        return self._real_name
+
+    @real_name.setter
+    def real_name(self, value):
+        self._real_name = value
+
+
 class SectorTime:
     """
     Represents a sector time.
@@ -347,13 +377,6 @@ class SectorTime:
         """
         return self._sector
 
-    @sector.setter
-    def sector(self, value):
-        if value < 1 or value > 3:
-            raise ValueError("Invalid sector number.")
-        else:
-            self._sector = value
-
     @property
     def time(self):
         """
@@ -361,20 +384,12 @@ class SectorTime:
         """
         return self._time
 
-    @time.setter
-    def time(self, value):
-        self._time = value
-
     @property
     def valid(self):
         """
         Returns if sector is valid.
         """
         return self._valid
-
-    @valid.setter
-    def valid(self, value):
-        self._valid = value
 
 
 class StartingGridEntry:

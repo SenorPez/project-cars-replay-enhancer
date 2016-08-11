@@ -56,7 +56,8 @@ class GroupRace1Telemetry(object):
 
     def test_property_race_data_driver_lookup(self):
         self.assertDictEqual(
-            self.race_data.driver_name_lookup,
+            {name: driver.real_name for name, driver
+             in self.race_data.driver_name_lookup.items()},
             {'Bastian Schubert': 'Bastian Schubert',
              'Kobernulf Monnur': 'Kobernulf Monnur',
              'Friedhelm Lipps': 'Friedhelm Lipps',
@@ -167,8 +168,10 @@ class GroupFA1Telemetry(object):
                 collections.Iterator))
 
     def test_property_race_data_driver_lookup(self):
+        self.maxDiff = None
         self.assertDictEqual(
-            self.race_data.driver_name_lookup,
+            {name: driver.real_name for name, driver in
+             self.race_data.driver_name_lookup.items()},
             {'chrand14': 'chrand14',
              'KdeumilNL': 'KdeumilNL',
              'tortuepirate42': 'tortuepirate42',
