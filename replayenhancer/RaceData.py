@@ -4,6 +4,7 @@ CARS telemetry data.
 """
 from glob import glob
 from hashlib import md5
+from itertools import tee
 import json
 import os.path
 
@@ -32,6 +33,12 @@ class RaceData:
 
         self._classification = list()
         self._starting_grid = list()
+        self._current_drivers = list()
+
+        self._elapsed_time = 0.0
+        self._add_time = 0.0
+        self._last_packet = None
+        self._next_packet = None
 
         self._descriptor_filename = descriptor_filename
         self._telemetry_directory = telemetry_directory
@@ -40,8 +47,24 @@ class RaceData:
             descriptor_filename=descriptor_filename)
 
     @property
+    def add_time(self):
+        return self._add_time
+
+    @add_time.setter
+    def add_time(self, value):
+        self._add_time = value
+
+    @property
     def classification(self):
         return self._classification
+
+    @property
+    def current_drivers(self):
+        return self._current_drivers
+
+    @current_drivers.setter
+    def current_drivers(self, value):
+        self._current_drivers = value
 
     @property
     def driver_name_lookup(self):
@@ -106,6 +129,14 @@ class RaceData:
         return set(self.driver_name_lookup.values())
 
     @property
+    def elapsed_time(self):
+        return self._elapsed_time
+
+    @elapsed_time.setter
+    def elapsed_time(self, value):
+        self._elapsed_time = value
+
+    @property
     def starting_grid(self):
         if len(self._starting_grid):
             return self._starting_grid
@@ -142,6 +173,39 @@ class RaceData:
     @property
     def telemetry_data(self):
         return self._telemetry_data
+
+    @telemetry_data.setter
+    def telemetry_data(self, value):
+        self._telemetry_data.set_values(value)
+
+    def get_data(self):
+        self._last_packet = self._next_packet
+        self._next_packet = None
+        while self._next_packet is None or self._next_packet.packet_type != 0:
+            self._next_packet = next(self.telemetry_data)
+
+        if self._next_packet.current_time == -1.0:
+            self.elapsed_time = 0.0
+            self.add_time = 0.0
+            self._last_packet = None
+        else:
+            if self._last_packet is not None \
+                    and self._last_packet.current_time > \
+                    self._next_packet.current_time:
+                self.add_time += self._last_packet.current_time
+
+            self.elapsed_time = \
+                self.add_time + self._next_packet.current_time
+
+        if (self._next_packet is not None and self._last_packet is None) \
+                or self._next_packet.num_participants != self._last_packet.num_participants:
+            data_1, data_2 = tee(self.telemetry_data, 2)
+            self.current_drivers = self._get_drivers(
+                data_2,
+                self._next_packet.num_participants)
+            self.telemetry_data = data_1
+
+        return self._next_packet
 
     @staticmethod
     def _get_drivers(telemetry_data, count, *, progress=None):
@@ -321,6 +385,11 @@ class TelemetryData:
         Returns the number of packets in the directory.
         """
         return self._packet_count
+
+    def set_values(self, value):
+        iterator, packet_count = value
+        self._telemetry_data = iterator
+        self._packet_count = packet_count
 
     def _build_descriptor(self, telemetry_directory,
                           descriptor_filename):

@@ -8,6 +8,8 @@ import unittest
 
 from replayenhancer import RaceData
 
+from replayenhancer import RETelemetryDataPacket as TelemetryDataPacket
+
 
 class GroupExists(object):
     """
@@ -246,6 +248,29 @@ class TestValidDirectoryWithDescriptor(
     def setUpClass(cls):
         cls.race_data = RaceData.RaceData(cls.telemetry_directory)
         cls.descriptor = json.load(open(cls.descriptor_file))
+
+    def test_method_get_data(self):
+        """
+        Tests that get_data returns only RETelemetryData and
+        elapsed_time is incrementing.
+        """
+        start_time = 0.0
+        end_time = 267.9972839355469
+        previous_et = start_time
+
+        while True:
+            try:
+                with self.subTest():
+                    packet = self.race_data.get_data()
+                    self.assertIsInstance(packet, TelemetryDataPacket)
+                    if self.race_data.elapsed_time != start_time and \
+                        self.race_data.elapsed_time != end_time:
+                        self.assertNotEqual(previous_et, self.race_data.elapsed_time)
+                    previous_et = self.race_data.elapsed_time
+            except StopIteration:
+                pass
+
+
 
     @classmethod
     def tearDownClass(cls):
