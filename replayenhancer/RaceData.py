@@ -92,27 +92,11 @@ class RaceData:
                             packet.num_participants,
                             progress=progress)
 
-                        if len(last_drivers) < packet.num_participants:
-                            for driver in drivers:
-                                self._driver_name_lookup = \
-                                    self._set_driver(
-                                        self._driver_name_lookup,
-                                        driver)
-                                self._driver_index_lookup = drivers
-                        else:
-                            for index, driver in enumerate(drivers):
-                                if last_drivers[index] \
-                                        != drivers[index]:
-                                    self._driver_name_lookup = \
-                                        self._set_driver(
-                                            self._driver_name_lookup,
-                                            drivers[index],
-                                            last_drivers[-1])
-                                else:
-                                    self._driver_name_lookup = \
-                                        self._set_driver(
-                                            self._driver_name_lookup,
-                                            drivers[index])
+                        self.driver_name_lookup = (
+                            drivers,
+                            last_drivers,
+                            packet.num_participants)
+
                         last_drivers = drivers
                     else:
                         packet = next(driver_data)
@@ -125,6 +109,31 @@ class RaceData:
                 except StopIteration:
                     progress.close()
                     return self._driver_name_lookup
+
+    @driver_name_lookup.setter
+    def driver_name_lookup(self, value):
+        drivers, last_drivers, count = value
+        if len(last_drivers) < count:
+            for driver in drivers:
+                self._driver_name_lookup = \
+                    self._set_driver(
+                        self._driver_name_lookup,
+                        driver)
+                self._driver_index_lookup = drivers
+        else:
+            for index, driver in enumerate(drivers):
+                if last_drivers[index] \
+                        != drivers[index]:
+                    self._driver_name_lookup = \
+                        self._set_driver(
+                            self._driver_name_lookup,
+                            drivers[index],
+                            last_drivers[-1])
+                else:
+                    self._driver_name_lookup = \
+                        self._set_driver(
+                            self._driver_name_lookup,
+                            drivers[index])
 
     @property
     def drivers(self):
@@ -139,10 +148,6 @@ class RaceData:
         Returns the calculated elapsed time.
         """
         return self._elapsed_time
-
-    @elapsed_time.setter
-    def elapsed_time(self, value):
-        self._elapsed_time = value
 
     @property
     def starting_grid(self):
@@ -200,7 +205,7 @@ class RaceData:
             self._next_packet = next(self.telemetry_data)
 
         if self._next_packet.current_time == -1.0:
-            self.elapsed_time = 0.0
+            self._elapsed_time = 0.0
             self._add_time = 0.0
             self._last_packet = None
         else:
@@ -209,7 +214,7 @@ class RaceData:
                     self._next_packet.current_time:
                 self._add_time += self._last_packet.current_time
 
-            self.elapsed_time = \
+            self._elapsed_time = \
                 self._add_time + self._next_packet.current_time
 
         if (self._next_packet is not None
@@ -217,7 +222,7 @@ class RaceData:
                 or self._next_packet.num_participants != \
                     self._last_packet.num_participants:
             data, _ = tee(self.telemetry_data, 2)
-            self.current_drivers = self._get_drivers(
+            self._current_drivers = self._get_drivers(
                 data,
                 self._next_packet.num_participants)
             del data
