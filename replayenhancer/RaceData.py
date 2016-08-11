@@ -47,19 +47,17 @@ class RaceData:
             descriptor_filename=descriptor_filename)
 
     @property
-    def add_time(self):
-        return self._add_time
-
-    @add_time.setter
-    def add_time(self, value):
-        self._add_time = value
-
-    @property
     def classification(self):
+        """
+        Returns classification data at the current time.
+        """
         return self._classification
 
     @property
     def current_drivers(self):
+        """
+        Returns best guess names for drivers currently in the race.
+        """
         return self._current_drivers
 
     @current_drivers.setter
@@ -68,6 +66,10 @@ class RaceData:
 
     @property
     def driver_name_lookup(self):
+        """
+        Returns a dictionary that maps telemetry names (keys) to best
+        guess names (values).
+        """
         last_drivers = list()
 
         if len(self._driver_name_lookup):
@@ -126,10 +128,16 @@ class RaceData:
 
     @property
     def drivers(self):
+        """
+        Returns best guess names for all drivers in race.
+        """
         return set(self.driver_name_lookup.values())
 
     @property
     def elapsed_time(self):
+        """
+        Returns the calculated elapsed time.
+        """
         return self._elapsed_time
 
     @elapsed_time.setter
@@ -138,6 +146,9 @@ class RaceData:
 
     @property
     def starting_grid(self):
+        """
+        Returns the starting grid for the race.
+        """
         if len(self._starting_grid):
             return self._starting_grid
         else:
@@ -153,9 +164,10 @@ class RaceData:
             while packet is None or packet.packet_type != 0:
                 packet = next(grid_data)
 
-            drivers = self._get_drivers(grid_data,
-                                        packet.num_participants,
-                                        progress=progress)
+            drivers = self._get_drivers(
+                grid_data,
+                packet.num_participants,
+                progress=progress)
 
             self._starting_grid = [
                 StartingGridEntry(
@@ -172,38 +184,43 @@ class RaceData:
 
     @property
     def telemetry_data(self):
+        """
+        Returns the telemetry data. Can be used as an iterator.
+        """
         return self._telemetry_data
 
-    @telemetry_data.setter
-    def telemetry_data(self, value):
-        self._telemetry_data.set_values(value)
-
     def get_data(self):
+        """
+        Retrieves the next telemetry packet.
+        """
         self._last_packet = self._next_packet
         self._next_packet = None
-        while self._next_packet is None or self._next_packet.packet_type != 0:
+        while self._next_packet is None \
+                or self._next_packet.packet_type != 0:
             self._next_packet = next(self.telemetry_data)
 
         if self._next_packet.current_time == -1.0:
             self.elapsed_time = 0.0
-            self.add_time = 0.0
+            self._add_time = 0.0
             self._last_packet = None
         else:
             if self._last_packet is not None \
                     and self._last_packet.current_time > \
                     self._next_packet.current_time:
-                self.add_time += self._last_packet.current_time
+                self._add_time += self._last_packet.current_time
 
             self.elapsed_time = \
-                self.add_time + self._next_packet.current_time
+                self._add_time + self._next_packet.current_time
 
-        if (self._next_packet is not None and self._last_packet is None) \
-                or self._next_packet.num_participants != self._last_packet.num_participants:
-            data_1, data_2 = tee(self.telemetry_data, 2)
+        if (self._next_packet is not None
+                and self._last_packet is None) \
+                or self._next_packet.num_participants != \
+                    self._last_packet.num_participants:
+            data, _ = tee(self.telemetry_data, 2)
             self.current_drivers = self._get_drivers(
-                data_2,
+                data,
                 self._next_packet.num_participants)
-            self.telemetry_data = data_1
+            del data
 
         return self._next_packet
 
@@ -250,38 +267,62 @@ class ClassificationEntry:
 
     @property
     def best_lap(self):
+        """
+        Best Lap by driver.
+        """
         return min(self.lap_times)
 
     @property
     def best_sector_1(self):
+        """
+        Best Sector 1 time by driver.
+        """
         return min([data.time for data in self.sector_times
                     if data.sector == 1])
 
     @property
     def best_sector_2(self):
+        """
+        Best Sector 2 time by driver.
+        """
         return min([data.time for data in self.sector_times
                     if data.sector == 2])
 
     @property
     def best_sector_3(self):
+        """
+        Best Sector 3 time by driver.
+        """
         return min([data.time for data in self.sector_times
                     if data.sector == 3])
 
     @property
     def laps_completed(self):
+        """
+        Number of laps completed by driver.
+        """
         return len(self.lap_times)
 
     @property
     def lap_times(self):
+        """
+        List of lap times for driver.
+        """
         return [sum(times) for times in zip(
             *[iter([data.time for data in self.sector_times])])]
 
     @property
     def race_time(self):
+        """
+        Total race time for driver.
+        """
         return sum([data.time for data in self.sector_times])
 
     @property
     def sector_times(self):
+        """
+        Sector times for driver.
+        """
         return self._sector_times
 
 
@@ -296,6 +337,9 @@ class SectorTime:
 
     @property
     def sector(self):
+        """
+        Sector number: 1, 2, or 3
+        """
         return self._sector
 
     @sector.setter
@@ -307,6 +351,9 @@ class SectorTime:
 
     @property
     def time(self):
+        """
+        Returns sector time.
+        """
         return self._time
 
     @time.setter
@@ -315,6 +362,9 @@ class SectorTime:
 
     @property
     def valid(self):
+        """
+        Returns if sector is valid.
+        """
         return self._valid
 
     @valid.setter
@@ -333,14 +383,23 @@ class StartingGridEntry:
 
     @property
     def driver_index(self):
+        """
+        Index position of driver.
+        """
         return self._driver_index
 
     @property
     def driver_name(self):
+        """
+        Telemetry-read name of driver.
+        """
         return self._driver_name
 
     @property
     def position(self):
+        """
+        Starting position of driver.
+        """
         return self._position
 
 
@@ -385,11 +444,6 @@ class TelemetryData:
         Returns the number of packets in the directory.
         """
         return self._packet_count
-
-    def set_values(self, value):
-        iterator, packet_count = value
-        self._telemetry_data = iterator
-        self._packet_count = packet_count
 
     def _build_descriptor(self, telemetry_directory,
                           descriptor_filename):

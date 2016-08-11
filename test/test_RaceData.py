@@ -7,8 +7,8 @@ import os
 import unittest
 
 from replayenhancer import RaceData
-
-from replayenhancer import RETelemetryDataPacket as TelemetryDataPacket
+from replayenhancer.RETelemetryDataPacket \
+    import RETelemetryDataPacket as TelemetryDataPacket
 
 
 class GroupExists(object):
@@ -49,9 +49,6 @@ class GroupRace1Telemetry(object):
             10992)
 
     def test_property_telemetry_data_telemetry_data(self):
-        # self.assertEqual(
-        #     type(self.race_data.telemetry_data),
-        #     type((x for x in range(10))))
         self.assertTrue(
             isinstance(
                 self.race_data.telemetry_data,
@@ -92,7 +89,12 @@ class GroupRace1Telemetry(object):
     def test_property_race_data_starting_grid(self):
         self.assertListEqual(
             sorted(
-                [(driver.position, driver.driver_index, driver.driver_name) for driver in self.race_data.starting_grid],
+                [
+                    (
+                        driver.position,
+                        driver.driver_index,
+                        driver.driver_name)
+                    for driver in self.race_data.starting_grid],
                 key=lambda x: x[0]),
             sorted([(1, 3, 'Gunars Salenieks'),
                     (2, 8, 'Scott Winstead'),
@@ -117,6 +119,22 @@ class GroupRace1Telemetry(object):
                  for driver in self.race_data.classification],
                 key=lambda x: (-x[2], x[3])),
             sorted(list()))
+
+    def test_method_get_data(self):
+        exclude_values = {0.0, 267.9972839355469}
+        previous_et = 0.0
+
+        while True:
+            try:
+                packet = self.race_data.get_data()
+                self.assertIsInstance(packet, TelemetryDataPacket)
+                if self.race_data.elapsed_time not in exclude_values:
+                    self.assertGreaterEqual(
+                        self.race_data.elapsed_time,
+                        previous_et)
+                previous_et = self.race_data.elapsed_time
+            except StopIteration:
+                break
 
 class GroupFA1Telemetry(object):
     """
@@ -143,9 +161,6 @@ class GroupFA1Telemetry(object):
             26113)
 
     def test_property_telemetry_data_telemetry_data(self):
-        # self.assertEqual(
-        #     type(self.race_data.telemetry_data),
-        #     type((x for x in range(10))))
         self.assertTrue(
             isinstance(
                 self.race_data.telemetry_data,
@@ -220,6 +235,21 @@ class GroupFA1Telemetry(object):
                 key=lambda x: (-x[2], x[3])),
             sorted(list()))
 
+    def test_method_get_data(self):
+        exclude_values = {0.0, 574.8817138671875}
+        previous_et = 0.0
+
+        while True:
+            try:
+                packet = self.race_data.get_data()
+                self.assertIsInstance(packet, TelemetryDataPacket)
+                if self.race_data.elapsed_time not in exclude_values:
+                    self.assertGreaterEqual(
+                        self.race_data.elapsed_time,
+                        previous_et)
+                previous_et = self.race_data.elapsed_time
+            except StopIteration:
+                break
 
 class TestInvalidDirectory(unittest.TestCase):
     """
@@ -247,30 +277,8 @@ class TestValidDirectoryWithDescriptor(
     @classmethod
     def setUpClass(cls):
         cls.race_data = RaceData.RaceData(cls.telemetry_directory)
-        cls.descriptor = json.load(open(cls.descriptor_file))
-
-    def test_method_get_data(self):
-        """
-        Tests that get_data returns only RETelemetryData and
-        elapsed_time is incrementing.
-        """
-        start_time = 0.0
-        end_time = 267.9972839355469
-        previous_et = start_time
-
-        while True:
-            try:
-                with self.subTest():
-                    packet = self.race_data.get_data()
-                    self.assertIsInstance(packet, TelemetryDataPacket)
-                    if self.race_data.elapsed_time != start_time and \
-                        self.race_data.elapsed_time != end_time:
-                        self.assertNotEqual(previous_et, self.race_data.elapsed_time)
-                    previous_et = self.race_data.elapsed_time
-            except StopIteration:
-                pass
-
-
+        with open(cls.descriptor_file, 'r') as file_pointer:
+            cls.descriptor = json.load(file_pointer)
 
     @classmethod
     def tearDownClass(cls):
@@ -293,7 +301,8 @@ class TestMultiplayerWithDescriptor(
     @classmethod
     def setUpClass(cls):
         cls.race_data = RaceData.RaceData(cls.telemetry_directory)
-        cls.descriptor = json.load(open(cls.descriptor_file))
+        with open(cls.descriptor_file, 'r') as file_pointer:
+            cls.descriptor = json.load(file_pointer)
 
     @classmethod
     def tearDownClass(cls):
@@ -316,7 +325,8 @@ class TestValidDirectoryNoDescriptor(
     @classmethod
     def setUpClass(cls):
         cls.race_data = RaceData.RaceData(cls.telemetry_directory)
-        cls.descriptor = json.load(open(cls.descriptor_file))
+        with open(cls.descriptor_file, 'r') as file_pointer:
+            cls.descriptor = json.load(file_pointer)
 
     @classmethod
     def tearDownClass(cls):
