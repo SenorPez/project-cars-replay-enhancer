@@ -14,3 +14,6 @@ script:
   - mkdir assets
   - tar -zxf testdata.tar.gz -C assets/
   - nosetests -v --with-coverage --cover-package=replayenhancer
+
+after_success:
+   - bash <(curl -s https://codecov.io/bash)
