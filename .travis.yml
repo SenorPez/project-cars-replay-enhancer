@@ -13,7 +13,4 @@ script:
   - wget http://senorpez.servebeer.com/pcars/races/testdata.tar.gz
   - mkdir assets
   - tar -zxf testdata.tar.gz -C assets/
-  - nosetests -v
-
-after_success:
-  - bash <(curl -s https://codecov.io/bash)
+  - nosetests -v --with-coverage --cover-package=replayenhancer
