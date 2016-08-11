@@ -7,7 +7,9 @@ python:
   - "3.5-dev"
   - "nightly"
 
-install: python setup.py install
+install:
+  - python setup.py install
+  - pip install coverage
 
 script:
   - wget http://senorpez.servebeer.com/pcars/races/testdata.tar.gz
