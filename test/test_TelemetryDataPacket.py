@@ -962,3 +962,22 @@ class TestGarbageData(unittest.TestCase):
         with self.assertRaises(struct.error):
             garbage = os.urandom(1000)
             self.packet = TelemetryDataPacket(garbage)
+
+
+class TestIncorrectPacketType(unittest.TestCase):
+    """
+    Unit tests data that is the correct length but has the wrong value
+    for packet type.
+    Note that this is a somewhat weak sanity check. Completely random
+    garbage data that is the correct length may fool this from time to
+    time.
+    """
+    packet_length = TelemetryDataPacket.packet_length
+
+    def test_initialization(self):
+        with self.assertRaises(ValueError):
+
+            mostly_garbage = os.urandom(2)\
+                             +(1).to_bytes(1, sys.byteorder)\
+                             +os.urandom(self.packet_length-3)
+            self.packet = TelemetryDataPacket(mostly_garbage)
