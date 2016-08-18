@@ -33,7 +33,7 @@ setup(
     ],
     keywords='gaming racing video data streaming',
     packages=find_packages(exclude=['assets', 'tests', 'utils']),
-    install_requires=['natsort', 'tqdm'],
+    install_requires=['moviepy', 'natsort', 'pillow', 'tqdm'],
     extras_require={
         'dev': [],
         'test': []
