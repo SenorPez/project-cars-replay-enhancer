@@ -6,7 +6,8 @@ objects that update continuously based on the telemetry feed.
 import abc
 from moviepy.video.io.bindings import PIL_to_npimage
 
-from StaticBase import StaticBase
+from replayenhancer.StaticBase import StaticBase
+
 
 class DynamicBase(StaticBase, metaclass=abc.ABCMeta):
     """
@@ -21,8 +22,8 @@ class DynamicBase(StaticBase, metaclass=abc.ABCMeta):
     world state, `to_frame` is called. Execution chain is `to_frame` ->
     `update` -> `_make_material` -> `_write_data`.
 
-    To get the mask of the dynamic oject, `make_mask` is called.
-    Exectuion chain is `make_mask` -> `update` -> `_make_material`.
+    To get the mask of the dynamic object, `make_mask` is called.
+    Execution chain is `make_mask` -> `update` -> `_make_material`.
     """
     @property
     @abc.abstractmethod
@@ -47,13 +48,15 @@ class DynamicBase(StaticBase, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def update(self, force_process=False):
         """
+        If force_process is True, the data is read and clip_t
+        is updated.
+
         If force_process is False, only clip_t is updated. Use this to
         advance through time without the overhead of rendering the
         intervening frames. Note that this may cause errors in data
         display, however, for data that rely on historical information.
 
-        If force_process is True, the data is read and clip_t
-        is updated.
+
         """
 
     @abc.abstractmethod

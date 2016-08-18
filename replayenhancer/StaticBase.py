@@ -7,6 +7,7 @@ feed.
 import abc
 from moviepy.video.io.bindings import PIL_to_npimage
 
+
 class StaticBase(metaclass=abc.ABCMeta):
     """
     Defines base class for static objects, including default object
