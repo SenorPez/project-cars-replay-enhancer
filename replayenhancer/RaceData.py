@@ -167,40 +167,45 @@ class RaceData:
         """
         return self._telemetry_data
 
-    def get_data(self):
+    def get_data(self, at_time=None):
         """
         Retrieves the next telemetry packet.
         """
-        self._last_packet = self._next_packet
         self._next_packet = None
-        while self._next_packet is None \
-                or self._next_packet.packet_type != 0:
-            self._next_packet = next(self.telemetry_data)
+        while True:
+            self._last_packet = self._next_packet
 
-        if self._next_packet.current_time == -1.0:
-            self._elapsed_time = 0.0
-            self._add_time = 0.0
-            self._last_packet = None
-        else:
-            if self._last_packet is not None \
-                    and self._last_packet.current_time > \
-                    self._next_packet.current_time:
-                self._add_time += self._last_packet.current_time
+            while self._next_packet is None \
+                    or self._next_packet.packet_type != 0:
+                self._next_packet = next(self.telemetry_data)
 
-            self._elapsed_time = \
-                self._add_time + self._next_packet.current_time
+            if at_time is not None:
+                self._elapsed_time, self._add_time, self._last_packet = \
+                    self._calc_elapsed_time(
+                        self._next_packet,
+                        self._add_time,
+                        self._last_packet)
 
-        if (self._next_packet is not None
-                and self._last_packet is None) \
-                or self._next_packet.num_participants != \
-                    self._last_packet.num_participants:
-            data, _ = tee(self.telemetry_data, 2)
-            self._current_drivers = self._get_drivers(
-                data,
-                self._next_packet.num_participants)
-            del data
+            if (self._next_packet is not None
+                    and self._last_packet is None) \
+                    or self._next_packet.num_participants != \
+                        self._last_packet.num_participants:
+                data, _ = tee(self.telemetry_data, 2)
+                self._current_drivers = self._get_drivers(
+                    data,
+                    self._next_packet.num_participants)
+                del data
 
-        return self._next_packet
+            if at_time is None or self._elapsed_time < at_time:
+                return self._next_packet
+
+    def _add_sector_times(self, packet):
+        for index, participant_info in enumerate(packet.participant_info):
+            sector_time = SectorTime(
+                participant_info.last_sector_time,
+                participant_info.sector,
+                participant_info.invalid_lap)
+            self._current_drivers[index].add_sector_time(sector_time)
 
     def _build_driver_name_lookup(self, drivers, last_drivers, count):
         if len(last_drivers) < count:
@@ -209,7 +214,6 @@ class RaceData:
                     self._set_driver(
                         self._driver_name_lookup,
                         driver)
-                self._driver_index_lookup = drivers
         else:
             for index, driver in enumerate(drivers):
                 if last_drivers[index].name \
@@ -224,6 +228,23 @@ class RaceData:
                         self._set_driver(
                             self._driver_name_lookup,
                             drivers[index])
+
+        self._driver_index_lookup = drivers
+
+    @staticmethod
+    def _calc_elapsed_time(next_packet, add_time, last_packet):
+        if next_packet.current_time == -1.0:
+            elapsed_time = 0.0
+            add_time = 0.0
+            last_packet = 0.0
+        else:
+            if last_packet is not None and last_packet.current_time >\
+                    next_packet.current_time:
+                add_time += last_packet.current_time
+
+            elapsed_time = add_time + next_packet.current_time
+
+        return elapsed_time, add_time, last_packet
 
     @staticmethod
     def _get_drivers(telemetry_data, count, *, progress=None):
@@ -344,6 +365,8 @@ class Driver:
         self._name = name
         self._real_name = name
 
+        self._sector_times = list();
+
     @property
     def index(self):
         return self._index
@@ -360,15 +383,34 @@ class Driver:
     def real_name(self, value):
         self._real_name = value
 
+    def add_sector_time(self, sector_time):
+        if sector_time.time == -123.0:
+            pass
+        elif len(self._sector_times) == 0:
+            self._sector_times.append(sector_time)
+        elif self._sector_times[-1].time != sector_time.time \
+                and self._sector_times[-1].sector != sector_time.sector:
+            self._sector_times.append(sector_time)
+
+        if sector_time.invalid:
+            self._invalidate_lap()
+
+    def _invalidate_lap(self):
+        last_lap_sectors = [
+            sector_time for sector_time in self._sector_times[-3:]
+            if sector_time.sector <= self._sector_times[-1].sector]
+        for sector in last_lap_sectors:
+            sector.invalid = True
+
 
 class SectorTime:
     """
     Represents a sector time.
     """
-    def __init__(self, time, sector, valid):
+    def __init__(self, time, sector, invalid):
         self._time = time
         self._sector = sector
-        self._valid = valid
+        self._invalid = invalid
 
     @property
     def sector(self):
@@ -385,11 +427,15 @@ class SectorTime:
         return self._time
 
     @property
-    def valid(self):
+    def invalid(self):
         """
         Returns if sector is valid.
         """
-        return self._valid
+        return self._invalid
+
+    @invalid.setter
+    def invalid(self, value):
+        self._invalid = value
 
 
 class StartingGridEntry:
