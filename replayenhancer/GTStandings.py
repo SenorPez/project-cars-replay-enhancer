@@ -3,7 +3,7 @@ Provides classes for the creation of a GT Sport style
 Standings overlay.
 """
 
-from PIL import Image
+from PIL import Image, ImageDraw
 from replayenhancer.DynamicBase import DynamicBase
 
 
@@ -79,12 +79,34 @@ class StandingsLine():
 
     _ups = 30
 
-    def __init__(self, *, ups=30):
+    def __init__(self, driver, font, text_size, *, ups=30):
         """
         Creates a new Standings Line object.
         """
         self._ups = ups
         self._viewed = False
+
+        self._driver = driver
+        self._font = font
+        self._text_size = text_size
+
+    @property
+    def name_color(self):
+        """
+        Gets the material color for the name, based on if it's the
+        viewed car or not.
+        """
+        return self._viewed_name_color if self._viewed \
+            else self._name_color
+
+    @property
+    def name_text_color(self):
+        """
+        Gets the text color for the name, based on if it's the
+        viewed car or not.
+        """
+        return self._viewed_name_text_color if self._viewed \
+            else self._name_text_color
 
     @property
     def position_color(self):
@@ -103,3 +125,38 @@ class StandingsLine():
         """
         return self._viewed_position_text_color if self._viewed \
             else self._position_text_color
+
+    def _render(self):
+        text_width, text_height = self._text_size
+        block_height = self._font.getsize("A")[1]
+
+        material_width = text_height*2+text_width+10*2
+        material_height = text_height*2
+        material = Image.new('RGBA', (material_width, material_height))
+
+        draw = ImageDraw.Draw(material)
+
+        draw.rectangle(
+            (0, 0, material_height+1, material_height+1),
+            fill=self.position_color)
+        position_width = self._font.getsize(
+            str(self._driver.race_position))[0]
+        x_position = int((material_height-position_width)/2)
+        y_position = int((material_height-block_height)/2)
+        draw.text(
+            (x_position, y_position),
+            str(self._driver.race_position),
+            fill=self.position_text_color,
+            font=self._font)
+
+        draw.rectangle(
+            (material_height, 0, material_width+1, material_height+1),
+            fill=self.name_color)
+        x_position = material_height+10
+        draw.text(
+            (x_position, y_position),
+            str(self._driver.name),
+            fill=self.name_text_color,
+            font=self._font)
+
+        return material
