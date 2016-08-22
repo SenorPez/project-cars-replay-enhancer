@@ -4,6 +4,7 @@ Tests AdditionalParticipantPacket.py
 
 import unittest
 from _md5 import md5
+import struct
 from struct import pack, unpack
 from unittest.mock import patch, sentinel
 
@@ -15,11 +16,18 @@ class TestValidPacket(unittest.TestCase):
     """
     Unit tests for a valid AdditionalParticipantPacket.
     """
+    expected_build_version = abs(id(sentinel.build_version))
+    while expected_build_version > 65535:
+        expected_build_version //= 2
+
     expected_packet_type = 2
-    expected_build_version = unpack("H", bytes(id(sentinel.build_version))[-2:])[0]
-    expected_offset = int(bytes(id(sentinel.offset))[0])
+
+    expected_offset = abs(id(sentinel.offset))
+    while expected_offset > 255:
+        expected_offset //= 2
+
     expected_name = list()
-    expected_name.extend([bytes(id(sentinel.name)) for _ in range(16)])
+    expected_name.extend([str(id(sentinel.name)) for _ in range(16)])
 
     packet_length = 1028
     packet_string = "HBB"
@@ -29,7 +37,7 @@ class TestValidPacket(unittest.TestCase):
     test_data.append(expected_build_version)
     test_data.append(expected_packet_type)
     test_data.append(expected_offset)
-    test_data.extend(expected_name)
+    test_data.extend([name.encode('utf-8') for name in expected_name])
 
     test_binary_data = pack(packet_string, *test_data)
 
@@ -70,7 +78,7 @@ class TestValidPacket(unittest.TestCase):
     def test_property_offset(self):
         instance = AdditionalParticipantPacket(self.test_binary_data)
         expected_result = self.expected_offset
-        self.assertEqual(instance, expected_result)
+        self.assertEqual(instance.offset, expected_result)
 
     def test_property_packet_type(self):
         instance = AdditionalParticipantPacket(self.test_binary_data)
