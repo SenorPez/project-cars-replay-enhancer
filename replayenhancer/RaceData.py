@@ -151,11 +151,12 @@ class RaceData:
                 StartingGridEntry(
                     participant_info.race_position,
                     index,
-                    drivers[index].name if len(drivers) > index else None)
+                    drivers[index].name if len(drivers) > index
+                    else None)
                 for index, participant_info
                 in enumerate(packet.participant_info)
                 if packet.participant_info[index].is_active]\
-                    [:packet.num_participants]
+                [:packet.num_participants]
 
             progress.close()
             return self._starting_grid
@@ -163,7 +164,7 @@ class RaceData:
     @property
     def telemetry_data(self):
         """
-        Returns the telemetry data. Can be used as an iterator.
+        Returns the telemetry data iterator.
         """
         return self._telemetry_data
 
@@ -171,16 +172,18 @@ class RaceData:
         """
         Retrieves the next telemetry packet.
         """
-        self._next_packet = None
         while True:
             self._last_packet = self._next_packet
+            self._next_packet = None
 
             while self._next_packet is None \
                     or self._next_packet.packet_type != 0:
                 self._next_packet = next(self.telemetry_data)
 
             if at_time is not None:
-                self._elapsed_time, self._add_time, self._last_packet = \
+                self._elapsed_time, \
+                    self._add_time, \
+                    self._last_packet = \
                     self._calc_elapsed_time(
                         self._next_packet,
                         self._add_time,
@@ -188,19 +191,20 @@ class RaceData:
 
             if (self._next_packet is not None
                     and self._last_packet is None) \
-                    or self._next_packet.num_participants != \
-                        self._last_packet.num_participants:
+                    or self._next_packet.num_participants \
+                    != self._last_packet.num_participants:
                 data, _ = tee(self.telemetry_data, 2)
                 self._current_drivers = self._get_drivers(
                     data,
                     self._next_packet.num_participants)
                 del data
 
-            if at_time is None or self._elapsed_time < at_time:
+            if at_time is None or self._elapsed_time >= at_time:
                 return self._next_packet
 
     def _add_sector_times(self, packet):
-        for index, participant_info in enumerate(packet.participant_info):
+        for index, participant_info in enumerate(
+                packet.participant_info):
             sector_time = SectorTime(
                 participant_info.last_sector_time,
                 participant_info.sector,
@@ -236,7 +240,7 @@ class RaceData:
         if next_packet.current_time == -1.0:
             elapsed_time = 0.0
             add_time = 0.0
-            last_packet = 0.0
+            last_packet = None
         else:
             if last_packet is not None and last_packet.current_time >\
                     next_packet.current_time:
@@ -365,7 +369,7 @@ class Driver:
         self._name = name
         self._real_name = name
 
-        self._sector_times = list();
+        self._sector_times = list()
 
     @property
     def index(self):

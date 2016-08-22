@@ -6,15 +6,13 @@ python:
   - "3.5"
   - "3.5-dev"
   - "nightly"
+  - "pypy3"
 
 install:
   - python setup.py install
   - pip install coverage
 
 script:
-  - wget http://senorpez.servebeer.com/pcars/races/testdata.tar.gz
-  - mkdir assets
-  - tar -zxf testdata.tar.gz -C assets/
   - nosetests -v --with-coverage --cover-package=replayenhancer
 
 after_success:
