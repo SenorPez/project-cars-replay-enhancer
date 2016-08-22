@@ -67,12 +67,12 @@ class TestValidPacket(unittest.TestCase):
         self.assertEqual(self.packet.packet_type, 0)
 
     def test_property_packet_length(self):
-        self.assertEqual(self.packet.packet_length, 1367)
+        self.assertEqual(self.packet._packet_length, 1367)
 
     def test_property_packet_string(self):
         self.maxDiff = None
         self.assertEqual(
-            self.packet.packet_string,
+            self.packet._packet_string,
             "HBBbb4xBB8xf12xf56x2xxx10x6x8x4x4x88x228x8x2x6xhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBfhhh2xBBBBffxxx")
 
     def test_property_participant_info(self):
@@ -286,7 +286,7 @@ class TestIncorrectPacketType(unittest.TestCase):
     garbage data that is the correct length may fool this from time to
     time.
     """
-    packet_length = RETelemetryDataPacket.packet_length
+    packet_length = RETelemetryDataPacket._packet_length
 
     def test_initialization(self):
         with self.assertRaises(ValueError):

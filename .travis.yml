@@ -6,7 +6,6 @@ python:
   - "3.5"
   - "3.5-dev"
   - "nightly"
-  - "pypy3"
 
 install:
   - python setup.py install
@@ -15,5 +14,5 @@ install:
 script:
   - nosetests -v --with-coverage --cover-package=replayenhancer
 
-after_success:
+after_script:
    - bash <(curl -s https://codecov.io/bash)

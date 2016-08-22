@@ -89,11 +89,11 @@ class TelemetryDataPacket(Packet):
     """
     def __init__(self, packet_data):
         self.data_hash = md5(packet_data).hexdigest()
-        unpacked_data = self.unpack_data(packet_data)
+        unpacked_data = self._unpack_data(packet_data)
 
         self.build_version_number = int(unpacked_data.popleft())
 
-        self.test_packet_type(unpacked_data.popleft())
+        self._test_packet_type(unpacked_data.popleft())
 
         self._game_session_state = int(unpacked_data.popleft())
 
@@ -301,11 +301,11 @@ class TelemetryDataPacket(Packet):
         return 0
 
     @property
-    def packet_length(self):
+    def _packet_length(self):
         return 1367
 
     @property
-    def packet_string(self):
+    def _packet_string(self):
         packet_string = "HB"
         packet_string += "B"
         packet_string += "bb"

@@ -22,13 +22,6 @@ class REParticipantInfo(ParticipantInfo):
     We do not call the parent constructor.
     """
     def __init__(self, unpacked_data):
-        self.index = None
-        self.name = None
-        self.team = None
-        self.car = None
-        self.car_class = None
-        self.viewed = False
-
         self._world_position = list()
         for _ in range(3):
             self._world_position.append(int(unpacked_data.popleft()))
@@ -55,11 +48,11 @@ class RETelemetryDataPacket(TelemetryDataPacket):
 
     def __init__(self, packet_data):
         self.data_hash = md5(packet_data).hexdigest()
-        unpacked_data = self.unpack_data(packet_data)
+        unpacked_data = self._unpack_data(packet_data)
 
         self.build_version_number = int(unpacked_data.popleft())
 
-        self.test_packet_type(unpacked_data.popleft())
+        self._test_packet_type(unpacked_data.popleft())
 
         self._game_session_state = int(unpacked_data.popleft())
 
@@ -83,28 +76,28 @@ class RETelemetryDataPacket(TelemetryDataPacket):
         self.track_length = float(unpacked_data.popleft())
 
     @property
-    def packet_string(self):
+    def _packet_string(self):
         """
         Original definition:
-        packet_string = "HB"
-        packet_string += "B"
-        packet_string += "bb"
-        packet_string += "BBbBB"
-        packet_string += "B"
-        packet_string += "21f"
-        packet_string += "H"
-        packet_string += "B"
-        packet_string += "B"
-        packet_string += "hHhHHBBBBBbffHHBBbB"
-        packet_string += "22f"
-        packet_string += "8B12f8B8f12B4h20H16f4H"
-        packet_string += "2f"
-        packet_string += "2B"
-        packet_string += "bbBbbb"
+        _packet_string = "HB"
+        _packet_string += "B"
+        _packet_string += "bb"
+        _packet_string += "BBbBB"
+        _packet_string += "B"
+        _packet_string += "21f"
+        _packet_string += "H"
+        _packet_string += "B"
+        _packet_string += "B"
+        _packet_string += "hHhHHBBBBBbffHHBBbB"
+        _packet_string += "22f"
+        _packet_string += "8B12f8B8f12B4h20H16f4H"
+        _packet_string += "2f"
+        _packet_string += "2B"
+        _packet_string += "bbBbbb"
 
-        packet_string += "hhhHBBBBf"*56
+        _packet_string += "hhhHBBBBf"*56
 
-        packet_string += "fBBB"
+        _packet_string += "fBBB"
         """
         packet_string = "HB"
         packet_string += "B" #Game states

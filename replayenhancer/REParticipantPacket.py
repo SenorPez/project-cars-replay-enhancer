@@ -22,11 +22,11 @@ class REParticipantPacket(ParticipantPacket):
     """
     def __init__(self, packet_data):
         self.data_hash = md5(packet_data).hexdigest()
-        unpacked_data = self.unpack_data(packet_data)
+        unpacked_data = self._unpack_data(packet_data)
 
         self.build_version_number = int(unpacked_data.popleft())
 
-        self.test_packet_type(unpacked_data.popleft())
+        self._test_packet_type(unpacked_data.popleft())
 
         self.name = list()
         for _ in range(16):
@@ -39,7 +39,7 @@ class REParticipantPacket(ParticipantPacket):
                         ''))
 
     @property
-    def packet_string(self):
+    def _packet_string(self):
         packet_string = "HB64x64x64x64x"
         packet_string += "64s"*16
         packet_string += "64x"

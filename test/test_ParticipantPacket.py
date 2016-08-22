@@ -66,11 +66,11 @@ class TestValidPacket(unittest.TestCase):
         self.assertEqual(self.packet.packet_type, 1)
 
     def test_property_packet_length(self):
-        self.assertEqual(self.packet.packet_length, 1347)
+        self.assertEqual(self.packet._packet_length, 1347)
 
     def test_property_packet_string(self):
         self.assertEqual(
-            self.packet.packet_string,
+            self.packet._packet_string,
             "HB64s64s64s64s64s64s64s64s64s64s64s64s64s64s64s64s64s64s64s64s64x")
 
     def test_method_str(self):
@@ -127,7 +127,7 @@ class TestIncorrectPacketType(unittest.TestCase):
     garbage data that is the correct length may fool this from time to
     time.
     """
-    packet_length = ParticipantPacket.packet_length
+    packet_length = ParticipantPacket._packet_length
 
     def test_initialization(self):
         with self.assertRaises(ValueError):

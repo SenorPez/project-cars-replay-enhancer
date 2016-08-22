@@ -7,6 +7,7 @@ from hashlib import md5
 
 from replayenhancer.Packet import Packet
 
+
 class AdditionalParticipantPacket(Packet):
     """
     Creates an object from an additional participant info string
@@ -17,12 +18,12 @@ class AdditionalParticipantPacket(Packet):
     """
     def __init__(self, packet_data):
         self.data_hash = md5(packet_data).hexdigest()
-        unpacked_data = self.unpack_data(packet_data)
+        unpacked_data = self._unpack_data(packet_data)
 
         try:
             self.build_version_number = int(unpacked_data.popleft())
 
-            self.test_packet_type(unpacked_data.popleft())
+            self._test_packet_type(unpacked_data.popleft())
 
             self.offset = int(unpacked_data.popleft())
 
@@ -44,11 +45,11 @@ class AdditionalParticipantPacket(Packet):
         return 2
 
     @property
-    def packet_length(self):
+    def _packet_length(self):
         return 1028
 
     @property
-    def packet_string(self):
+    def _packet_string(self):
         packet_string = "HBB"
         packet_string += "64s"*16
 
