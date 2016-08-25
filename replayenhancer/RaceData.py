@@ -47,6 +47,13 @@ class RaceData:
             descriptor_filename=descriptor_filename)
 
     @property
+    def best_lap(self):
+        try:
+            return min([driver.best_lap for driver in self.driver_name_lookup])
+        except ValueError:
+            return None
+
+    @property
     def best_sector_1(self):
         return self._best_sector(1)
 
@@ -404,6 +411,13 @@ class Driver:
         self._sector_times = list()
 
     @property
+    def best_lap(self):
+        try:
+            return min([lap for lap in self._lap_times() if lap is not None])
+        except ValueError:
+            return None
+
+    @property
     def best_sector_1(self):
         return self._best_sector(1)
 
@@ -463,6 +477,28 @@ class Driver:
             if sector_time.sector <= self._sector_times[-1].sector]
         for sector in last_lap_sectors:
             sector.invalid = True
+
+    def _lap_times(self, *, valid_only=True):
+        """
+        Check to see if the first sector in the list is sector 1.
+        Trim if not.
+        """
+        sector_times = self._sector_times
+        try:
+            while sector_times[0].sector != 1:
+                sector_times = sector_times[1:]
+        except IndexError:
+            pass
+
+        times = [None if sector.invalid else sector.time
+                        for sector in sector_times]
+        lap_times = list()
+        for lap in zip(*[iter(times)]*3):
+            try:
+                lap_times.append(sum(lap))
+            except TypeError:
+                lap_times.append(None)
+        return lap_times
 
 
 class SectorTime:

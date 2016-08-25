@@ -22,6 +22,11 @@ class TestRaceData(unittest.TestCase):
 
     @unittest.skip("Depends on driver_name lookup."
                    "Further implementation needed.")
+    def test_property_best_lap_default(self, mock_telemetry):
+        pass
+
+    @unittest.skip("Depends on driver_name lookup."
+                   "Further implementation needed.")
     def test_property_best_sector_1_default(self, mock_telemetry):
         pass
 
@@ -98,6 +103,126 @@ class TestDriver(unittest.TestCase):
         instance = Driver(sentinel.index, sentinel.name)
         expected_result = Driver
         self.assertIsInstance(instance, expected_result)
+
+    def test_property_best_lap_default(self):
+        instance = Driver(sentinel.index, sentinel.name)
+        self.assertIsNone(instance.best_lap)
+
+    def test_property_best_lap_valid(self):
+        instance = Driver(sentinel.index, sentinel.name)
+        test_data = [
+            (30.000, 1, False),
+            (45.000, 2, False),
+            (40.000, 3, False),
+            (35.000, 1, False),
+            (43.000, 2, False),
+            (39.000, 3, False)
+        ]
+        expected_value = 115.000
+        for data in test_data:
+            with patch(
+                    'replayenhancer.RaceData.SectorTime',
+                    autospec=True) as SectorTime:
+                sector_time = SectorTime(*data)
+                sector_time.time = data[0]
+                sector_time.sector = data[1]
+                sector_time.invalid = data[2]
+                instance.add_sector_time(sector_time)
+
+        self.assertEqual(instance.best_lap, expected_value)
+
+    def test_property_best_lap_invalid(self):
+        instance = Driver(sentinel.index, sentinel.name)
+        test_data = [
+            (30.000, 1, False),
+            (45.000, 2, False),
+            (40.000, 3, True),
+            (35.000, 1, False),
+            (43.000, 2, False),
+            (39.000, 3, False)
+        ]
+        expected_value = 117.000
+        for data in test_data:
+            with patch(
+                    'replayenhancer.RaceData.SectorTime',
+                    autospec=True) as SectorTime:
+                sector_time = SectorTime(*data)
+                sector_time.time = data[0]
+                sector_time.sector = data[1]
+                sector_time.invalid = data[2]
+                instance.add_sector_time(sector_time)
+
+        self.assertEqual(instance.best_lap, expected_value)
+
+    def test_property_best_lap_all_invalid(self):
+        instance = Driver(sentinel.index, sentinel.name)
+        test_data = [
+            (30.000, 1, False),
+            (45.000, 2, False),
+            (40.000, 3, True),
+            (35.000, 1, True),
+            (43.000, 2, False),
+            (39.000, 3, False)
+        ]
+        for data in test_data:
+            with patch(
+                    'replayenhancer.RaceData.SectorTime',
+                    autospec=True) as SectorTime:
+                sector_time = SectorTime(*data)
+                sector_time.time = data[0]
+                sector_time.sector = data[1]
+                sector_time.invalid = data[2]
+                instance.add_sector_time(sector_time)
+
+        self.assertIsNone(instance.best_lap)
+
+    def test_property_best_lap_uneven(self):
+        instance = Driver(sentinel.index, sentinel.name)
+        test_data = [
+            (30.000, 1, False),
+            (45.000, 2, False),
+            (40.000, 3, False),
+            (35.000, 1, False),
+            (43.000, 2, False)
+        ]
+        expected_value = 115.000
+
+        for data in test_data:
+            with patch(
+                    'replayenhancer.RaceData.SectorTime',
+                    autospec=True) as SectorTime:
+                sector_time = SectorTime(*data)
+                sector_time.time = data[0]
+                sector_time.sector = data[1]
+                sector_time.invalid = data[2]
+                instance.add_sector_time(sector_time)
+
+        self.assertEqual(instance.best_lap, expected_value)
+
+    def test_property_best_lap_bad_first_sector(self):
+        instance = Driver(sentinel.index, sentinel.name)
+        test_data = [
+            (16.000, 3, False),
+            (30.000, 1, False),
+            (45.000, 2, False),
+            (40.000, 3, False),
+            (35.000, 1, False),
+            (43.000, 2, False),
+            (39.000, 3, False)
+        ]
+        expected_value = 115.000
+
+        for data in test_data:
+            with patch(
+                    'replayenhancer.RaceData.SectorTime',
+                    autospec=True) as SectorTime:
+                sector_time = SectorTime(*data)
+                sector_time.time = data[0]
+                sector_time.sector = data[1]
+                sector_time.invalid = data[2]
+                instance.add_sector_time(sector_time)
+
+        self.assertEqual(instance.best_lap, expected_value)
 
     def test_property_best_sector_1_default(self):
         instance = Driver(sentinel.index, sentinel.name)
