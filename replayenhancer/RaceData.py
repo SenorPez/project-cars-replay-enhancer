@@ -47,6 +47,18 @@ class RaceData:
             descriptor_filename=descriptor_filename)
 
     @property
+    def best_sector_1(self):
+        return self._best_sector(1)
+
+    @property
+    def best_sector_2(self):
+        return self._best_sector(2)
+
+    @property
+    def best_sector_3(self):
+        return self._best_sector(3)
+
+    @property
     def classification(self):
         """
         Returns classification data at the current time.
@@ -211,6 +223,26 @@ class RaceData:
                 participant_info.invalid_lap)
             self._current_drivers[index].add_sector_time(sector_time)
 
+    def _best_sector(self, sector):
+        try:
+            if sector == 1:
+                return min([
+                    driver.best_sector_1
+                    for driver in self.driver_name_lookup.values()
+                    ])
+            elif sector == 2:
+                return min([
+                    driver.best_sector_2
+                    for driver in self.driver_name_lookup.values()])
+            elif sector == 3:
+                return min([
+                    driver.best_sector_3
+                    for driver in self.driver_name_lookup.values()])
+            else:
+                raise ValueError
+        except ValueError:
+            return None
+
     def _build_driver_name_lookup(self, drivers, last_drivers, count):
         if len(last_drivers) < count:
             for driver in drivers:
@@ -372,6 +404,18 @@ class Driver:
         self._sector_times = list()
 
     @property
+    def best_sector_1(self):
+        return self._best_sector(1)
+
+    @property
+    def best_sector_2(self):
+        return self._best_sector(2)
+
+    @property
+    def best_sector_3(self):
+        return self._best_sector(3)
+
+    @property
     def index(self):
         return self._index
 
@@ -402,6 +446,16 @@ class Driver:
 
         if sector_time.invalid:
             self._invalidate_lap()
+
+    def _best_sector(self, sector):
+        try:
+            return min([
+                sector_time.time
+                for sector_time in self._sector_times
+                if not sector_time.invalid
+                and sector_time.sector == sector])
+        except ValueError:
+            return None
 
     def _invalidate_lap(self):
         last_lap_sectors = [

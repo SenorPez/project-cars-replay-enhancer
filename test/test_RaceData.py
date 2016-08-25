@@ -20,6 +20,21 @@ class TestRaceData(unittest.TestCase):
         expected_result = RaceData
         self.assertIsInstance(instance, expected_result)
 
+    @unittest.skip("Depends on driver_name lookup."
+                   "Further implementation needed.")
+    def test_property_best_sector_1_default(self, mock_telemetry):
+        pass
+
+    @unittest.skip("Depends on driver_name lookup."
+                   "Further implementation needed.")
+    def test_property_best_sector_2_default(self, mock_telemetry):
+        pass
+
+    @unittest.skip("Depends on driver_name lookup."
+                   "Further implementation needed.")
+    def test_property_best_sector_3_default(self, mock_telemetry):
+        pass
+
     @patch('replayenhancer.RaceData.TelemetryData', autospec=True)
     def test_property_classification(self, mock_telemetry):
         mock_telemetry.return_value = sentinel.telemetry_data
@@ -83,6 +98,225 @@ class TestDriver(unittest.TestCase):
         instance = Driver(sentinel.index, sentinel.name)
         expected_result = Driver
         self.assertIsInstance(instance, expected_result)
+
+    def test_property_best_sector_1_default(self):
+        instance = Driver(sentinel.index, sentinel.name)
+        self.assertIsNone(instance.best_sector_1)
+
+    def test_property_best_sector_1_valid(self):
+        instance = Driver(sentinel.index, sentinel.name)
+        test_data = [
+            (30.000, 1, False),
+            (45.000, 2, False),
+            (40.000, 3, False),
+            (33.000, 1, False),
+            (43.000, 2, False),
+            (39.000, 3, False)
+        ]
+        expected_value = 30.000
+        for data in test_data:
+            with patch(
+                    'replayenhancer.RaceData.SectorTime',
+                    autospec=True) as SectorTime:
+                sector_time = SectorTime(*data)
+                sector_time.time = data[0]
+                sector_time.sector = data[1]
+                sector_time.invalid = data[2]
+                instance.add_sector_time(sector_time)
+
+        self.assertEqual(instance.best_sector_1, expected_value)
+
+    def test_property_best_sector_1_invalid(self):
+        instance = Driver(sentinel.index, sentinel.name)
+        test_data = [
+            (30.000, 1, True),
+            (45.000, 2, False),
+            (40.000, 3, False),
+            (33.000, 1, False),
+            (43.000, 2, False),
+            (39.000, 3, False)
+        ]
+        expected_value = 33.000
+        for data in test_data:
+            with patch(
+                    'replayenhancer.RaceData.SectorTime',
+                    autospec=True) as SectorTime:
+                sector_time = SectorTime(*data)
+                sector_time.time = data[0]
+                sector_time.sector = data[1]
+                sector_time.invalid = data[2]
+                instance.add_sector_time(sector_time)
+
+        self.assertEqual(instance.best_sector_1, expected_value)
+
+    def test_property_best_sector_1_all_invalid(self):
+        instance = Driver(sentinel.index, sentinel.name)
+        test_data = [
+            (30.000, 1, True),
+            (45.000, 2, False),
+            (40.000, 3, False),
+            (33.000, 1, True),
+            (43.000, 2, False),
+            (39.000, 3, False)
+        ]
+        expected_value = None
+        for data in test_data:
+            with patch(
+                    'replayenhancer.RaceData.SectorTime',
+                    autospec=True) as SectorTime:
+                sector_time = SectorTime(*data)
+                sector_time.time = data[0]
+                sector_time.sector = data[1]
+                sector_time.invalid = data[2]
+                instance.add_sector_time(sector_time)
+
+        self.assertEqual(instance.best_sector_1, expected_value)
+
+    def test_property_best_sector_2_default(self):
+        instance = Driver(sentinel.index, sentinel.name)
+        self.assertIsNone(instance.best_sector_2)
+
+    def test_property_best_sector_2_valid(self):
+        instance = Driver(sentinel.index, sentinel.name)
+        test_data = [
+            (30.000, 1, False),
+            (45.000, 2, False),
+            (40.000, 3, False),
+            (33.000, 1, False),
+            (43.000, 2, False),
+            (39.000, 3, False)
+        ]
+        expected_value = 43.000
+        for data in test_data:
+            with patch(
+                    'replayenhancer.RaceData.SectorTime',
+                    autospec=True) as SectorTime:
+                sector_time = SectorTime(*data)
+                sector_time.time = data[0]
+                sector_time.sector = data[1]
+                sector_time.invalid = data[2]
+                instance.add_sector_time(sector_time)
+
+        self.assertEqual(instance.best_sector_2, expected_value)
+
+    def test_property_best_sector_2_invalid(self):
+        instance = Driver(sentinel.index, sentinel.name)
+        test_data = [
+            (30.000, 1, False),
+            (45.000, 2, False),
+            (40.000, 3, False),
+            (33.000, 1, False),
+            (43.000, 2, True),
+            (39.000, 3, False)
+        ]
+        expected_value = 45.000
+        for data in test_data:
+            with patch(
+                    'replayenhancer.RaceData.SectorTime',
+                    autospec=True) as SectorTime:
+                sector_time = SectorTime(*data)
+                sector_time.time = data[0]
+                sector_time.sector = data[1]
+                sector_time.invalid = data[2]
+                instance.add_sector_time(sector_time)
+
+        self.assertEqual(instance.best_sector_2, expected_value)
+
+    def test_property_best_sector_2_all_invalid(self):
+        instance = Driver(sentinel.index, sentinel.name)
+        test_data = [
+            (30.000, 1, False),
+            (45.000, 2, True),
+            (40.000, 3, False),
+            (33.000, 1, False),
+            (43.000, 2, True),
+            (39.000, 3, False)
+        ]
+        expected_value = None
+        for data in test_data:
+            with patch(
+                    'replayenhancer.RaceData.SectorTime',
+                    autospec=True) as SectorTime:
+                sector_time = SectorTime(*data)
+                sector_time.time = data[0]
+                sector_time.sector = data[1]
+                sector_time.invalid = data[2]
+                instance.add_sector_time(sector_time)
+
+        self.assertEqual(instance.best_sector_2, expected_value)
+
+    def test_property_best_sector_3_default(self):
+        instance = Driver(sentinel.index, sentinel.name)
+        self.assertIsNone(instance.best_sector_3)
+
+    def test_property_best_sector_3_valid(self):
+        instance = Driver(sentinel.index, sentinel.name)
+        test_data = [
+            (30.000, 1, False),
+            (45.000, 2, False),
+            (40.000, 3, False),
+            (33.000, 1, False),
+            (43.000, 2, False),
+            (39.000, 3, False)
+        ]
+        expected_value = 39.000
+        for data in test_data:
+            with patch(
+                    'replayenhancer.RaceData.SectorTime',
+                    autospec=True) as SectorTime:
+                sector_time = SectorTime(*data)
+                sector_time.time = data[0]
+                sector_time.sector = data[1]
+                sector_time.invalid = data[2]
+                instance.add_sector_time(sector_time)
+
+        self.assertEqual(instance.best_sector_3, expected_value)
+
+    def test_property_best_sector_3_invalid(self):
+        instance = Driver(sentinel.index, sentinel.name)
+        test_data = [
+            (30.000, 1, False),
+            (45.000, 2, False),
+            (40.000, 3, False),
+            (33.000, 1, False),
+            (43.000, 2, False),
+            (39.000, 3, True)
+        ]
+        expected_value = 40.000
+        for data in test_data:
+            with patch(
+                    'replayenhancer.RaceData.SectorTime',
+                    autospec=True) as SectorTime:
+                sector_time = SectorTime(*data)
+                sector_time.time = data[0]
+                sector_time.sector = data[1]
+                sector_time.invalid = data[2]
+                instance.add_sector_time(sector_time)
+
+        self.assertEqual(instance.best_sector_3, expected_value)
+
+    def test_property_best_sector_3_all_invalid(self):
+        instance = Driver(sentinel.index, sentinel.name)
+        test_data = [
+            (30.000, 1, False),
+            (45.000, 2, False),
+            (40.000, 3, True),
+            (33.000, 1, False),
+            (43.000, 2, False),
+            (39.000, 3, True)
+        ]
+        expected_value = None
+        for data in test_data:
+            with patch(
+                    'replayenhancer.RaceData.SectorTime',
+                    autospec=True) as SectorTime:
+                sector_time = SectorTime(*data)
+                sector_time.time = data[0]
+                sector_time.sector = data[1]
+                sector_time.invalid = data[2]
+                instance.add_sector_time(sector_time)
+
+        self.assertEqual(instance.best_sector_3, expected_value)
 
     def test_property_index(self):
         instance = Driver(sentinel.index, sentinel.name)
