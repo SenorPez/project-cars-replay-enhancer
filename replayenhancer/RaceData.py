@@ -28,12 +28,9 @@ class RaceData:
     """
     def __init__(self, telemetry_directory, *,
                  descriptor_filename='descriptor.json'):
-        self._driver_name_lookup = dict()
-        self._driver_index_lookup = list()
-
         self._classification = list()
         self._starting_grid = list()
-        self._current_drivers = list()
+        self._current_drivers = dict()
 
         self._elapsed_time = 0.0
         self._add_time = 0.0
@@ -49,7 +46,7 @@ class RaceData:
     @property
     def best_lap(self):
         try:
-            return min([driver.best_lap for driver in self.driver_name_lookup])
+            return min([driver.best_lap for driver in self._current_drivers.values() if driver.best_lap is not None])
         except ValueError:
             return None
 
@@ -75,20 +72,13 @@ class RaceData:
     @property
     def current_drivers(self):
         """
-        Returns best guess names for drivers currently in the race.
-        """
-        return self._current_drivers
-
-    @property
-    def driver_name_lookup(self):
-        """
-        Returns a dictionary that maps telemetry names (keys) to best
-        guess names (values).
+        Returns a dictionary that maps telementry names (keys) to
+        driver objects (values).
         """
         last_drivers = list()
 
-        if len(self._driver_name_lookup):
-            return self._driver_name_lookup
+        if len(self._current_drivers):
+            return self._current_drivers
         else:
             driver_data = TelemetryData(
                 self._telemetry_directory,
@@ -123,16 +113,7 @@ class RaceData:
 
                 except StopIteration:
                     progress.close()
-                    return self._driver_name_lookup
-
-    @property
-    def drivers(self):
-        """
-        Returns best guess names for all drivers in race.
-        """
-        return {
-            driver.real_name for driver
-            in self.driver_name_lookup.values()}
+                    return self._current_drivers
 
     @property
     def elapsed_time(self):
@@ -213,38 +194,49 @@ class RaceData:
                     or self._next_packet.num_participants \
                     != self._last_packet.num_participants:
                 data, _ = tee(self.telemetry_data, 2)
-                self._current_drivers = self._get_drivers(
+                drivers = self._get_drivers(
                     data,
                     self._next_packet.num_participants)
+
+                self._build_driver_name_lookup(
+                    drivers,
+                    self._current_drivers,
+                    self._next_packet.num_participants
+                )
+
                 del data
+
+            self._add_sector_times(self._next_packet)
 
             if at_time is None or self._elapsed_time >= at_time:
                 return self._next_packet
 
     def _add_sector_times(self, packet):
         for index, participant_info in enumerate(
-                packet.participant_info):
+                packet.participant_info[:packet.num_participants]):
             sector_time = SectorTime(
                 participant_info.last_sector_time,
                 participant_info.sector,
                 participant_info.invalid_lap)
-            self._current_drivers[index].add_sector_time(sector_time)
+            for name, driver in self._current_drivers.items():
+                if driver.index == index:
+                    driver.add_sector_time(sector_time)
 
     def _best_sector(self, sector):
         try:
             if sector == 1:
                 return min([
                     driver.best_sector_1
-                    for driver in self.driver_name_lookup.values()
+                    for driver in self._current_drivers.values()
                     ])
             elif sector == 2:
                 return min([
                     driver.best_sector_2
-                    for driver in self.driver_name_lookup.values()])
+                    for driver in self._current_drivers.values()])
             elif sector == 3:
                 return min([
                     driver.best_sector_3
-                    for driver in self.driver_name_lookup.values()])
+                    for driver in self._current_drivers.values()])
             else:
                 raise ValueError
         except ValueError:
@@ -253,26 +245,24 @@ class RaceData:
     def _build_driver_name_lookup(self, drivers, last_drivers, count):
         if len(last_drivers) < count:
             for driver in drivers:
-                self._driver_name_lookup = \
+                self._current_drivers = \
                     self._set_driver(
-                        self._driver_name_lookup,
+                        self._current_drivers,
                         driver)
         else:
             for index, driver in enumerate(drivers):
                 if last_drivers[index].name \
                         != drivers[index].name:
-                    self._driver_name_lookup = \
+                    self._current_drivers = \
                         self._set_driver(
-                            self._driver_name_lookup,
+                            self._current_drivers,
                             drivers[index],
                             last_drivers[-1])
                 else:
-                    self._driver_name_lookup = \
+                    self._current_drivers = \
                         self._set_driver(
-                            self._driver_name_lookup,
+                            self._current_drivers,
                             drivers[index])
-
-        self._driver_index_lookup = drivers
 
     @staticmethod
     def _calc_elapsed_time(next_packet, add_time, last_packet):

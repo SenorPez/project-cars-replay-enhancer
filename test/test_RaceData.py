@@ -48,25 +48,8 @@ class TestRaceData(unittest.TestCase):
         expected_result = list
         self.assertIsInstance(instance.classification, expected_result)
 
-    @patch('replayenhancer.RaceData.TelemetryData', autospec=True)
+    @unittest.skip("Further implementation needed.")
     def test_property_current_drivers(self, mock_telemetry):
-        mock_telemetry.return_value = sentinel.telemetry_data
-
-        instance = RaceData(sentinel.directory)
-        expected_result = list
-        self.assertIsInstance(instance.current_drivers, expected_result)
-
-    @unittest.skip("Further implementation needed.")
-    def test_property_driver_name_lookup_new(self):
-        pass
-
-    @unittest.skip("Further implementation needed.")
-    def test_property_driver_name_lookup_existing(self):
-        pass
-
-    @unittest.skip("Depends on driver_name lookup."
-                   "Further implementation needed.")
-    def test_property_drivers(self):
         pass
 
     @patch('replayenhancer.RaceData.TelemetryData', autospec=True)
