@@ -387,6 +387,10 @@ class Driver:
     def real_name(self, value):
         self._real_name = value
 
+    @property
+    def sector_times(self):
+        return self._sector_times
+
     def add_sector_time(self, sector_time):
         if sector_time.time == -123.0:
             pass

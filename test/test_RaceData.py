@@ -11,6 +11,7 @@ class TestRaceData(unittest.TestCase):
     """
     Tests against the RaceData object.
     """
+
     @patch('replayenhancer.RaceData.TelemetryData', autospec=True)
     def test_init(self, mock_telemetry):
         mock_telemetry.return_value = sentinel.telemetry_data
@@ -77,6 +78,7 @@ class TestDriver(unittest.TestCase):
     """
     Unit tests for Driver object.
     """
+
     def test_init(self):
         instance = Driver(sentinel.index, sentinel.name)
         expected_result = Driver
@@ -102,6 +104,40 @@ class TestDriver(unittest.TestCase):
         instance.real_name = sentinel.real_name
         expected_result = sentinel.real_name
         self.assertEqual(instance.real_name, expected_result)
+
+    def test_property_sector_times(self):
+        instance = Driver(sentinel.index, sentinel.name)
+        expected_result = list
+        self.assertIsInstance(instance.sector_times, expected_result)
+
+    @patch('replayenhancer.RaceData.SectorTime', autospec=True)
+    def test_property_sector_times_values(self, sector_time):
+        instance = Driver(sentinel.index, sentinel.name)
+        times = [
+            sentinel.time_1,
+            sentinel.time_2,
+            sentinel.time_3,
+            sentinel.time_4,
+            sentinel.time_5,
+            sentinel.time_6
+        ]
+        expected_value = list()
+        for sector, time in enumerate(times, 1):
+            with patch(
+                    'replayenhancer.RaceData.SectorTime',
+                    autospec=True) as SectorTime:
+                sector_time = SectorTime(
+                    time,
+                    sector % 3,
+                    False)
+                sector_time.sector = sector % 3
+                sector_time.time = time
+                sector_time.invalid = False
+
+                instance.add_sector_time(sector_time)
+                expected_value.append(sector_time)
+
+        self.assertListEqual(instance.sector_times, expected_value)
 
     @patch('replayenhancer.RaceData.SectorTime', autospec=True)
     def test_method_add_sector_time_no_previous(self, sector_time):
@@ -155,7 +191,8 @@ class TestDriver(unittest.TestCase):
                 instance.add_sector_time(sector_time)
 
         self.assertEqual(len(instance._sector_times), len(sectors))
-        self.assertTrue(all([sector_time.invalid for sector_time in instance._sector_times]))
+        self.assertTrue(all([sector_time.invalid for sector_time in
+                             instance._sector_times]))
 
     def test_method_add_sector_time_invalidate_later_lap(self):
         instance = Driver(sentinel.index, sentinel.name)
