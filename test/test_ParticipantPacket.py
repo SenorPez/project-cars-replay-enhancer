@@ -2,10 +2,10 @@
 Tests ParticipantPacket.py
 """
 
-import os
-import struct
-import sys
+from hashlib import md5
+from struct import pack
 import unittest
+from unittest.mock import sentinel
 
 from replayenhancer.ParticipantPacket import ParticipantPacket
 
@@ -14,125 +14,101 @@ class TestValidPacket(unittest.TestCase):
     """
     Unit tests for a valid Participant Packet.
     """
-    packet_file = 'assets/race21/pdata4'
-    packet = None
+    expected_build_version = abs(id(sentinel.build_version))
+    while expected_build_version > 65535:
+        expected_build_version //= 2
 
-    @classmethod
-    def setUpClass(cls):
-        with open(cls.packet_file, 'rb') as packet_data:
-            cls.packet = ParticipantPacket(packet_data.read())
+    expected_packet_type = 1
 
-    @classmethod
-    def tearDownClass(cls):
-        del cls.packet
+    expected_car_name = str(id(sentinel.car_name))
+    expected_car_class_name = str(id(sentinel.car_class_name))
+    expected_track_location = str(id(sentinel.track_location))
+    expected_track_variation = str(id(sentinel.track_variation))
 
-    def test_property_data_hash(self):
-        self.assertEqual(
-            self.packet.data_hash,
-            "04a1c8929837d8675d8ecd7a66242870")
+    expected_name = list()
+    expected_name.extend([str(id(sentinel.name)) for _ in range(16)])
 
-    def test_property_build_version_number(self):
-        self.assertIsInstance(self.packet.build_version_number, int)
+    packet_length = 1347
+    packet_string = "HB64s64s64s64s"
+    packet_string += "64s" * 16
+    packet_string += "64x"
 
-    def test_property_car_name(self):
-        self.assertIsInstance(self.packet.car_name, str)
+    test_data = list()
+    test_data.append(expected_build_version)
+    test_data.append(expected_packet_type)
+    test_data.append(expected_car_name.encode('utf-8'))
+    test_data.append(expected_car_class_name.encode('utf-8'))
+    test_data.append(expected_track_location.encode('utf-8'))
+    test_data.append(expected_track_variation.encode('utf-8'))
+    test_data.extend([name.encode('utf-8') for name in expected_name])
+
+    test_binary_data = pack(packet_string, *test_data)
+
+    def test_init(self):
+        instance = ParticipantPacket(self.test_binary_data)
+        expected_result = ParticipantPacket
+        self.assertIsInstance(instance, expected_result)
+
+    def test_init_wrong_packet_type(self):
+        test_data = self.test_data
+        test_data[1] = 2  # Set incorrect packet type
+
+        test_binary_data = pack(self.packet_string, *test_data)
+
+        with self.assertRaises(ValueError):
+            ParticipantPacket(test_binary_data)
+
+    def test_property_build_version(self):
+        instance = ParticipantPacket(self.test_binary_data)
+        expected_result = self.expected_build_version
+        self.assertEqual(instance.build_version_number, expected_result)
 
     def test_property_car_class_name(self):
-        self.assertIsInstance(self.packet.car_class_name, str)
+        instance = ParticipantPacket(self.test_binary_data)
+        expected_result = self.expected_car_class_name
+        self.assertEqual(instance.car_class_name, expected_result)
 
-    def test_property_track_location(self):
-        self.assertIsInstance(self.packet.track_location, str)
+    def test_property_car_name(self):
+        instance = ParticipantPacket(self.test_binary_data)
+        expected_result = self.expected_car_name
+        self.assertEqual(instance.car_name, expected_result)
 
-    def test_property_track_variation(self):
-        self.assertIsInstance(self.packet.track_variation, str)
+    def test_property_data_hash(self):
+        instance = ParticipantPacket(self.test_binary_data)
+        expected_result = md5(self.test_binary_data).hexdigest()
+        self.assertEqual(instance.data_hash, expected_result)
 
     def test_property_name(self):
-        self.assertIsInstance(self.packet.name, list)
+        instance = ParticipantPacket(self.test_binary_data)
+        expected_result = type(self.expected_name)
+        self.assertIsInstance(instance.name, expected_result)
 
-    @unittest.skipIf(sys.version_info < (3, 4), "subTest not supported")
     def test_property_name_values(self):
-        for name in self.packet.name:
-            with self.subTest(name=name):
-                self.assertIsInstance(name, str)
-
-    @unittest.skipUnless(
-        sys.version_info < (3, 4),
-        "subTest not supported")
-    def test_property_name_values_nosubtest(self):
-        for name in self.packet.name:
-            self.assertIsInstance(name, str)
+        instance = ParticipantPacket(self.test_binary_data)
+        expected_result = self.expected_name
+        self.assertListEqual(instance.name, expected_result)
 
     def test_property_packet_type(self):
-        self.assertEqual(self.packet.packet_type, 1)
+        instance = ParticipantPacket(self.test_binary_data)
+        expected_result = self.expected_packet_type
+        self.assertEqual(instance.packet_type, expected_result)
 
-    def test_property_packet_length(self):
-        self.assertEqual(self.packet._packet_length, 1347)
+    def test_property_track_location(self):
+        instance = ParticipantPacket(self.test_binary_data)
+        expected_result = self.expected_track_location
+        self.assertEqual(instance.track_location, expected_result)
 
-    def test_property_packet_string(self):
-        self.assertEqual(
-            self.packet._packet_string,
-            "HB64s64s64s64s64s64s64s64s64s64s64s64s64s64s64s64s64s64s64s64s64x")
-
-    def test_method_str(self):
-        self.assertEqual(str(self.packet), "ParticipantPacket")
+    def test_property_track_variation(self):
+        instance = ParticipantPacket(self.test_binary_data)
+        expected_result = self.expected_track_variation
+        self.assertEqual(instance.track_variation, expected_result)
 
     def test_method_repr(self):
-        self.assertEqual(str(self.packet), "ParticipantPacket")
+        instance = ParticipantPacket(self.test_binary_data)
+        expected_result = "ParticipantPacket"
+        self.assertEqual(repr(instance), expected_result)
 
-
-class TestTelemetryDataPacket(unittest.TestCase):
-    """
-    Unit tests for a Telemetry Data Packet incorrectly placed into a
-    Participant Packet.
-    """
-    packet_file = 'assets/race21/pdata11'
-    packet = None
-
-    def test_initialization(self):
-        with self.assertRaises(struct.error):
-            with open(self.packet_file, 'rb') as packet_data:
-                self.packet = ParticipantPacket(packet_data.read())
-
-
-class TestAdditionalParticipantPacket(unittest.TestCase):
-    """
-    Unit tests for an Additional Participant Packet incorrectly placed
-    into a Participant Packet.
-    """
-    packet_file = 'assets/race21/pdata9'
-    packet = None
-
-    def test_initialization(self):
-        with self.assertRaises(struct.error):
-            with open(self.packet_file, 'rb') as packet_data:
-                self.packet = ParticipantPacket(packet_data.read())
-
-
-class TestGarbageData(unittest.TestCase):
-    """
-    Unit tests for data that is complete garbage.
-    Most things are, after all.
-    """
-    def test_initialization(self):
-        with self.assertRaises(struct.error):
-            garbage = os.urandom(1000)
-            self.packet = ParticipantPacket(garbage)
-
-
-class TestIncorrectPacketType(unittest.TestCase):
-    """
-    Unit tests data that is the correct length but has the wrong value
-    for packet type.
-    Note that this is a somewhat weak sanity check. Completely random
-    garbage data that is the correct length may fool this from time to
-    time.
-    """
-    packet_length = ParticipantPacket._packet_length
-
-    def test_initialization(self):
-        with self.assertRaises(ValueError):
-
-            mostly_garbage = os.urandom(2)\
-                             +(0).to_bytes(1, sys.byteorder)\
-                             +os.urandom(self.packet_length-3)
-            self.packet = ParticipantPacket(mostly_garbage)
+    def test_method_str(self):
+        instance = ParticipantPacket(self.test_binary_data)
+        expected_result = "ParticipantPacket"
+        self.assertEqual(str(instance), expected_result)
