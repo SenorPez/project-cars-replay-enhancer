@@ -1,9 +1,13 @@
 """
 Tests ReplayEnhancer.py
 """
-from json import JSONDecodeError
-from unittest.mock import patch, sentinel, mock_open
 import unittest
+from unittest.mock import patch, sentinel, mock_open
+
+try:
+    from json import JSONDecodeError
+except ImportError:
+    pass
 
 from replayenhancer.ReplayEnhancer import ReplayEnhancer
 
@@ -30,13 +34,21 @@ class TestReplayEnhancer(unittest.TestCase):
     @patch('os.path.realpath', autospec=True)
     def test_init_bad_json(self, mock_realpath, mock_json):
         mock_realpath.return_value = sentinel.configuration_file_path
-        mock_json.side_effect = JSONDecodeError("Boom goes the dynamite",
-                                                "Fake File",
-                                                42)
 
-        with patch('replayenhancer.ReplayEnhancer.open', mock_open(read_data="blah"), create=True) as m:
-            instance = ReplayEnhancer(sentinel.configuration_file)
-        self.assertRaises(JSONDecodeError)
+        try:
+            mock_json.side_effect = JSONDecodeError("Boom goes the dynamite",
+                                                    "Fake File",
+                                                    42)
+            with patch('replayenhancer.ReplayEnhancer.open',
+                       mock_open(read_data="blah"), create=True) as m:
+                instance = ReplayEnhancer(sentinel.configuration_file)
+                self.assertRaises(JSONDecodeError)
+        except NameError:
+            mock_json.side_effect = ValueError("JSON Decoding Error")
+            with patch('replayenhancer.ReplayEnhancer.open',
+                       mock_open(read_data="blah"), create=True) as m:
+                instance = ReplayEnhancer(sentinel.configuration_file)
+                self.assertRaises(ValueError)
 
     @patch('os.path.realpath', autospec=True)
     def test_init_bad_file(self, mock_realpath):

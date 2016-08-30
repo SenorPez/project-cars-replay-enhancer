@@ -4,9 +4,11 @@ Provides classes for enhancing Project CARS replays.
 import argparse
 import json
 import os.path
-from json import JSONDecodeError
 
-from PIL import ImageFont
+try:
+    from json import JSONDecodeError
+except ImportError:
+    pass
 
 
 class ReplayEnhancer():
@@ -22,6 +24,8 @@ class ReplayEnhancer():
         except JSONDecodeError as e:
             print("JSON Error: {}".format(e.msg),
                   "Error on line number {}".format(e.lineno))
+        except ValueError:
+            print("Error decoding JSON.")
         else:
             self._load_configuration(json_data)
 
