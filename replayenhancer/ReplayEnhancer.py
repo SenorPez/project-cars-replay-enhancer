@@ -10,6 +10,8 @@ try:
 except ImportError:
     pass
 
+import moviepy.editor as mpy
+
 
 class ReplayEnhancer():
     """
@@ -21,20 +23,33 @@ class ReplayEnhancer():
                 json_data = json.load(config_file)
         except FileNotFoundError as e:
             print("File not found: {}".format(e.filename))
-        except JSONDecodeError as e:
-            print("JSON Error: {}".format(e.msg),
-                  "Error on line number {}".format(e.lineno))
-        except ValueError:
-            print("Error decoding JSON.")
+        except ValueError as e:
+            try:
+                print("JSON Error: {}".format(e.msg),
+                      "Error on line number {}".format(e.lineno))
+            except AttributeError:
+                print("Error decoding JSON.")
         else:
             self._load_configuration(json_data)
+
+    @property
+    def video(self):
+        return self._video
+
+    @property
+    def video_size(self):
+        return self._video.size
 
     def _load_configuration(self, json_data):
         """
         Commenting out all elements. Enable as needed by development.
         We'll see what we're not using, that way.
         """
-        self.dummy = json_data['dummy']
+        try:
+            self._video = mpy.VideoFileClip(json_data['source_video'])
+            self._video = self._video.subclip(json_data['video_skipstart'], json_data['video_skipend'])
+        except KeyError as e:
+            pass
 
         # self.margin = json_data['margin']
         # self.column_margin = json_data['column_margin']
