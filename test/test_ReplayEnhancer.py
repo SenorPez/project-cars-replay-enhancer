@@ -43,7 +43,7 @@ class TestReplayEnhancer(unittest.TestCase):
                 instance = ReplayEnhancer(sentinel.configuration_file)
                 self.assertRaises(JSONDecodeError)
         except NameError:
-            mock_json.side_effect = ValueError("JSON Decoding Error")
+            mock_json.side_effect = [ValueError("JSON Decoding Error")]
             with patch('replayenhancer.ReplayEnhancer.open',
                        mock_open(read_data="blah"), create=True) as m:
                 instance = ReplayEnhancer(sentinel.configuration_file)
