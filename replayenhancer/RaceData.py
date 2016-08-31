@@ -2,11 +2,11 @@
 Provides classes for the reading and processing of captured Project
 CARS telemetry data.
 """
+import json
+import os.path
 from glob import glob
 from hashlib import md5
 from itertools import tee
-import json
-import os.path
 
 from natsort import natsorted
 from tqdm import tqdm
@@ -20,6 +20,7 @@ from replayenhancer.REParticipantPacket \
 from replayenhancer.RETelemetryDataPacket \
     import RETelemetryDataPacket \
     as TelemetryDataPacket
+from replayenhancer.StartingGridEntry import StartingGridEntry
 
 
 class RaceData:
@@ -148,14 +149,14 @@ class RaceData:
                 progress=progress)
 
             self._starting_grid = [
-                StartingGridEntry(
+                                      StartingGridEntry(
                     participant_info.race_position,
                     index,
                     drivers[index].name if len(drivers) > index
                     else None)
-                for index, participant_info
-                in enumerate(packet.participant_info)
-                if packet.participant_info[index].is_active]\
+                                      for index, participant_info
+                                      in enumerate(packet.participant_info)
+                                      if packet.participant_info[index].is_active]\
                 [:packet.num_participants]
 
             progress.close()
@@ -524,37 +525,6 @@ class SectorTime:
     @invalid.setter
     def invalid(self, value):
         self._invalid = value
-
-
-class StartingGridEntry:
-    """
-    Represents an entry on the starting grid.
-    """
-    def __init__(self, position, driver_index, driver_name):
-        self._position = position
-        self._driver_index = driver_index
-        self._driver_name = driver_name
-
-    @property
-    def driver_index(self):
-        """
-        Index position of driver.
-        """
-        return self._driver_index
-
-    @property
-    def driver_name(self):
-        """
-        Telemetry-read name of driver.
-        """
-        return self._driver_name
-
-    @property
-    def position(self):
-        """
-        Starting position of driver.
-        """
-        return self._position
 
 
 class TelemetryData:
