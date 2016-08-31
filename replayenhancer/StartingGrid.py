@@ -52,7 +52,7 @@ class StartingGrid(StaticBase):
         except KeyError:
             heading_color = None
             heading_font_color = None
-            heading_font = ImageFont.load_default()
+            heading_font = None
             heading_text = None
             subheading_text = None
             heading = False
@@ -91,7 +91,23 @@ class StartingGrid(StaticBase):
         except KeyError:
             starting_grid = self.starting_grid
 
-        #  TODO: Backdrop.
+        #  If set, use a backdrop.
+        try:
+            backdrop = Image.open(self.options['backdrop'])
+            backdrop_size = backdrop.size
+        except (KeyError, IOError):
+            backdrop = None
+            backdrop_size = None
+
+        #  If set, use a logo on the backdrop.
+        try:
+            logo = Image.open(self.options['logo'])
+            logo_size = (self.options['logo_width'],
+                         self.options['logo_height'])
+        except (KeyError, IOError):
+            logo = None
+            logo_size = None
+
         #  TODO: Name mapping.
         #  TODO: Car data.
         #  TODO: Car class data.
@@ -159,13 +175,10 @@ class StartingGrid(StaticBase):
                 fill=heading_font_color,
                 font=font)
 
-        material = Image.new(
-            'RGBA',
-            (
-                (material_width,
-                 sum([heading_height, row_height*len(starting_grid)]))
-            )
-        )
+        material_height = sum([heading_height,
+                               row_height*len(starting_grid)])
+        material = Image.new('RGBA',
+                             ((material_width, material_height)))
 
         #  Write heading, if applicable.
         if heading:
@@ -195,6 +208,27 @@ class StartingGrid(StaticBase):
                 font=font)
             material.paste(row_material, (0, y_pos))
             y_pos += row_height
+
+        if backdrop is not None:
+            backdrop_width, backdrop_height = backdrop_size
+
+            #  Add logo if needed.
+            if logo is not None:
+                logo = logo.resize(logo_size)
+                logo_width, logo_height = logo_size
+                x_position = backdrop_width-logo_width
+                y_position = backdrop_height-logo_height
+                backdrop.paste(logo, (x_position, y_position), logo)
+
+            if material_width > backdrop_width \
+                    or material_height > backdrop_height:
+                material.thumbnail(backdrop_size)
+                material_width, material_height = material.size
+
+            x_position = int((backdrop_width-material_width)/2)
+            y_position = int((backdrop_height-material_height)/2)
+            backdrop.paste(material, (x_position, y_position))
+            material = backdrop
 
         return material
 
