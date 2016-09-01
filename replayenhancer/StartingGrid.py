@@ -16,8 +16,9 @@ class StartingGrid(StaticBase):
         (192, 192, 192, 255)]
 
     def __init__(self, starting_grid, **kwargs):
-        self.starting_grid = sorted(starting_grid,
-                                    key=lambda x: x.position)
+        self.starting_grid = sorted(
+            starting_grid,
+            key=lambda x: x.position)
         self.options = kwargs
 
     @property
@@ -43,8 +44,7 @@ class StartingGrid(StaticBase):
             try:
                 heading_font = ImageFont.truetype(
                     self.options['heading_font'],
-                    self.options['heading_font_size'],
-                )
+                    self.options['heading_font_size'])
             except OSError:
                 heading_font = ImageFont.load_default()
 
@@ -62,6 +62,7 @@ class StartingGrid(StaticBase):
             heading_text = None
             subheading_text = None
             heading = False
+            series_logo = None
         else:
             heading = True
 
@@ -70,8 +71,7 @@ class StartingGrid(StaticBase):
             try:
                 font = ImageFont.truetype(
                     self.options['font'],
-                    self.options['font_size']
-                )
+                    self.options['font_size'])
             except OSError:
                 font = ImageFont.load_default()
             font_color = tuple(self.options['font_color'])
@@ -108,38 +108,46 @@ class StartingGrid(StaticBase):
         #  If set, use a logo on the backdrop.
         try:
             logo = Image.open(self.options['logo'])
-            logo_size = (self.options['logo_width'],
-                         self.options['logo_height'])
+            logo_size = (
+                self.options['logo_width'],
+                self.options['logo_height'])
         except (KeyError, IOError):
             logo = None
             logo_size = None
 
-        #  TODO: Name mapping.
-        #  TODO: Car data.
-        #  TODO: Car class data.
-        #  TODO: Team data.
-        #  TODO: Points data.
+        #  If set, get name mapping.
+        try:
+            participant_config = self.options['participant_config']
+            name_lookup = {
+                k: v['display']
+                for k, v in participant_config.items()}
+
+            car_lookup = {
+                k: v['car']
+                for k, v in participant_config.items()}
+            team_lookup = {
+                k: v['team']
+                for k, v in participant_config.items()}
+            points_lookup = {
+                k: v['points']
+                for k, v in participant_config.items()}
+        except KeyError:
+            StartingGridLine.append_lookup(None, None)
+        else:
+            StartingGridLine.append_lookup(name_lookup, None)
+            StartingGridLine.append_lookup(car_lookup, "")
+            StartingGridLine.append_lookup(team_lookup, "")
+            StartingGridLine.append_lookup(points_lookup, 0)
+
+        #  TODO: Multi-class race support.
 
         #  Build main data material.
         column_widths = list()
+        display_lines = list()
         for grid in starting_grid:
-            try:
-                column_widths[0] = max([
-                    column_widths[0],
-                    font.getsize(str(grid.position))[0]
-                ])
-            except IndexError:
-                column_widths.append(
-                    font.getsize(str(grid.position))[0])
-
-            try:
-                column_widths[1] = max([
-                    column_widths[1],
-                    font.getsize(str(grid.driver_name))[0]
-                ])
-            except IndexError:
-                column_widths.append(
-                    font.getsize(str(grid.driver_name))[0])
+            line = StartingGridLine(grid.position, grid.driver_name)
+            column_widths = line.column_widths(font, column_widths)
+            display_lines.append(line)
 
         row_height = font.getsize("A")[1]+margin
         material_width = sum(column_widths)\
@@ -152,8 +160,7 @@ class StartingGrid(StaticBase):
         if heading:
             heading_height = sum([
                 heading_font.getsize(str(heading_text))[1],
-                font.getsize(str(subheading_text))[1]
-            ])
+                font.getsize(str(subheading_text))[1]])
             heading_height += 2*margin
 
             series_logo_width = 0
@@ -163,23 +170,26 @@ class StartingGrid(StaticBase):
                 series_logo_width, series_logo_height = series_logo.size
 
             material_width = max([
-                2*margin + heading_font.getsize(str(heading_text))[0]
-                    + series_logo_width,
-                2*margin + font.getsize(str(subheading_text))[0]
-                    + series_logo_height,
-                material_width
-            ])
+                (
+                    2*margin
+                    + heading_font.getsize(str(heading_text))[0]
+                    + series_logo_width),
+                (
+                    2*margin
+                    + font.getsize(str(subheading_text))[0]
+                    + series_logo_height),
+                material_width])
 
-            heading_material = Image.new('RGBA',
-                                         (
-                                             material_width,
-                                             heading_height),
-                                         heading_color)
+            heading_material = Image.new(
+                'RGBA',
+                (material_width, heading_height),
+                heading_color)
             if series_logo is not None:
-                x_position = material_width-series_logo_width
+                text_x_position = material_width-series_logo_width
                 y_position = 0
-                heading_material.paste(series_logo,
-                                       (x_position, y_position))
+                heading_material.paste(
+                    series_logo,
+                    (text_x_position, y_position))
 
             draw = ImageDraw.Draw(heading_material)
 
@@ -188,46 +198,45 @@ class StartingGrid(StaticBase):
                 heading_text,
                 fill=heading_font_color,
                 font=heading_font)
-            y_pos = margin+heading_font.getsize(str(heading_text))[1]
+            y_position = margin+heading_font.getsize(
+                str(heading_text))[1]
             draw.text(
-                (margin, y_pos),
+                (margin, y_position),
                 subheading_text,
                 fill=heading_font_color,
                 font=font)
 
-        material_height = sum([heading_height,
-                               row_height*len(starting_grid)])
-        material = Image.new('RGBA',
-                             ((material_width, material_height)))
+        material_height = sum([
+            heading_height,
+            row_height*len(starting_grid)])
+        material = Image.new(
+            'RGBA',
+            (material_width, material_height))
 
         #  Write heading, if applicable.
         if heading:
             material.paste(heading_material, (0, 0))
 
-        y_pos = heading_height
-        for i, grid in enumerate(starting_grid):
+        y_position = heading_height
+        for index, line in enumerate(display_lines):
             row_material = Image.new(
                 'RGBA',
                 (material_width, row_height),
-                self._row_color(i)
-            )
+                self._row_color(index))
             draw = ImageDraw.Draw(row_material)
-            #  TODO: Reduce amount of hardcoding.
-            x_position = margin
-            y_position = (row_height-font.getsize("A")[1])/2
-            draw.text(
-                (x_position, y_position),
-                str(grid.position),
-                fill=font_color,
-                font=font)
-            x_position += column_widths[0]+column_margin
-            draw.text(
-                (x_position, y_position),
-                str(grid.driver_name),
-                fill=font_color,
-                font=font)
-            material.paste(row_material, (0, y_pos))
-            y_pos += row_height
+
+            text_x_position = margin
+            text_y_position = int((row_height-font.getsize("A")[1])/2)
+
+            for display_text, column_width in line:
+                draw.text(
+                    (text_x_position, text_y_position),
+                    display_text,
+                    fill=font_color,
+                    font=font)
+                text_x_position += column_width + column_margin
+            material.paste(row_material, (0, y_position))
+            y_position += row_height
 
         if backdrop is not None:
             backdrop_width, backdrop_height = backdrop_size
@@ -236,18 +245,21 @@ class StartingGrid(StaticBase):
             if logo is not None:
                 logo = logo.resize(logo_size)
                 logo_width, logo_height = logo_size
-                x_position = backdrop_width-logo_width
+                text_x_position = backdrop_width-logo_width
                 y_position = backdrop_height-logo_height
-                backdrop.paste(logo, (x_position, y_position), logo)
+                backdrop.paste(
+                    logo,
+                    (text_x_position, y_position),
+                    logo)
 
             if material_width > backdrop_width \
                     or material_height > backdrop_height:
                 material.thumbnail(backdrop_size)
                 material_width, material_height = material.size
 
-            x_position = int((backdrop_width-material_width)/2)
+            text_x_position = int((backdrop_width-material_width)/2)
             y_position = int((backdrop_height-material_height)/2)
-            backdrop.paste(material, (x_position, y_position))
+            backdrop.paste(material, (text_x_position, y_position))
             material = backdrop
 
         return material
@@ -261,3 +273,53 @@ class StartingGrid(StaticBase):
 
     def _write_data(self):
         return Image.new('RGBA', (100, 100))
+
+
+class StartingGridLine:
+    """
+    Defines a single line in the starting grid display.
+    """
+    _lookups = list()
+    _defaults = list()
+    _column_widths = list()
+
+    def __init__(self, driver_position, driver_name):
+        self._line_data = [str(driver_position)]
+        for index in range(len(self._lookups)):
+            try:
+                text_value = str(self._lookups[index][driver_name])
+            except (KeyError, TypeError):
+                if self._defaults[index] is None:
+                    text_value = str(driver_name)
+                else:
+                    text_value = str(self._defaults[index])
+
+            self._line_data.append(text_value)
+
+    def __iter__(self):
+        line_data = iter(self._line_data)
+        column_widths = iter(self._column_widths)
+        while True:
+            yield (next(line_data), next(column_widths))
+
+    @property
+    def defaults(self):
+        return self._defaults
+
+    @property
+    def lookups(self):
+        return self._lookups
+
+    @classmethod
+    def append_lookup(cls, lookup, default):
+        cls._lookups.append(lookup)
+        cls._defaults.append(default)
+
+    def column_widths(self, font, column_widths):
+        for index, data in enumerate(self._line_data):
+            try:
+                self._column_widths[index] = max(
+                    [column_widths[index], font.getsize(data)[0]])
+            except IndexError:
+                self._column_widths.append(font.getsize(data)[0])
+        return self._column_widths
