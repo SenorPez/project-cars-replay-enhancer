@@ -47,6 +47,12 @@ class StartingGrid(StaticBase):
                 )
             except OSError:
                 heading_font = ImageFont.load_default()
+
+            try:
+                series_logo = Image.open(self.options['series_logo'])
+            except (KeyError, OSError):
+                series_logo = None
+
             heading_text = self.options['heading_text']
             subheading_text = self.options['subheading_text']
         except KeyError:
@@ -144,23 +150,37 @@ class StartingGrid(StaticBase):
         heading_height = 0
         heading_material = None
         if heading:
-            material_width = max([
-                2*margin + heading_font.getsize(str(heading_text))[0],
-                2*margin + font.getsize(str(subheading_text))[0],
-                material_width
-            ])
-
             heading_height = sum([
                 heading_font.getsize(str(heading_text))[1],
                 font.getsize(str(subheading_text))[1]
             ])
             heading_height += 2*margin
 
+            series_logo_width = 0
+            series_logo_height = 0
+            if series_logo is not None:
+                series_logo.thumbnail((material_width, heading_height))
+                series_logo_width, series_logo_height = series_logo.size
+
+            material_width = max([
+                2*margin + heading_font.getsize(str(heading_text))[0]
+                    + series_logo_width,
+                2*margin + font.getsize(str(subheading_text))[0]
+                    + series_logo_height,
+                material_width
+            ])
+
             heading_material = Image.new('RGBA',
                                          (
                                              material_width,
                                              heading_height),
                                          heading_color)
+            if series_logo is not None:
+                x_position = material_width-series_logo_width
+                y_position = 0
+                heading_material.paste(series_logo,
+                                       (x_position, y_position))
+
             draw = ImageDraw.Draw(heading_material)
 
             draw.text(
