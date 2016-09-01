@@ -41,12 +41,6 @@ class TestGTStandings(unittest.TestCase):
         expected_value = 10
         self.assertEqual(instance.ups, expected_value)
 
-    def test_method_make_mask(self):
-        instance = GTStandings()
-        expected_value = PIL_to_npimage(
-            Image.new('RGBA', (100, 100)).convert('RGB'))
-        assert_array_equal(instance.make_mask(), expected_value)
-
     def test_method_to_frame(self):
         instance = GTStandings()
         expected_value = PIL_to_npimage(

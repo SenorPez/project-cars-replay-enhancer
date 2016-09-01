@@ -4,8 +4,6 @@ objects that do not update continuously based on the telemetry
 feed.
 """
 
-import abc
-
 from PIL import ImageFont, Image, ImageDraw
 from moviepy.video.io.bindings import PIL_to_npimage
 
@@ -38,26 +36,29 @@ class StaticBase:
     def row_colors(self, value):
         self._row_colors = value
 
-    def make_mask(self):
-        """Default mask creation. Override to customize."""
-        return PIL_to_npimage(
-            self._make_material(True).split()[-1].convert('RGB'))
+    @staticmethod
+    def format_time(seconds):
+        """
+        Converts seconds into seconds, minutes:seconds, or
+        hours:minutes.seconds as appropriate.
+        """
+        minutes, seconds = divmod(float(seconds), 60)
+        hours, minutes = divmod(minutes, 60)
+
+        return_value = (int(hours), int(minutes), float(seconds))
+
+        if hours:
+            return "{0:d}:{1:0>2d}:{2:0>6.3f}".format(*return_value)
+        elif minutes:
+            return "{1:d}:{2:0>6.3f}".format(*return_value)
+        else:
+            return "{2:.3f}".format(*return_value)
 
     def to_frame(self):
-        """Render the card with data. Override to customize."""
         return PIL_to_npimage(
-            self._make_material(False).convert('RGBA'))
+            self._make_material().convert('RGBA'))
 
-    def _row_color(self, index):
-        return self._row_colors[index % len(self._row_colors)]
-
-    @staticmethod
-    def _row_width(widths, margin, internal_margin):
-        return sum(widths) \
-               + 2 * margin \
-               + (len(widths) - 1) * internal_margin
-
-    def _make_material(self, material_only):
+    def _make_material(self):
         DisplayLine.reset()
 
         #  If data exists, create a heading.
@@ -163,7 +164,6 @@ class StaticBase:
             DisplayLine.append_lookup(team_lookup, "")
             DisplayLine.append_lookup(points_lookup, 0)
 
-
         #  TODO: Multi-class race support.
 
         #  Build main data material.
@@ -240,7 +240,7 @@ class StaticBase:
 
         #  Write heading, if applicable.
         if heading:
-            material.paste(heading_material, (0, 0))
+            material.paste(heading_material, (0, 0), heading_material)
 
         y_position = heading_height
         for index, line in enumerate(display_lines):
@@ -260,7 +260,7 @@ class StaticBase:
                     fill=font_color,
                     font=font)
                 text_x_position += column_width + column_margin
-            material.paste(row_material, (0, y_position))
+            material.paste(row_material, (0, y_position), row_material)
             y_position += row_height
 
         if backdrop is not None:
@@ -284,39 +284,22 @@ class StaticBase:
 
             text_x_position = int((backdrop_width-material_width)/2)
             y_position = int((backdrop_height-material_height)/2)
-            backdrop.paste(material, (text_x_position, y_position))
+            backdrop.paste(
+                material,
+                (text_x_position, y_position),
+                material)
             material = backdrop
 
         return material
 
-    def format_string(self, value):
-        """
-        Formats values into a string.
-        """
-        if value is None:
-            return ""
-        elif isinstance(value, float):
-            return self.format_time(value)
-        else:
-            return str(value)
+    def _row_color(self, index):
+        return self._row_colors[index % len(self._row_colors)]
 
     @staticmethod
-    def format_time(seconds):
-        """
-        Converts seconds into seconds, minutes:seconds, or
-        hours:minutes.seconds as appropriate.
-        """
-        minutes, seconds = divmod(float(seconds), 60)
-        hours, minutes = divmod(minutes, 60)
-
-        return_value = (int(hours), int(minutes), float(seconds))
-
-        if hours:
-            return "{0:d}:{1:0>2d}:{2:0>6.3f}".format(*return_value)
-        elif minutes:
-            return "{1:d}:{2:0>6.3f}".format(*return_value)
-        else:
-            return "{2:.3f}".format(*return_value)
+    def _row_width(widths, margin, internal_margin):
+        return sum(widths) \
+               + 2 * margin \
+               + (len(widths) - 1) * internal_margin
 
 
 class DisplayLine:

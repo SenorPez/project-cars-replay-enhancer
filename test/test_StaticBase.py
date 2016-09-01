@@ -26,13 +26,6 @@ class TestStaticBase(unittest.TestCase):
         self.assertIsInstance(instance, expected_value)
 
     @patch('replayenhancer.StaticBase.PIL_to_npimage', autospec=True)
-    def test_method_make_mask(self, mock_mpy):
-        mock_mpy.return_value = numpy.array(sentinel.test)
-        instance = StaticBase(self.test_data)
-        expected_value = numpy.ndarray
-        self.assertIsInstance(instance.make_mask(), expected_value)
-
-    @patch('replayenhancer.StaticBase.PIL_to_npimage', autospec=True)
     def test_method_to_frame(self, mock_mpy):
         mock_mpy.return_value = numpy.array(sentinel.test)
         instance = StaticBase(self.test_data)
