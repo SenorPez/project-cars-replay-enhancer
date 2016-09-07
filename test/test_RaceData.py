@@ -40,6 +40,7 @@ class TestRaceData(unittest.TestCase):
     def test_property_best_sector_3_default(self, mock_telemetry):
         pass
 
+    @unittest.skip("Need further implmentation.")
     @patch('replayenhancer.RaceData.TelemetryData', autospec=True)
     def test_property_classification(self, mock_telemetry):
         mock_telemetry.return_value = sentinel.telemetry_data
