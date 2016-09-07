@@ -47,7 +47,10 @@ class RaceData:
     @property
     def best_lap(self):
         try:
-            return min([driver.best_lap for driver in self._current_drivers.values() if driver.best_lap is not None])
+            return min([
+                driver.best_lap for driver
+                in self._current_drivers.values()
+                if driver.best_lap is not None])
         except ValueError:
             return None
 
@@ -68,12 +71,24 @@ class RaceData:
         """
         Returns classification data at the current time.
         """
-        return self._classification
+        drivers = self.drivers_by_index
+        classification = [
+            ClassificationEntry(
+                participant_info.race_position,
+                index,
+                drivers[index] if len(drivers) > index
+                else None)
+            for index, participant_info
+            in enumerate(self._next_packet.participant_info)
+            if self._next_packet.participant_info[index].is_active]\
+                [:self._next_packet.num_participants]
+
+        return classification
 
     @property
     def current_drivers(self):
         """
-        Returns a dictionary that maps telementry names (keys) to
+        Returns a dictionary that maps telemetry names (keys) to
         driver objects (values).
         """
         last_drivers = list()
@@ -117,6 +132,12 @@ class RaceData:
                     return self._current_drivers
 
     @property
+    def drivers_by_index(self):
+        return sorted(
+            self.current_drivers.values(),
+            key=lambda x: x.index)
+
+    @property
     def elapsed_time(self):
         """
         Returns the calculated elapsed time.
@@ -149,15 +170,15 @@ class RaceData:
                 progress=progress)
 
             self._starting_grid = [
-                                      StartingGridEntry(
+                StartingGridEntry(
                     participant_info.race_position,
                     index,
                     drivers[index].name if len(drivers) > index
                     else None)
-                                      for index, participant_info
-                                      in enumerate(packet.participant_info)
-                                      if packet.participant_info[index].is_active]\
-                [:packet.num_participants]
+                for index, participant_info
+                in enumerate(packet.participant_info)
+                if packet.participant_info[index].is_active]\
+                    [:packet.num_participants]
 
             progress.close()
             return self._starting_grid
@@ -177,9 +198,13 @@ class RaceData:
             self._last_packet = self._next_packet
             self._next_packet = None
 
-            while self._next_packet is None \
-                    or self._next_packet.packet_type != 0:
-                self._next_packet = next(self.telemetry_data)
+            try:
+                while self._next_packet is None \
+                        or self._next_packet.packet_type != 0:
+                    self._next_packet = next(self.telemetry_data)
+            except StopIteration:
+                self._next_packet = self._last_packet
+                raise
 
             if at_time is not None:
                 self._elapsed_time, \
@@ -201,7 +226,9 @@ class RaceData:
 
                 self._build_driver_name_lookup(
                     drivers,
-                    self._current_drivers,
+                    sorted(
+                        self._current_drivers.values(),
+                        key=lambda x: x.index),
                     self._next_packet.num_participants
                 )
 
@@ -215,9 +242,18 @@ class RaceData:
     def _add_sector_times(self, packet):
         for index, participant_info in enumerate(
                 packet.participant_info[:packet.num_participants]):
+            if participant_info.sector == 1:
+                sector = 3
+            elif participant_info.sector == 2:
+                sector = 1
+            elif participant_info.sector == 3:
+                sector = 2
+            else:
+                raise ValueError("Invalid sector number.")
+
             sector_time = SectorTime(
                 participant_info.last_sector_time,
-                participant_info.sector,
+                sector,
                 participant_info.invalid_lap)
             for name, driver in self._current_drivers.items():
                 if driver.index == index:
@@ -324,70 +360,50 @@ class ClassificationEntry:
     """
     Represents an entry on the classification table.
     """
-    def __init__(self, driver_index, driver_name, sector_times):
+    def __init__(self, race_position, driver_index, driver):
+        self._race_position = race_position
         self._driver_index = driver_index
-        self._driver_name = driver_name
-        self._sector_times = sector_times
+        self._driver = driver
 
     @property
     def best_lap(self):
-        """
-        Best Lap by driver.
-        """
-        return min(self.lap_times)
+        return self._driver.best_lap
 
     @property
     def best_sector_1(self):
-        """
-        Best Sector 1 time by driver.
-        """
-        return min([data.time for data in self.sector_times
-                    if data.sector == 1])
+        return self._driver.best_sector_1
 
     @property
     def best_sector_2(self):
-        """
-        Best Sector 2 time by driver.
-        """
-        return min([data.time for data in self.sector_times
-                    if data.sector == 2])
+        return self._driver.best_sector_2
 
     @property
     def best_sector_3(self):
-        """
-        Best Sector 3 time by driver.
-        """
-        return min([data.time for data in self.sector_times
-                    if data.sector == 3])
+        return self._driver.best_sector_3
 
     @property
-    def laps_completed(self):
-        """
-        Number of laps completed by driver.
-        """
-        return len(self.lap_times)
+    def driver_name(self):
+        return self._driver.name
 
     @property
-    def lap_times(self):
-        """
-        List of lap times for driver.
-        """
-        return [sum(times) for times in zip(
-            *[iter([data.time for data in self.sector_times])])]
+    def laps_complete(self):
+        return self._driver.laps_complete
+
+    @property
+    def points(self):
+        return self.position, self.best_lap
+
+    @property
+    def v_points(self):
+        return self.driver_name, self.position, self.best_lap
+
+    @property
+    def position(self):
+        return self._race_position
 
     @property
     def race_time(self):
-        """
-        Total race time for driver.
-        """
-        return sum([data.time for data in self.sector_times])
-
-    @property
-    def sector_times(self):
-        """
-        Sector times for driver.
-        """
-        return self._sector_times
+        return self._driver.race_time
 
 
 class Driver:
@@ -404,7 +420,9 @@ class Driver:
     @property
     def best_lap(self):
         try:
-            return min([lap for lap in self._lap_times() if lap is not None])
+            return min([
+                lap for lap in self._lap_times()
+                if lap is not None])
         except ValueError:
             return None
 
@@ -425,8 +443,17 @@ class Driver:
         return self._index
 
     @property
+    def laps_complete(self):
+        return len(self._sector_times) // 3
+
+    @property
     def name(self):
         return self._name
+
+    @property
+    def race_time(self):
+        return sum([
+            sector_time.time for sector_time in self._sector_times])
 
     @property
     def real_name(self):
@@ -452,6 +479,17 @@ class Driver:
         if sector_time.invalid:
             self._invalidate_lap()
 
+    def points(self, position, point_structure, best_lap=None):
+        points = 0
+        if best_lap is not None and self.best_lap <= best_lap:
+            points += point_structure[0]
+        try:
+            points += point_structure[position]
+        except IndexError:
+            pass
+
+        return points
+
     def _best_sector(self, sector):
         try:
             return min([
@@ -469,7 +507,7 @@ class Driver:
         for sector in last_lap_sectors:
             sector.invalid = True
 
-    def _lap_times(self, *, valid_only=True):
+    def _lap_times(self):
         """
         Check to see if the first sector in the list is sector 1.
         Trim if not.
@@ -482,7 +520,7 @@ class Driver:
             pass
 
         times = [None if sector.invalid else sector.time
-                        for sector in sector_times]
+                 for sector in sector_times]
         lap_times = list()
         for lap in zip(*[iter(times)]*3):
             try:
