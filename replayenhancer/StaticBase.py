@@ -30,33 +30,6 @@ class StaticBase:
         self._options = kwargs
         self._columns = list()
 
-        #  If set, get name mapping.
-        try:
-            participant_config = self._options['participant_config']
-            self.name_lookup = {
-                k: v['display']
-                for k, v in participant_config.items()}
-            self.car_lookup = {
-                k: v['car']
-                for k, v in participant_config.items()}
-            self.team_lookup = {
-                k: v['team']
-                for k, v in participant_config.items()}
-            self.points_lookup = {
-                k: v['points']
-                for k, v in participant_config.items()}
-        except KeyError:
-            pass
-
-        #  If set, get point structure
-        try:
-            self.point_structure = {
-                k: v
-                for k, v in enumerate(self._options['point_structure'])
-            }
-        except KeyError:
-            pass
-
     def sort_data(self, call):
         self._data = sorted(self._data, key=call)
 
@@ -69,61 +42,60 @@ class StaticBase:
         self._row_colors = value
 
     def add_column(self, attribute, heading=None, *,
-                   align='left', formatter=None):
+                   align='left', formatter=None, formatter_args=None):
         self._columns.append(DisplayColumn(
             attribute,
             heading,
             align=align,
-            formatter=formatter))
+            formatter=formatter,
+            formatter_args=formatter_args))
 
     def add_lookup(self, attribute, lookup, default, heading=None, *,
-                   align='left', formatter=None):
+                   align='left', formatter=None, formatter_args=None):
         self._columns.append(DisplayColumn(
             attribute,
             heading,
-            getattr(self, lookup),
+            lookup,
             default,
             align=align,
-            formatter=formatter))
+            formatter=formatter,
+            formatter_args=formatter_args))
 
-    def calc_points(self, value):
-        position, best_lap = value
+    def calc_points(self, value, **kwargs):
+        driver_name, position, best_lap = value
         points = 0
         try:
             if best_lap == min(
                     [entry.best_lap for entry in self._data]):
-                points += self.point_structure[0]
-            points += self.point_structure[position]
+                # points += self.point_structure[0]
+                points += kwargs['point_structure'][0]
+            # points += self.point_structure[position]
+            points += kwargs['point_structure'][position]
         except KeyError:
             points += 0
         return str(points)
 
-    def calc_series_points(self, value):
+    def calc_series_points(self, value, **kwargs):
         driver_name, position, best_lap = value
         try:
-            points = self.points_lookup[driver_name]
+            points = kwargs['points_lookup'][driver_name]
         except KeyError:
             points = 0
 
-        try:
-            if best_lap == min(
-                    [entry.best_lap for entry in self._data]):
-                points += self.point_structure[0]
-            points += self.point_structure[position]
-        except KeyError:
-            points += 0
+        points += int(self.calc_points(value, **kwargs))
+
         return str(points)
 
-    def calc_series_rank(self, value):
+    def calc_series_rank(self, value, **kwargs):
         driver_name, position, best_lap = value
         ranks = dict()
         last_points = None
         last_rank = 0
         for entry in self._data:
             if last_points != int(
-                    self.calc_series_points(entry.v_points)):
+                    self.calc_series_points(entry.calc_points_data, **kwargs)):
                 last_points = int(
-                    self.calc_series_points(entry.v_points))
+                    self.calc_series_points(entry.calc_points_data, **kwargs))
                 last_rank += 1
             ranks[entry.driver_name] = last_rank
 
@@ -385,13 +357,15 @@ class DisplayColumn:
     _point_structure = list()
 
     def __init__(self, attribute, heading=None, lookup=None,
-                 default=None, *, align='left', formatter=None):
+                 default=None, *, align='left', formatter=None,
+                 formatter_args=None):
         self._heading = heading
         self._attribute = attribute
         self._lookup = lookup
         self._default = default
         self._align = align
         self._formatter = formatter
+        self._formatter_args = formatter_args
 
     @property
     def align(self):
@@ -408,6 +382,10 @@ class DisplayColumn:
     @property
     def formatter(self):
         return self._formatter
+
+    @property
+    def formatter_args(self):
+        return self._formatter_args
 
     @property
     def heading(self):
@@ -430,8 +408,6 @@ class DisplayLine:
     """
     Defines a single line in the display.
     """
-    # _lookups = list()
-    # _defaults = list()
     _column_widths = list()
 
     def __init__(self, columns, data, make_headings=False):
@@ -452,8 +428,10 @@ class DisplayLine:
 
             if column.formatter is None or make_headings:
                 self._line_data.append(str(text_value))
-            else:
+            elif column.formatter_args is None:
                 self._line_data.append(column.formatter(text_value))
+            else:
+                self._line_data.append(column.formatter(text_value, **column.formatter_args))
 
     def __iter__(self):
         line_data = iter(self._line_data)

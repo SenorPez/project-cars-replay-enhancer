@@ -75,7 +75,6 @@ class RaceData:
         classification = [
             ClassificationEntry(
                 participant_info.race_position,
-                index,
                 drivers[index] if len(drivers) > index
                 else None)
             for index, participant_info
@@ -360,9 +359,8 @@ class ClassificationEntry:
     """
     Represents an entry on the classification table.
     """
-    def __init__(self, race_position, driver_index, driver):
+    def __init__(self, race_position, driver):
         self._race_position = race_position
-        self._driver_index = driver_index
         self._driver = driver
 
     @property
@@ -390,11 +388,7 @@ class ClassificationEntry:
         return self._driver.laps_complete
 
     @property
-    def points(self):
-        return self.position, self.best_lap
-
-    @property
-    def v_points(self):
+    def calc_points_data(self):
         return self.driver_name, self.position, self.best_lap
 
     @property
@@ -478,17 +472,6 @@ class Driver:
 
         if sector_time.invalid:
             self._invalidate_lap()
-
-    def points(self, position, point_structure, best_lap=None):
-        points = 0
-        if best_lap is not None and self.best_lap <= best_lap:
-            points += point_structure[0]
-        try:
-            points += point_structure[position]
-        except IndexError:
-            pass
-
-        return points
 
     def _best_sector(self, sector):
         try:

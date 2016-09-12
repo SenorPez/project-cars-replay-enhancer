@@ -27,17 +27,43 @@ def test_race_1(telemetry_data, config_file, output_filename):
         sorted(race_data.starting_grid, key=lambda x: x.position),
         **configuration
     )
+    try:
+        name_lookup = {k: v['display'] for k, v in configuration['participant_config'].items()}
+    except KeyError:
+        name_lookup = None
+
+    try:
+        car_lookup = {k: v['car'] for k, v in configuration['participant_config'].items()}
+    except KeyError:
+        car_lookup = None
+
+    try:
+        team_lookup = {k: v['team'] for k, v in configuration['participant_config'].items()}
+    except KeyError:
+        team_lookup = None
+
+    try:
+        point_structure = {k: v for k, v in enumerate(configuration['point_structure'])}
+    except KeyError:
+        point_structure = None
+
+    try:
+        points_lookup = {k: v['points'] for k, v in configuration['participant_config'].items()}
+    except KeyError:
+        points_lookup = None
+
+
     starting_grid.add_column('position', 'Pos.')
     starting_grid.add_lookup(
         'driver_name',
-        'name_lookup',
+        name_lookup,
         'ERROR',
         'Driver')
-    starting_grid.add_lookup('driver_name', 'team_lookup', '', 'Team')
-    starting_grid.add_lookup('driver_name', 'car_lookup', '', 'Car')
+    starting_grid.add_lookup('driver_name', team_lookup, '', 'Team')
+    starting_grid.add_lookup('driver_name', car_lookup, '', 'Car')
     starting_grid.add_lookup(
         'driver_name',
-        'points_lookup',
+        points_lookup,
         0,
         'Points')
 
@@ -55,9 +81,9 @@ def test_race_1(telemetry_data, config_file, output_filename):
         **configuration
     )
     results.add_column('position', 'Pos.')
-    results.add_lookup('driver_name', 'name_lookup', 'ERROR', 'Driver')
-    results.add_lookup('driver_name', 'team_lookup', '', 'Team')
-    results.add_lookup('driver_name', 'car_lookup', '', 'Car')
+    results.add_lookup('driver_name', name_lookup, 'ERROR', 'Driver')
+    results.add_lookup('driver_name', team_lookup, '', 'Team')
+    results.add_lookup('driver_name', car_lookup, '', 'Car')
     results.add_column('laps_complete', 'Laps')
     results.add_column(
         'race_time',
@@ -79,10 +105,12 @@ def test_race_1(telemetry_data, config_file, output_filename):
         'best_sector_3',
         'Best S3',
         formatter=results.format_time)
+    formatter_args = {'point_structure': point_structure, 'points_lookup': points_lookup}
     results.add_column(
-        'points',
+        'calc_points_data',
         'Points',
-        formatter=results.calc_points)
+        formatter=results.calc_points,
+        formatter_args=formatter_args)
 
     Image.fromarray(results.to_frame()).save(
         output_filename+'_results.png')
@@ -93,27 +121,29 @@ def test_race_1(telemetry_data, config_file, output_filename):
     )
     series_standings.sort_data(
         lambda x: (
-            -int(series_standings.calc_series_points(x.v_points)),
+            -int(series_standings.calc_series_points(x.calc_points_data, **formatter_args)),
             x.driver_name))
     series_standings.add_column(
-        'v_points',
+        'calc_points_data',
         'Rank',
-        formatter=results.calc_series_rank)
+        formatter=results.calc_series_rank,
+        formatter_args=formatter_args)
     series_standings.add_lookup(
         'driver_name',
-        'name_lookup',
+        name_lookup,
         'ERROR',
         'Driver')
     series_standings.add_lookup(
         'driver_name',
-        'team_lookup',
+        team_lookup,
         '',
         'Team')
-    series_standings.add_lookup('driver_name', 'car_lookup', '', 'Car')
+    series_standings.add_lookup('driver_name', car_lookup, '', 'Car')
     series_standings.add_column(
-        'v_points',
+        'calc_points_data',
         'Points',
-        formatter=results.calc_series_points)
+        formatter=results.calc_series_points,
+        formatter_args=formatter_args)
 
     Image.fromarray(series_standings.to_frame()).save(
         output_filename+'_series_standings.png')
