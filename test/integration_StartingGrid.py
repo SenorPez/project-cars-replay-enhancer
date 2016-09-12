@@ -8,7 +8,7 @@ from PIL import Image
 
 from replayenhancer.RaceData import RaceData
 from replayenhancer.DefaultCards \
-    import RaceResults, SeriesStandings, StartingGrid
+    import RaceResults, SeriesChampion, SeriesStandings, StartingGrid
 
 
 def test_race(telemetry_data, config_file, output_prefix):
@@ -47,6 +47,12 @@ def test_race(telemetry_data, config_file, output_prefix):
         **configuration)
     Image.fromarray(series_standings.to_frame()).save(
         output_prefix + '_series_standings.png')
+
+    champion = SeriesChampion(
+        race_data.classification,
+        **configuration)
+    Image.fromarray(champion.to_frame()).save(
+        output_prefix + '_champion.png')
 
 if __name__ == '__main__':
     test_race(
