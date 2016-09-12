@@ -76,7 +76,8 @@ class RaceData:
             ClassificationEntry(
                 participant_info.race_position,
                 drivers[index] if len(drivers) > index
-                else None)
+                else None,
+                self._next_packet.viewed_participant_index == index)
             for index, participant_info
             in enumerate(self._next_packet.participant_info)
             if self._next_packet.participant_info[index].is_active]\
@@ -359,9 +360,10 @@ class ClassificationEntry:
     """
     Represents an entry on the classification table.
     """
-    def __init__(self, race_position, driver):
+    def __init__(self, race_position, driver, viewed_driver):
         self._race_position = race_position
         self._driver = driver
+        self._viewed_driver = viewed_driver
 
     @property
     def best_lap(self):
@@ -382,6 +384,10 @@ class ClassificationEntry:
     @property
     def driver_name(self):
         return self._driver.name
+
+    @property
+    def viewed_driver(self):
+        return self._viewed_driver
 
     @property
     def laps_complete(self):

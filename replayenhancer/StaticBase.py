@@ -62,8 +62,7 @@ class StaticBase:
             formatter_args=formatter_args))
 
     def to_frame(self):
-        return PIL_to_npimage(
-            self._make_material().convert('RGBA'))
+        return PIL_to_npimage(self._make_material().convert('RGBA'))
 
     def _make_material(self):
         DisplayLine.reset()

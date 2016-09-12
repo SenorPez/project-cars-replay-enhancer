@@ -1,72 +1,95 @@
 """
-Provides classes for the creation of a GT Sport style
-Standings overlay.
+Provides classes for the creation of a standings tree.
 """
 
-from PIL import Image, ImageDraw
-from replayenhancer.DynamicBase import DynamicBase
+from moviepy.video.io.bindings import PIL_to_npimage
+from PIL import Image, ImageDraw, ImageFont
 
 
-class GTStandings(DynamicBase):
+class GTStandings:
     """
-    Creates a standings overlay that constantly updates with the
-    following columns of information:
-    Position | Driver
-
-    Additional information is available in customizable flyouts.
+    Creates a standings overlay that updates with the following
+    columns of information:
+        - Position
+        - Driver
 
     Up to 10 drivers are displayed.
-    Race positions 1-5 are always displayed.
-    Positions n-2 through n+2, where n is the viewed car are displayed
-        if there is no overlap with positions 1-5.
-    Additional positions are added to display 10 if needed.
+        - Positions 1-5 are always displayed.
+        - Positions n-2 through n+2, where n is the viewed car are
+            displayed if there is no overlap with P1-5.
+        - Additional positions are added to display 10 in total.
     """
-
     _ups = 30
 
-    @property
-    def clip_t(self):
-        # TODO: Determine if this is even needed.
-        return self._clip_t
+    def __init__(self, data, *, ups, **kwargs):
+        self._data = data
+        self._options = kwargs
 
-    @clip_t.setter
-    def clip_t(self, value):
-        self._clip_t = value
+        #  If provided, use a font.
+        try:
+            try:
+                font = ImageFont.truetype(
+                    self._options['font'],
+                    self._options['font_size'])
+            except OSError:
+                font = ImageFont.load_default()
+        except KeyError:
+            font = ImageFont.load_default()
 
-    @property
-    def ups(self):
-        # TODO: Determine if this is even needed.
-        return self._ups
+        #  If set, use external and internal margins.
+        try:
+            self._margin = self._options['margin']
+        except KeyError:
+            self._margin = 2*font.getsize("A")[1]
 
-    @ups.setter
-    def ups(self, value):
-        self._ups = value
+        block_height = font.getsize("A")[1]
+        self._row_height = 2 * block_height
+        name_width = max(
+            [font.getsize(driver.driver_name)[0] for driver in data])
+        entries = len(data)
 
-    def __init__(self, clip_t=0, *, ups=30):
-        self._clip_t = clip_t
-        self._ups = ups
+        self._row_width = \
+            name_width \
+            + self._row_height \
+            + int(self._row_height - block_height)
+        material_height = \
+            self._row_height * entries \
+            + (entries-1) * 1 \
+            + self._margin
 
-    def make_mask(self):
-        return super(GTStandings, self).make_mask()
+        #  TODO: Remove red fill once we're sure everything's okay.
+        self._material = Image.new(
+            'RGBA',
+            (self._row_width + self._margin, material_height),
+            color=(255, 0, 0, 255))
+
+        self._standings_lines = list()
+        for entry in data:
+            self._standings_lines.append(StandingLine(
+                entry,
+                (self._row_width, self._row_height),
+                font,
+                ups=ups))
 
     def to_frame(self):
-        return super(GTStandings, self).to_frame()
+        return PIL_to_npimage(self._make_material().convert('RGBA'))
 
-    def update(self, force_process=False):
-        pass
+    def _make_material(self):
+        y_position = self._margin
+        for line in self._standings_lines:
+            line_output = line.to_frame()
+            self._material.paste(
+                line_output,
+                (self._margin, y_position),
+                line_output)
+            y_position += self._row_height + 1
+        return self._material
 
-    def _make_material(self, material_only):
-        return self._write_data()
 
-    def _write_data(self):
-        return Image.new('RGBA', (100, 100))
-
-
-class StandingsLine():
+class StandingLine:
     """
-    Represents a single line in the standings display.
+    Represents a single line entry in the Standings.
     """
-
     _position_color = (0, 0, 0, 200)
     _name_color = (51, 51, 51, 200)
     _viewed_position_color = (255, 215, 0, 200)
@@ -79,84 +102,84 @@ class StandingsLine():
 
     _ups = 30
 
-    def __init__(self, driver, font, text_size, *, ups=30):
-        """
-        Creates a new Standings Line object.
-        """
+    def __init__(self, entry, size, font, *, ups=30):
         self._ups = ups
-        self._viewed = False
-
-        self._driver = driver
+        self._driver_name = entry.driver_name
+        self._position = entry.position
+        self._viewed_driver = entry.viewed_driver
+        self._size = size
         self._font = font
-        self._text_size = text_size
 
     @property
     def name_color(self):
-        """
-        Gets the material color for the name, based on if it's the
-        viewed car or not.
-        """
-        return self._viewed_name_color if self._viewed \
-            else self._name_color
+        if self._viewed_driver:
+            return self._viewed_name_color
+        else:
+            return self._name_color
 
     @property
     def name_text_color(self):
-        """
-        Gets the text color for the name, based on if it's the
-        viewed car or not.
-        """
-        return self._viewed_name_text_color if self._viewed \
-            else self._name_text_color
+        if self._viewed_driver:
+            return self._viewed_name_text_color
+        else:
+            return self._name_text_color
 
     @property
     def position_color(self):
-        """
-        Gets the material color for the position, based on if it's the
-        viewed car or not.
-        """
-        return self._viewed_position_color if self._viewed \
-            else self._position_color
+        if self._viewed_driver:
+            return self._viewed_position_color
+        else:
+            return self._position_color
 
     @property
     def position_text_color(self):
-        """
-        Gets the text color for the position, based on if it's the
-        viewed car or not.
-        """
-        return self._viewed_position_text_color if self._viewed \
-            else self._position_text_color
+        if self._viewed_driver:
+            return self._viewed_position_text_color
+        else:
+            return self._position_text_color
 
-    def _render(self):
-        text_width, text_height = self._text_size
+    @property
+    def ups(self):
+        return self._ups
+
+    def to_frame(self):
+        row_width, row_height = self._size
+        material = Image.new('RGBA', self._size, (255, 255, 255, 0))
+
+        position_material = Image.new(
+            'RGBA',
+            (row_height, row_height),
+            self.position_color)
+
+        position_width = self._font.getsize(str(self._position))[0]
         block_height = self._font.getsize("A")[1]
+        x_position = int((row_height - position_width) / 2)
+        y_position = int((row_height - block_height) / 2)
 
-        material_width = text_height*2+text_width+10*2
-        material_height = text_height*2
-        material = Image.new('RGBA', (material_width, material_height))
-
-        draw = ImageDraw.Draw(material)
-
-        draw.rectangle(
-            (0, 0, material_height+1, material_height+1),
-            fill=self.position_color)
-        position_width = self._font.getsize(
-            str(self._driver.race_position))[0]
-        x_position = int((material_height-position_width)/2)
-        y_position = int((material_height-block_height)/2)
+        draw = ImageDraw.Draw(position_material)
         draw.text(
             (x_position, y_position),
-            str(self._driver.race_position),
+            str(self._position),
             fill=self.position_text_color,
             font=self._font)
 
-        draw.rectangle(
-            (material_height, 0, material_width+1, material_height+1),
-            fill=self.name_color)
-        x_position = material_height+10
+        material.paste(position_material, (0, 0), position_material)
+
+        name_material = Image.new(
+            'RGBA',
+            (row_width - row_height, row_height),
+            self.name_color)
+
+        x_position = int((row_height - block_height) / 2)
+        y_position = int((row_height - block_height) / 2)
+
+        draw = ImageDraw.Draw(name_material)
         draw.text(
             (x_position, y_position),
-            str(self._driver.name),
+            str(self._driver_name),
             fill=self.name_text_color,
             font=self._font)
+
+        material.paste(name_material, (row_height, 0), name_material)
 
         return material

@@ -5,9 +5,11 @@ import json
 import os
 
 from PIL import Image
+from tqdm import tqdm
 
 from replayenhancer.DefaultCards \
     import RaceResults, SeriesChampion, SeriesStandings, StartingGrid
+from replayenhancer.GTStandings import GTStandings
 from replayenhancer.RaceData import RaceData
 
 
@@ -30,11 +32,26 @@ def test_race(telemetry_data, config_file, output_prefix):
     Image.fromarray(starting_grid.to_frame()).save(
         output_prefix + "_starting_grid.png")
 
+    progress = tqdm(
+        desc='Processing data',
+        total=race_data.telemetry_data.packet_count,
+        unit='packets')
+
+    race_data.get_data(30)
+    standings = GTStandings(
+        sorted(race_data.classification, key=lambda x: x.position),
+        ups=30,
+        **configuration)
+    Image.fromarray(standings.to_frame()).save(
+        output_prefix + '_standings.png')
+
     while True:
         try:
             race_data.get_data()
+            progress.update()
         except StopIteration:
             break
+    progress.close()
 
     results = RaceResults(
         sorted(race_data.classification, key=lambda x: x.position),
