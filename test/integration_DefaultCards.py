@@ -6,9 +6,9 @@ import os
 
 from PIL import Image
 
-from replayenhancer.RaceData import RaceData
 from replayenhancer.DefaultCards \
     import RaceResults, SeriesChampion, SeriesStandings, StartingGrid
+from replayenhancer.RaceData import RaceData
 
 
 def test_race(telemetry_data, config_file, output_prefix):

@@ -115,12 +115,12 @@ class StaticBase:
         try:
             margin = self._options['margin']
         except KeyError:
-            margin = 6*font.getsize("A")[1]
+            margin = 2*font.getsize("A")[1]
 
         try:
             column_margin = self._options['column_margin']
         except KeyError:
-            column_margin = 3*font.getsize("A")[1]
+            column_margin = 1*font.getsize("A")[1]
 
         #  If set, use limit on number of lines to show.
         try:
