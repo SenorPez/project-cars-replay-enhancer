@@ -61,64 +61,6 @@ class StaticBase:
             formatter=formatter,
             formatter_args=formatter_args))
 
-    def calc_points(self, value, **kwargs):
-        driver_name, position, best_lap = value
-        points = 0
-        try:
-            if best_lap == min(
-                    [entry.best_lap for entry in self._data]):
-                # points += self.point_structure[0]
-                points += kwargs['point_structure'][0]
-            # points += self.point_structure[position]
-            points += kwargs['point_structure'][position]
-        except KeyError:
-            points += 0
-        return str(points)
-
-    def calc_series_points(self, value, **kwargs):
-        driver_name, position, best_lap = value
-        try:
-            points = kwargs['points_lookup'][driver_name]
-        except KeyError:
-            points = 0
-
-        points += int(self.calc_points(value, **kwargs))
-
-        return str(points)
-
-    def calc_series_rank(self, value, **kwargs):
-        driver_name, position, best_lap = value
-        ranks = dict()
-        last_points = None
-        last_rank = 0
-        for entry in self._data:
-            if last_points != int(
-                    self.calc_series_points(entry.calc_points_data, **kwargs)):
-                last_points = int(
-                    self.calc_series_points(entry.calc_points_data, **kwargs))
-                last_rank += 1
-            ranks[entry.driver_name] = last_rank
-
-        return str(ranks[driver_name])
-
-    @staticmethod
-    def format_time(seconds):
-        """
-        Converts seconds into seconds, minutes:seconds, or
-        hours:minutes.seconds as appropriate.
-        """
-        minutes, seconds = divmod(float(seconds), 60)
-        hours, minutes = divmod(minutes, 60)
-
-        return_value = (int(hours), int(minutes), float(seconds))
-
-        if hours:
-            return "{0:d}:{1:0>2d}:{2:0>6.3f}".format(*return_value)
-        elif minutes:
-            return "{1:d}:{2:0>6.3f}".format(*return_value)
-        else:
-            return "{2:.3f}".format(*return_value)
-
     def to_frame(self):
         return PIL_to_npimage(
             self._make_material().convert('RGBA'))
@@ -431,7 +373,9 @@ class DisplayLine:
             elif column.formatter_args is None:
                 self._line_data.append(column.formatter(text_value))
             else:
-                self._line_data.append(column.formatter(text_value, **column.formatter_args))
+                self._line_data.append(column.formatter(
+                    text_value,
+                    **column.formatter_args))
 
     def __iter__(self):
         line_data = iter(self._line_data)
