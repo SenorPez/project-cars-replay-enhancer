@@ -32,15 +32,10 @@ def test_race(telemetry_data, config_file, output_prefix):
 
     clip_mask = mpy.VideoClip(make_frame=standings.make_mask_frame, ismask=True)
     clip = mpy.VideoClip(make_frame=standings.make_frame).set_mask(clip_mask)
-    # clip = mpy.VideoClip(make_frame=standings.make_frame)
-    # clip = mpy.VideoClip(make_frame=standings.make_frame)
-    # clip_mask = clip.to_mask()
-    # clip = clip.set_mask(clip_mask)
 
-    # composite = mpy.CompositeVideoClip([video, clip], use_bgclip=True).subclip(0, 30)
-    # composite.write_videofile('outputs/test.mp4', fps=30)
-    composite = mpy.CompositeVideoClip([video, clip]).subclip(0, 30)
+    composite = mpy.CompositeVideoClip([video, clip]).set_duration(video.duration).subclip(0, 60)
     composite.write_videofile('outputs/test.mp4', fps=30)
+    # composite.save_frame('outputs/out.png', 10)
 
     # standings = GTStandings(race_data, ups=30, **configuration)
     # clip = mpy.VideoClip(make_frame=standings.make_frame, duration=10)

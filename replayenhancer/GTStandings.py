@@ -68,17 +68,14 @@ class GTStandings:
             name_width \
             + self._row_height \
             + int(self._row_height - block_height)
+
         material_height = \
-            self._row_height * entries \
-            + (entries-1) * 1 \
+            self._row_height * (entries + 1) \
+            + (entries + 2) * 1 \
             + self._margin
 
         #  TODO: Remove red fill once we're sure everything's okay.
         material_width = self._margin + self._row_width + self._flyout_width
-        if material_width % 2:
-            material_width += 1
-        if material_height % 2:
-            material_height += 1
 
         self._size = (
             material_width,
@@ -89,9 +86,11 @@ class GTStandings:
             self._size,
             (0, 0, 0, 0))
 
-        # draw = ImageDraw.Draw(self._base_material)
-        # draw.line([(0, self._margin), (material_width, self._margin)], fill='white', width=1)
-        # draw.line([(0, material_height), (material_width, material_height)], fill='white', width=1)
+        draw = ImageDraw.Draw(self._base_material)
+        draw.line([(0, self._margin + self._row_height + 1), (self._margin + self._row_width - 1, self._margin + self._row_height + 1)], fill='white', width=1)
+        draw.line([(0, material_height-1), (self._margin + self._row_width - 1, material_height-1)], fill='white', width=1)
+
+        self._timer = Header(self._race_data, self._sync_racestart, (self._row_width, self._row_height), font, ups=ups)
 
         self._standings_lines = list()
         self._classification = sorted(self._race_data.classification, key=lambda x: x.position)
@@ -107,6 +106,8 @@ class GTStandings:
                     font,
                     display_name=display_name,
                     ups=ups))
+
+
 
     def make_frame(self, time):
         while self._race_data.elapsed_time < time - self._sync_racestart:
@@ -130,13 +131,19 @@ class GTStandings:
         return PIL_to_npimage(self._make_material().convert('RGBA'))
 
     def _make_material(self):
+        material = self._base_material.copy()
+
         x_position = self._margin
+        y_position = self._margin
+
+        material.paste(self._timer.to_frame(), (x_position, y_position))
+
         _, material_height = self._size
-        y_position = material_height-self._row_height
+        y_position = material_height-self._row_height-1
 
         classification = sorted(self._race_data.classification, key=lambda x: x.position, reverse=True)
         standings_lines = list()
-        material = self._base_material.copy()
+
         for entry in classification:
             x_offset = 0
             y_offset = 0
@@ -163,6 +170,55 @@ class GTStandings:
             y_position -= self._row_height + 1
 
         self._standings_lines = standings_lines
+        return material
+
+
+class Header:
+    """
+    Represents a timer line in the standings display.
+    """
+    _background_color = (51, 51, 51, 200)
+    _background_text_color = (255, 255, 255, 255)
+
+    _ups = 30
+
+    def __init__(self, race_data, time_offset, size, font, *, ups=30):
+        self._font = font
+        self._race_data = race_data
+        self._size = size
+        self._time_offset = time_offset
+
+        self._ups = ups
+
+    @property
+    def background_color(self):
+        return self._background_color
+
+    @property
+    def background_text_color(self):
+        return self._background_text_color
+
+    @property
+    def ups(self):
+        return self._ups
+
+    def to_frame(self):
+        row_width, row_height = self._size
+        block_height = self._font.getsize("A")[1]
+        material = Image.new('RGBA', self._size, self.background_color)
+        draw = ImageDraw.Draw(material)
+
+        x_position = int((row_height - block_height) / 2)
+        y_position = int((row_height - block_height) / 2)
+
+        draw.text(
+            (x_position, y_position),
+            "Lap {current}/{total}".format(
+                current=self._race_data.current_lap,
+                total=self._race_data.total_laps),
+            fill=self.background_text_color,
+            font=self._font)
+
         return material
 
 

@@ -134,6 +134,11 @@ class RaceData:
                     return self._current_drivers
 
     @property
+    def current_lap(self):
+        leader_lap = max([participant.current_lap for participant in self._next_packet.participant_info])
+        return min(leader_lap, self.total_laps)
+
+    @property
     def drivers_by_index(self):
         return sorted(
             self.current_drivers.values(),
@@ -191,6 +196,10 @@ class RaceData:
         Returns the telemetry data iterator.
         """
         return self._telemetry_data
+
+    @property
+    def total_laps(self):
+        return self._next_packet.laps_in_event
 
     def get_data(self, at_time=None):
         """
