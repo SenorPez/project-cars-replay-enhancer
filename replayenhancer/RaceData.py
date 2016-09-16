@@ -229,7 +229,7 @@ class RaceData:
                     and self._last_packet is None) \
                     or self._next_packet.num_participants \
                     != self._last_packet.num_participants:
-                data, _ = tee(self.telemetry_data, 2)
+                data, restore = tee(self.telemetry_data, 2)
                 drivers = self._get_drivers(
                     data,
                     self._next_packet.num_participants)
@@ -243,6 +243,7 @@ class RaceData:
                 )
 
                 del data
+                self._telemetry_data = restore
 
             self._add_sector_times(self._next_packet)
 
