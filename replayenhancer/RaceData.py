@@ -44,6 +44,8 @@ class RaceData:
             telemetry_directory,
             descriptor_filename=descriptor_filename)
 
+        self.get_data()
+
     @property
     def best_lap(self):
         try:
@@ -206,14 +208,13 @@ class RaceData:
                 self._next_packet = self._last_packet
                 raise
 
-            if at_time is not None:
-                self._elapsed_time, \
-                    self._add_time, \
-                    self._last_packet = \
-                    self._calc_elapsed_time(
-                        self._next_packet,
-                        self._add_time,
-                        self._last_packet)
+            self._elapsed_time, \
+                self._add_time, \
+                self._last_packet = \
+                self._calc_elapsed_time(
+                    self._next_packet,
+                    self._add_time,
+                    self._last_packet)
 
             if (self._next_packet is not None
                     and self._last_packet is None) \
@@ -468,6 +469,8 @@ class Driver:
         return self._sector_times
 
     def add_sector_time(self, sector_time):
+        if len(self._sector_times) > 10:
+            pass
         if sector_time.time == -123.0:
             pass
         elif len(self._sector_times) == 0:
