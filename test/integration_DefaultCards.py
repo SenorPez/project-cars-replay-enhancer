@@ -27,21 +27,16 @@ def test_race(telemetry_data, config_file, output_prefix):
     if os.environ.get('DISPLAYFONTOVERRIDE') is not None:
         configuration['font'] = os.environ['DISPLAYFONTOVERRIDE']
 
+    framerate = 30
+
     video = mpy.VideoFileClip(configuration['source_video']).subclip(configuration['video_skipstart'], configuration['video_skipend'])
-    standings = GTStandings(race_data, ups=30, **configuration)
+    standings = GTStandings(race_data, ups=framerate, **configuration)
 
     clip_mask = mpy.VideoClip(make_frame=standings.make_mask_frame, ismask=True)
     clip = mpy.VideoClip(make_frame=standings.make_frame).set_mask(clip_mask)
 
     composite = mpy.CompositeVideoClip([video, clip]).set_duration(video.duration)
-    composite.write_videofile('outputs/test.mp4', fps=30)
-    # composite.save_frame('outputs/out.png', 10)
-
-    # standings = GTStandings(race_data, ups=30, **configuration)
-    # clip = mpy.VideoClip(make_frame=standings.make_frame, duration=10)
-    #
-    # clip.write_videofile('outputs/test.mp4', fps=30)
-    # clip.write_gif('outputs/test.gif', fps=30)
+    composite.write_videofile('outputs/test.mp4', fps=framerate)
 
     # starting_grid = StartingGrid(
     #     sorted(race_data.starting_grid, key=lambda x: x.position),
