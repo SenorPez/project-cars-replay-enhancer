@@ -23,8 +23,8 @@ class RaceResults(StaticBase):
         - Best S3: Driver best sector 3.
         - Points: Driver points earned.
     """
-    def __init__(self, data, **kwargs):
-        super().__init__(data, **kwargs)
+    def __init__(self, data, size=None, **kwargs):
+        super().__init__(data, size=size, **kwargs)
 
         try:
             name_lookup = {
@@ -128,8 +128,8 @@ class StartingGrid(StaticBase):
         - Car: Driver car.
         - Points: Driver series points (if applicable, blank else).
     """
-    def __init__(self, data, **kwargs):
-        super().__init__(data, **kwargs)
+    def __init__(self, data, size=None, **kwargs):
+        super().__init__(data, size=size, **kwargs)
 
         try:
             name_lookup = {
@@ -186,8 +186,8 @@ class SeriesStandings(RaceResults):
         - Points: Driver series points.
     """
 
-    def __init__(self, data, **kwargs):
-        super(RaceResults, self).__init__(data, **kwargs)
+    def __init__(self, data, size=None, **kwargs):
+        super(RaceResults, self).__init__(data, size=size, **kwargs)
 
         try:
             name_lookup = {
@@ -288,8 +288,8 @@ class SeriesChampion(SeriesStandings):
     """
     Defines a class for a default Series Champion title card.
     """
-    def __init__(self, data, **kwargs):
-        super(RaceResults, self).__init__(data, **kwargs)
+    def __init__(self, data, size=None, **kwargs):
+        super(RaceResults, self).__init__(data, size=size, **kwargs)
 
         try:
             self._name_lookup = {

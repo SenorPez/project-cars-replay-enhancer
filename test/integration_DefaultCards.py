@@ -1,6 +1,7 @@
 """
 Integration testing of StaticBase.py
 """
+from copy import deepcopy
 import json
 import os
 
@@ -19,6 +20,7 @@ def test_race(telemetry_data, config_file, output_prefix):
     Test of race data.
     """
     race_data = RaceData(telemetry_data)
+    result_data = RaceData(telemetry_data)
     configuration = json.load(open(config_file))
 
     if os.environ.get('HEADINGFONTOVERRIDE') is not None:
@@ -29,62 +31,63 @@ def test_race(telemetry_data, config_file, output_prefix):
 
     framerate = 30
 
-    video = mpy.VideoFileClip(configuration['source_video']).subclip(configuration['video_skipstart'], configuration['video_skipend'])
-    standings = GTStandings(race_data, ups=framerate, **configuration)
+    source_video = mpy.VideoFileClip(configuration['source_video']).subclip(configuration['video_skipstart'], configuration['video_skipend'])
+    pcre_standings = GTStandings(race_data, ups=framerate, **configuration)
 
-    clip_mask = mpy.VideoClip(make_frame=standings.make_mask_frame, ismask=True)
-    clip = mpy.VideoClip(make_frame=standings.make_frame).set_mask(clip_mask)
+    standings_clip_mask = mpy.VideoClip(make_frame=pcre_standings.make_mask_frame, ismask=True)
+    standings_clip = mpy.VideoClip(make_frame=pcre_standings.make_frame).set_mask(standings_clip_mask)
 
-    composite = mpy.CompositeVideoClip([video, clip]).set_duration(video.duration).subclip(155, 185)
-    composite.write_videofile('outputs/test.mp4', fps=framerate)
+    main_event = mpy.CompositeVideoClip([source_video, standings_clip]).set_duration(source_video.duration)
 
-    # starting_grid = StartingGrid(
-    #     sorted(race_data.starting_grid, key=lambda x: x.position),
-    #     **configuration)
-    # Image.fromarray(starting_grid.to_frame()).save(
-    #     output_prefix + "_starting_grid.png")
+    pcre_starting_grid = StartingGrid(
+        sorted(race_data.starting_grid, key=lambda x: x.position),
+        size=source_video.size,
+        **configuration)
+    Image.fromarray(pcre_starting_grid.to_frame()).save(
+        output_prefix + "_starting_grid.png")
+    starting_grid = mpy.ImageClip(pcre_starting_grid.to_frame()).set_duration(5)
 
-    # progress = tqdm(
-    #     desc='Processing data',
-    #     total=race_data.telemetry_data.packet_count,
-    #     unit='packets')
-    #
-    # race_data.get_data(30)
-    # standings = GTStandings(
-    #     race_data,
-    #     ups=30,
-    #     **configuration)
-    # Image.fromarray(standings.to_frame()).save(
-    #     output_prefix + '_standings.png')
+    while True:
+        try:
+            result_data.get_data()
+        except StopIteration:
+            break
 
-    # while True:
-    #     try:
-    #         race_data.get_data()
-    #         progress.update()
-    #     except StopIteration:
-    #         break
-    # progress.close()
-    #
-    # results = RaceResults(
-    #     sorted(race_data.classification, key=lambda x: x.position),
-    #     **configuration)
-    # Image.fromarray(results.to_frame()).save(
-    #     output_prefix + '_results.png')
-    #
-    # series_standings = SeriesStandings(
-    #     race_data.classification,
-    #     **configuration)
-    # Image.fromarray(series_standings.to_frame()).save(
-    #     output_prefix + '_series_standings.png')
-    #
-    # champion = SeriesChampion(
-    #     race_data.classification,
-    #     **configuration)
-    # Image.fromarray(champion.to_frame()).save(
-    #     output_prefix + '_champion.png')
+    pcre_results = RaceResults(
+        sorted(result_data.classification, key=lambda x: x.position),
+        size=source_video.size,
+        **configuration)
+    Image.fromarray(pcre_results.to_frame()).save(
+        output_prefix + '_results.png')
+    results = mpy.ImageClip(pcre_results.to_frame()).set_duration(20)
+
+    pcre_series_standings = SeriesStandings(
+        result_data.classification,
+        size=source_video.size,
+        **configuration)
+    Image.fromarray(pcre_series_standings.to_frame()).save(
+        output_prefix + '_series_standings.png')
+    series_standings = mpy.ImageClip(pcre_series_standings.to_frame()).set_duration(20)
+
+    pcre_champion = SeriesChampion(
+        result_data.classification,
+        size=source_video.size,
+        **configuration)
+    Image.fromarray(pcre_champion.to_frame()).save(
+        output_prefix + '_champion.png')
+    champion = mpy.ImageClip(pcre_champion.to_frame()).set_duration(20)
+
+    output = mpy.concatenate_videoclips([
+        starting_grid.fadeout(1),
+        main_event,
+        results.fadein(1).fadeout(1),
+        series_standings.fadein(1)
+    ], method="compose")
+    output.write_videofile(output_prefix + '_output.mp4', fps=framerate)
 
 if __name__ == '__main__':
     test_race(
         'assets/race1-descriptor',
         'assets/race1.json',
         'outputs/race_1')
+k.

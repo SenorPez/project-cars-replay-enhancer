@@ -25,10 +25,11 @@ class StaticBase:
         (255, 255, 255, 255),
     ]
 
-    def __init__(self, data, **kwargs):
+    def __init__(self, data, size=None, **kwargs):
         self._data = data
         self._options = kwargs
         self._columns = list()
+        self._size = size
 
     def sort_data(self, call):
         self._data = sorted(self._data, key=call)
@@ -131,7 +132,12 @@ class StaticBase:
         #  If set, use a backdrop.
         try:
             backdrop = Image.open(self._options['backdrop'])
-            backdrop_size = backdrop.size
+
+            if self._size is not None:
+                backdrop = backdrop.resize(self._size)
+                backdrop_size = self._size
+            else:
+                backdrop_size = backdrop.size
         except (KeyError, IOError):
             backdrop = None
             backdrop_size = None

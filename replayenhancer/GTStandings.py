@@ -77,7 +77,7 @@ class GTStandings:
 
         material_height = \
             self._row_height * (entries + 1) \
-            + (entries + 2) * 1 \
+            + (entries + 1) * 1 \
             + self._margin
 
         material_width = self._margin + self._row_width + self._flyout_width
@@ -92,8 +92,8 @@ class GTStandings:
             (0, 0, 0, 0))
 
         draw = ImageDraw.Draw(self._base_material)
-        draw.line([(0, self._margin + self._row_height + 1), (self._margin + self._row_width - 1, self._margin + self._row_height + 1)], fill='white', width=1)
-        draw.line([(0, material_height-1), (self._margin + self._row_width - 1, material_height-1)], fill='white', width=1)
+        draw.line([(0, self._margin + self._row_height), (self._margin + self._row_width - 1, self._margin + self._row_height)], fill='white', width=1)
+        draw.line([(0, material_height - 1), (self._margin + self._row_width - 1, material_height - 1)], fill='white', width=1)
 
         self._timer = Header(self._race_data, self._sync_racestart, (self._row_width, self._row_height), self._font, ups=ups)
 
