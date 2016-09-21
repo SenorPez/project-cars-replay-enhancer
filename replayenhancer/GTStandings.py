@@ -2,6 +2,9 @@
 Provides classes for the creation of a standings tree.
 """
 
+import abc
+from copy import copy
+
 from moviepy.video.io.bindings import PIL_to_npimage
 from PIL import Image, ImageDraw, ImageFont
 
@@ -24,6 +27,7 @@ class GTStandings:
     def __init__(self, race_data, *, ups, **kwargs):
         self._race_data = race_data
         self._options = kwargs
+        self._flyout = None
 
         #  If set, get the telemetry synchronization value.
         try:
@@ -34,35 +38,37 @@ class GTStandings:
         #  If provided, use a font.
         try:
             try:
-                font = ImageFont.truetype(
+                self._font = ImageFont.truetype(
                     self._options['font'],
                     self._options['font_size'])
             except OSError:
-                font = ImageFont.load_default()
+                self._font = ImageFont.load_default()
         except KeyError:
-            font = ImageFont.load_default()
+            self._font = ImageFont.load_default()
 
         #  If set, use external margins.
         try:
             self._margin = self._options['margin']
         except KeyError:
-            self._margin = 2*font.getsize("A")[1]
+            self._margin = 2*self._font.getsize("A")[1]
 
         #  If provided, create short name lookup.
         try:
-            short_name_lookup = {
+            self._short_name_lookup = {
                 k: v['short_display']
                 for k, v in kwargs['participant_config'].items()}
         except KeyError:
-            short_name_lookup = None
+            self._short_name_lookup = None
 
-        block_height = font.getsize("A")[1]
+        block_height = self._font.getsize("A")[1]
         self._row_height = 2 * block_height
         name_width = max(
-            [font.getsize(driver.name)[0] for driver in self._race_data.current_drivers.values()])
+            [self._font.getsize(driver.name)[0] for driver in self._race_data.current_drivers.values()])
         entries = len(self._race_data.current_drivers)
 
-        self._flyout_width = font.getsize("00:00:00")[0]
+        self._flyout_width =\
+            self._font.getsize("00:00.000")[0] \
+            + (self._row_height - block_height)
 
         self._row_width = \
             name_width \
@@ -74,7 +80,6 @@ class GTStandings:
             + (entries + 2) * 1 \
             + self._margin
 
-        #  TODO: Remove red fill once we're sure everything's okay.
         material_width = self._margin + self._row_width + self._flyout_width
 
         self._size = (
@@ -90,24 +95,23 @@ class GTStandings:
         draw.line([(0, self._margin + self._row_height + 1), (self._margin + self._row_width - 1, self._margin + self._row_height + 1)], fill='white', width=1)
         draw.line([(0, material_height-1), (self._margin + self._row_width - 1, material_height-1)], fill='white', width=1)
 
-        self._timer = Header(self._race_data, self._sync_racestart, (self._row_width, self._row_height), font, ups=ups)
+        self._timer = Header(self._race_data, self._sync_racestart, (self._row_width, self._row_height), self._font, ups=ups)
 
         self._standings_lines = list()
         self._classification = sorted(self._race_data.classification, key=lambda x: x.position)
         for entry in self._classification:
             try:
-                display_name = short_name_lookup[entry.driver_name]
+                display_name = self._short_name_lookup[entry.driver_name]
             except KeyError:
                 display_name = None
             finally:
                 self._standings_lines.append(StandingLine(
                     entry,
                     (self._row_width, self._row_height),
-                    font,
+                    self._font,
+                    flyout_width=self._flyout_width,
                     display_name=display_name,
                     ups=ups))
-
-
 
     def make_frame(self, time):
         while self._race_data.elapsed_time < time - self._sync_racestart:
@@ -148,13 +152,26 @@ class GTStandings:
             x_offset = 0
             y_offset = 0
             line = next(line for line in self._standings_lines
-                                  if line.driver_name == entry.driver_name)
+                        if line.driver.name == entry.driver_name)
+
             position_diff = line.position - entry.position
             animation_offset = self._row_height * position_diff \
-                + 1 * position_diff
+                               + 1 * position_diff
             if animation_offset != 0:
                 line.animations.append(Animation(self._ups, (0, animation_offset)))
                 line.position = entry.position
+
+            if entry.laps_complete != line.laps_complete and line.flyout is None:
+                block_height = self._font.getsize("A")[1]
+                flyout_margin = int((self._row_height - block_height) / 2)
+                line.flyout = LapTimeFlyout(
+                    self._race_data,
+                    entry.driver,
+                    self._font,
+                    (self._flyout_width, self._row_height),
+                    margin=flyout_margin)
+
+            line.driver = copy(entry.driver)
 
             for animation in line.animations:
                 x_adj, y_adj = animation.offset
@@ -238,14 +255,19 @@ class StandingLine:
 
     _ups = 30
 
-    def __init__(self, entry, size, font, *, display_name=None, ups=30):
+    def __init__(self, entry, size, font, *, flyout_width=0, display_name=None, ups=30):
         self._ups = ups
         self._display_name = display_name
-        self._driver_name = entry.driver_name
+        self._driver = copy(entry.driver)
+        self._laps_complete = entry.driver.laps_complete
         self._position = entry.position
         self._viewed_driver = entry.viewed_driver
         self._size = size
+        self._flyout_width = flyout_width
         self._font = font
+
+        self._flyout = None
+
         self._animations = list()
 
     @property
@@ -255,14 +277,29 @@ class StandingLine:
 
     @property
     def display_name(self):
-        if self._display_name is None:
-            return self._driver_name
-        else:
-            return self._display_name
+        return self._driver.name if self._display_name is None \
+            else self._display_name
 
     @property
-    def driver_name(self):
-        return self._driver_name
+    def driver(self):
+        return self._driver
+
+    @driver.setter
+    def driver(self, value):
+        self._driver = value
+        self._laps_complete = value.laps_complete
+
+    @property
+    def flyout(self):
+        return self._flyout
+
+    @flyout.setter
+    def flyout(self, value):
+        self._flyout = value
+
+    @property
+    def laps_complete(self):
+        return self._laps_complete
 
     @property
     def name_color(self):
@@ -310,7 +347,10 @@ class StandingLine:
 
     def to_frame(self):
         row_width, row_height = self._size
-        material = Image.new('RGBA', self._size, (255, 255, 255, 0))
+        material = Image.new(
+            'RGBA',
+            (self._size[0]+self._flyout_width, self._size[1]),
+            (0, 0, 0, 0))
 
         position_material = Image.new(
             'RGBA',
@@ -347,6 +387,29 @@ class StandingLine:
             font=self._font)
 
         material.paste(name_material, (row_height, 0))
+
+        if self.flyout is not None:
+            x_offset = 0
+            y_offset = 0
+
+            for animation in self.flyout.animations:
+                x_adj, y_adj = animation.offset
+                x_offset += x_adj
+                y_offset += y_adj
+
+            flyout = self.flyout.to_frame()
+            flyout = flyout.crop((
+                0-x_offset,
+                0-y_offset,
+                flyout.size[0],
+                flyout.size[1]))
+
+            material.paste(
+                flyout,
+                (row_width, 0))
+
+            if all([animation.complete for animation in self.flyout.animations]):
+                self._flyout = None
 
         return material
 
@@ -433,3 +496,115 @@ class Animation:
             remaining are not updated after this call.
         """
         return tuple([int(x) for x in self._position_from])
+
+
+class Flyout:
+    """
+    Abstract class defining flyouts.
+    """
+    _ups = 30
+
+    def __init__(self, margin=20, ups=30):
+        self._animations = list()
+        self._margin = margin
+        self._ups = ups
+
+    @property
+    def animations(self):
+        return self._animations
+
+    @property
+    def ups(self):
+        return self._ups
+
+    @abc.abstractmethod
+    def _make_material(self):
+        """
+        Create flyout.
+        """
+
+    @staticmethod
+    def format_time(seconds):
+        """
+        Converts seconds into seconds, minutes:seconds, or
+        hours:minutes.seconds as appropriate.
+        """
+        minutes, seconds = divmod(float(seconds), 60)
+        hours, minutes = divmod(minutes, 60)
+
+        return_value = (int(hours), int(minutes), float(seconds))
+
+        if hours:
+            return "{0:d}:{1:0>2d}:{2:0>6.3f}".format(*return_value)
+        elif minutes:
+            return "{1:d}:{2:0>6.3f}".format(*return_value)
+        else:
+            return "{2:.3f}".format(*return_value)
+
+
+class LapTimeFlyout(Flyout):
+    """
+    Class representing a flyout for the last lap's time.
+    """
+    _color = (0, 0, 0, 200)
+
+    _session_best_text_color = (255, 0, 255, 255)
+    _personal_best_text_color = (0, 255, 0, 255)
+    _text_color = (255, 255, 255, 255)
+    _invalid_text_color = (255, 0, 0, 255)
+
+    def __init__(self, race_data, driver, font, size, *, margin=20, ups=30):
+        super().__init__(margin=margin, ups=ups)
+
+        self._race_data = race_data
+        self._driver = driver
+        self._font = font
+        self._size = size
+
+        self._animations.append(
+            Animation(
+                duration=int(self.ups/2),
+                position_from=(-self._size[0], 0)))
+        self._animations.append(
+            Animation(
+                duration=int(self.ups/2),
+                position_from=(0, 0),
+                position_to=(-self._size[0], 0),
+                delay=self.ups*5))
+
+    @property
+    def color(self):
+        return self._color
+
+    @property
+    def text_color(self):
+        #  TODO: Support for invalid lap
+
+        if self._driver.last_lap_time <= self._race_data.best_lap:
+            return self._session_best_text_color
+        elif self._driver.last_lap_time <= self._driver.best_lap:
+            return self._personal_best_text_color
+        else:
+            return self._text_color
+
+    def to_frame(self):
+        return self._make_material()
+
+    def _make_material(self):
+        material = Image.new('RGBA', self._size, self.color)
+
+        block_height = self._font.getsize("A")[1]
+        block_width = self._font.getsize(self.format_time(self._driver.last_lap_time))[0]
+
+        draw = ImageDraw.Draw(material)
+
+        x_position = self._size[0]-self._margin-block_width
+        y_position = int((self._size[1]-block_height)/2)
+
+        draw.text(
+            (x_position, y_position),
+            self.format_time(self._driver.last_lap_time),
+            fill=self.text_color,
+            font=self._font)
+
+        return material

@@ -393,6 +393,10 @@ class ClassificationEntry:
         return self._driver.best_sector_3
 
     @property
+    def driver(self):
+        return self._driver
+
+    @property
     def driver_name(self):
         return self._driver.name
 
@@ -456,6 +460,13 @@ class Driver:
     @property
     def laps_complete(self):
         return len(self._sector_times) // 3
+
+    @property
+    def last_lap_time(self):
+        try:
+            return self._lap_times()[-1]
+        except IndexError:
+            return None
 
     @property
     def name(self):

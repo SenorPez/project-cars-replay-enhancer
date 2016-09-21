@@ -35,7 +35,7 @@ def test_race(telemetry_data, config_file, output_prefix):
     clip_mask = mpy.VideoClip(make_frame=standings.make_mask_frame, ismask=True)
     clip = mpy.VideoClip(make_frame=standings.make_frame).set_mask(clip_mask)
 
-    composite = mpy.CompositeVideoClip([video, clip]).set_duration(video.duration)
+    composite = mpy.CompositeVideoClip([video, clip]).set_duration(video.duration).subclip(30, 60)
     composite.write_videofile('outputs/test.mp4', fps=framerate)
 
     # starting_grid = StartingGrid(
