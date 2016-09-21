@@ -462,6 +462,10 @@ class Driver:
         return len(self._sector_times) // 3
 
     @property
+    def lap_times(self):
+        return self._lap_times()
+
+    @property
     def last_lap_time(self):
         try:
             return self._lap_times()[-1]

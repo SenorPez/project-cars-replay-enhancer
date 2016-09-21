@@ -164,12 +164,20 @@ class GTStandings:
             if entry.laps_complete != line.laps_complete and line.flyout is None:
                 block_height = self._font.getsize("A")[1]
                 flyout_margin = int((self._row_height - block_height) / 2)
-                line.flyout = LapTimeFlyout(
-                    self._race_data,
-                    entry.driver,
-                    self._font,
-                    (self._flyout_width, self._row_height),
-                    margin=flyout_margin)
+                if entry.position == 1:
+                    line.flyout = LapTimeFlyout(
+                        self._race_data,
+                        entry.driver,
+                        self._font,
+                        (self._flyout_width, self._row_height),
+                        margin=flyout_margin)
+                else:
+                    line.flyout = GapTimeFlyout(
+                        self._race_data,
+                        entry.driver,
+                        self._font,
+                        (self._flyout_width, self._row_height),
+                        margin=flyout_margin)
 
             line.driver = copy(entry.driver)
 
@@ -502,11 +510,13 @@ class Flyout:
     """
     Abstract class defining flyouts.
     """
+    _size = None
     _ups = 30
 
-    def __init__(self, margin=20, ups=30):
+    def __init__(self, size=None, margin=20, ups=30):
         self._animations = list()
         self._margin = margin
+        self._size = size
         self._ups = ups
 
     @property
@@ -523,28 +533,10 @@ class Flyout:
         Create flyout.
         """
 
-    @staticmethod
-    def format_time(seconds):
-        """
-        Converts seconds into seconds, minutes:seconds, or
-        hours:minutes.seconds as appropriate.
-        """
-        minutes, seconds = divmod(float(seconds), 60)
-        hours, minutes = divmod(minutes, 60)
 
-        return_value = (int(hours), int(minutes), float(seconds))
-
-        if hours:
-            return "{0:d}:{1:0>2d}:{2:0>6.3f}".format(*return_value)
-        elif minutes:
-            return "{1:d}:{2:0>6.3f}".format(*return_value)
-        else:
-            return "{2:.3f}".format(*return_value)
-
-
-class LapTimeFlyout(Flyout):
+class TimeFlyout(Flyout):
     """
-    Class representing a flyout for the last lap's time.
+    Abstract class representing a flyout that displays time values.
     """
     _color = (0, 0, 0, 200)
 
@@ -553,13 +545,10 @@ class LapTimeFlyout(Flyout):
     _text_color = (255, 255, 255, 255)
     _invalid_text_color = (255, 0, 0, 255)
 
-    def __init__(self, race_data, driver, font, size, *, margin=20, ups=30):
-        super().__init__(margin=margin, ups=ups)
-
-        self._race_data = race_data
+    def __init__(self, race_data, driver, size=None, margin=20, ups=30):
+        super().__init__(size=size, margin=margin, ups=ups)
         self._driver = driver
-        self._font = font
-        self._size = size
+        self._race_data = race_data
 
         self._animations.append(
             Animation(
@@ -587,6 +576,35 @@ class LapTimeFlyout(Flyout):
         else:
             return self._text_color
 
+    @staticmethod
+    def format_time(seconds):
+        """
+        Converts seconds into seconds, minutes:seconds, or
+        hours:minutes.seconds as appropriate.
+        """
+        minutes, seconds = divmod(float(seconds), 60)
+        hours, minutes = divmod(minutes, 60)
+
+        return_value = (int(hours), int(minutes), float(seconds))
+
+        if hours:
+            return "{0:d}:{1:0>2d}:{2:0>6.3f}".format(*return_value)
+        elif minutes:
+            return "{1:d}:{2:0>6.3f}".format(*return_value)
+        else:
+            return "{2:.3f}".format(*return_value)
+
+
+class LapTimeFlyout(TimeFlyout):
+    """
+    Class representing a flyout for the last lap's time.
+    """
+
+    def __init__(self, race_data, driver, font, size, *, margin=20, ups=30):
+        super().__init__(race_data, driver, size=size, margin=margin, ups=ups)
+
+        self._font = font
+
     def to_frame(self):
         return self._make_material()
 
@@ -604,6 +622,48 @@ class LapTimeFlyout(Flyout):
         draw.text(
             (x_position, y_position),
             self.format_time(self._driver.last_lap_time),
+            fill=self.text_color,
+            font=self._font)
+
+        return material
+
+
+class GapTimeFlyout(TimeFlyout):
+    """
+    Class representing a flyout for the gap time to the leader.
+    """
+    def __init__(self, race_data, driver, font, size, *, margin=20, ups=30):
+        super().__init__(race_data, driver, size=size, margin=margin, ups=ups)
+
+        self._font = font
+
+        lap_difference = self._race_data.classification[0].driver.laps_complete \
+            - self._driver.laps_complete
+
+        if lap_difference == 0:
+            leader_time = sum(self._race_data.classification[0].driver.lap_times)
+            driver_time = sum(self._driver.lap_times)
+            self._gap = "+{}".format(self.format_time(driver_time-leader_time))
+        else:
+            self._gap = "+{} lap".format(lap_difference)
+
+    def to_frame(self):
+        return self._make_material()
+
+    def _make_material(self):
+        material = Image.new('RGBA', self._size, self.color)
+
+        block_height = self._font.getsize("A")[1]
+        block_width = self._font.getsize(self._gap)[0]
+
+        draw = ImageDraw.Draw(material)
+
+        x_position = self._size[0]-self._margin-block_width
+        y_position = int((self._size[1]-block_height)/2)
+
+        draw.text(
+            (x_position, y_position),
+            self._gap,
             fill=self.text_color,
             font=self._font)
 
