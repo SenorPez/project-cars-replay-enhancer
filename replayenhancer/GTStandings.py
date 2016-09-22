@@ -29,6 +29,8 @@ class GTStandings:
         self._options = kwargs
         self._flyout = None
 
+        self._last_frame = None
+
         #  If set, get the telemetry synchronization value.
         try:
             self._sync_racestart = self._options['sync_racestart']
@@ -120,16 +122,19 @@ class GTStandings:
             except StopIteration:
                 break
 
-        return self.to_frame()[:, :, :3]
+        self._last_frame = self.to_frame()
+        return self._last_frame[:, :, :3]
 
     def make_mask_frame(self, time):
-        while self._race_data.elapsed_time < time - self._sync_racestart:
-            try:
-                self._race_data.get_data()
-            except StopIteration:
-                break
+        if self._last_frame is None:
+            while self._race_data.elapsed_time < time - self._sync_racestart:
+                try:
+                    self._race_data.get_data()
+                except StopIteration:
+                    break
+            self._last_frame = self.to_frame()
 
-        return self.to_frame()[:, :, -1]/255
+        return self._last_frame[:, :, -1]/255
 
     def to_frame(self):
         return PIL_to_npimage(self._make_material().convert('RGBA'))
@@ -189,7 +194,8 @@ class GTStandings:
             line_output = line.to_frame()
             material.paste(
                 line_output,
-                (x_position+x_offset, y_position+y_offset))
+                (x_position+x_offset, y_position+y_offset),
+                line_output)
 
             standings_lines.append(line)
             y_position -= self._row_height + 1

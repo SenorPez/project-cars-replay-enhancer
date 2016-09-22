@@ -30,8 +30,8 @@ def test_race(telemetry_data, config_file, output_prefix):
     framerate = 30
 
     source_video = mpy.VideoFileClip(configuration['source_video']).subclip(configuration['video_skipstart'], configuration['video_skipend'])
-    pcre_standings = GTStandings(race_data, ups=framerate, **configuration)
 
+    pcre_standings = GTStandings(race_data, ups=framerate, **configuration)
     standings_clip_mask = mpy.VideoClip(make_frame=pcre_standings.make_mask_frame, ismask=True)
     standings_clip = mpy.VideoClip(make_frame=pcre_standings.make_frame).set_mask(standings_clip_mask)
 
