@@ -83,11 +83,11 @@ def test_race(telemetry_data, config_file, output_prefix):
         results.fadein(1).fadeout(1),
         series_standings.fadein(1)
     ], method="compose")
-    output.write_videofile(output_prefix + '_output.mp4', fps=framerate)
+    output.write_videofile(output_prefix + '.mp4', fps=framerate)
 
 if __name__ == '__main__':
     test_race(
-        'assets/race1-descriptor',
+        'assets/race1',
         'assets/race1.json',
-        'outputs/race_1')
-k.
+        'outputs/race1')
+
