@@ -12,13 +12,6 @@ class StaticBase:
     """
     Defines base class for static objects, including default object
     return methods.
-
-    To get the representation of the static object, `to_frame` is
-    called. Execution chain is `to_frame` -> `_make_material` ->
-    `_write_data`.
-
-    To get the mask of the static object, `make_mask` is called.
-    Execution chain is `make_mask` -> `_make_material`.
     """
     _row_colors = [
         (192, 192, 192, 255),
@@ -166,7 +159,7 @@ class StaticBase:
             column_widths = line.column_widths(font, column_widths)
             display_lines.append(line)
 
-        row_height = font.getsize("A")[1]+margin
+        row_height = int(font.getsize("A")[1]*2.5)
         material_width = sum(column_widths)\
             + (len(column_widths)-1)*column_margin
         material_width += 2*margin
@@ -175,10 +168,14 @@ class StaticBase:
         heading_height = 0
         heading_material = None
         if heading:
-            heading_height = sum([
-                heading_font.getsize(str(heading_text))[1],
-                font.getsize(str(subheading_text))[1]])
-            heading_height += 2*margin
+            # heading_height = sum([
+            #     heading_font.getsize(str(heading_text))[1],
+            #     font.getsize(str(subheading_text))[1]])
+            # heading_height += 2*margin
+            heading_block_height = sum([
+                heading_font.getsize("A")[1],
+                font.getsize("A")[1]])
+            heading_height = int(heading_block_height*2.5)
 
             series_logo_width = 0
             series_logo_height = 0
@@ -210,13 +207,15 @@ class StaticBase:
 
             draw = ImageDraw.Draw(heading_material)
 
+            x_position = margin
+            y_position = int((heading_height-heading_block_height)/2)
+
             draw.text(
-                (margin, margin),
+                (x_position, y_position),
                 heading_text,
                 fill=heading_font_color,
                 font=heading_font)
-            y_position = margin+heading_font.getsize(
-                str(heading_text))[1]
+            y_position += heading_font.getsize("A")[1]
             draw.text(
                 (margin, y_position),
                 subheading_text,
@@ -248,9 +247,14 @@ class StaticBase:
             text_x_position = margin
             text_y_position = int((row_height-font.getsize("A")[1])/2)
 
-            for display_text, column_width in line:
+            for display_text, column_width, align in line:
+                if align == 'center':
+                    text_width = font.getsize(display_text)[0]
+                    draw_x_position = text_x_position + int((column_width-text_width)/2)
+                else:
+                    draw_x_position = text_x_position
                 draw.text(
-                    (text_x_position, text_y_position),
+                    (draw_x_position, text_y_position),
                     display_text,
                     fill=font_color,
                     font=font)
@@ -359,8 +363,10 @@ class DisplayLine:
 
     def __init__(self, columns, data, make_headings=False):
         self._line_data = list()
+        self._align = list()
 
         for column in columns:
+            self._align.append(column.align)
             try:
                 if make_headings:
                     text_value = str(column.heading)
@@ -385,8 +391,9 @@ class DisplayLine:
     def __iter__(self):
         line_data = iter(self._line_data)
         column_widths = iter(self._column_widths)
+        align = iter(self._align)
         while True:
-            yield (next(line_data), next(column_widths))
+            yield (next(line_data), next(column_widths), next(align))
 
     def column_widths(self, font, column_widths):
         for index, data in enumerate(self._line_data):

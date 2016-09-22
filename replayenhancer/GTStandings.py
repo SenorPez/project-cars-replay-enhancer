@@ -61,7 +61,7 @@ class GTStandings:
             self._short_name_lookup = None
 
         block_height = self._font.getsize("A")[1]
-        self._row_height = 2 * block_height
+        self._row_height = int(block_height * 2.5)
         name_width = max(
             [self._font.getsize(driver.name)[0] for driver in self._race_data.current_drivers.values()])
         entries = len(self._race_data.current_drivers)

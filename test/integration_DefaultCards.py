@@ -1,13 +1,11 @@
 """
 Integration testing of StaticBase.py
 """
-from copy import deepcopy
 import json
 import os
 
 import moviepy.editor as mpy
 from PIL import Image
-from tqdm import tqdm
 
 from replayenhancer.DefaultCards \
     import RaceResults, SeriesChampion, SeriesStandings, StartingGrid
