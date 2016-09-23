@@ -59,13 +59,13 @@ class GTStandings:
             self._short_name_lookup = {
                 k: v['short_display']
                 for k, v in kwargs['participant_config'].items()}
+            name_width = max([self._font.getsize(self._short_name_lookup[driver.name])[0] for driver in self._race_data.current_drivers.values()])
         except KeyError:
             self._short_name_lookup = None
+            name_width = max([self._font.getsize(driver.name)[0] for driver in self._race_data.current_drivers.values()])
 
         block_height = self._font.getsize("A")[1]
         self._row_height = int(block_height * 2.5)
-        name_width = max(
-            [self._font.getsize(driver.name)[0] for driver in self._race_data.current_drivers.values()])
         entries = len(self._race_data.current_drivers)
 
         self._flyout_width =\
@@ -192,10 +192,10 @@ class GTStandings:
                 y_offset += y_adj
 
             line_output = line.to_frame()
+
             material.paste(
                 line_output,
-                (x_position+x_offset, y_position+y_offset),
-                line_output)
+                (x_position+x_offset, y_position+y_offset))
 
             standings_lines.append(line)
             y_position -= self._row_height + 1
