@@ -665,10 +665,12 @@ class TelemetryData:
                     packet.race_state == 1):
                 break
 
+        old_packet = packet
         # Exhaust packets after the race start, except one.
         try:
             while True:
-                old_packet = packet
+                if packet.packet_type == 0:
+                    old_packet = packet
                 packet = next(telemetry_data)
                 progress.update()
                 if packet.packet_type == 0 and (
