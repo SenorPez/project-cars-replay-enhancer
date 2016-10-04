@@ -3,6 +3,7 @@ Provides base class for static objects. Static objects are those
 objects that do not update continuously based on the telemetry
 feed.
 """
+from itertools import tee
 
 from PIL import ImageFont, Image, ImageDraw
 from moviepy.video.io.bindings import PIL_to_npimage
@@ -151,9 +152,7 @@ class StaticBase:
         column_widths = list()
         display_lines = list()
 
-        column_headings = False
         if any([column.heading for column in self._columns]):
-            column_headings = True
             line = DisplayLine(self._columns, None, True)
             column_widths = line.column_widths(font, column_widths)
             display_lines.append(line)
@@ -247,8 +246,18 @@ class StaticBase:
             text_x_position = margin
             text_y_position = int((row_height-font.getsize("A")[1])/2)
 
-            for display_text, column_width, align in line:
+            for display_text, column_width, align, col_span in line:
                 if isinstance(display_text, str):
+                    if align == 'center' and line.heading_line and col_span > 1:
+                        data, restore = tee(line)
+                        span = col_span
+                        while span > 1:
+                            _, next_column_width, _, _ = next(data)
+                            column_width += next_column_width
+                            span -= 1
+
+                        line = restore
+
                     if align == 'center':
                         text_width = font.getsize(display_text)[0]
                         draw_x_position = text_x_position + int(
@@ -407,9 +416,14 @@ class DisplayLine:
     def __iter__(self):
         line_data = iter(self._line_data)
         column_widths = iter(self._column_widths)
+        col_spans = iter(self._col_spans)
         align = iter(self._align)
         while True:
-            yield (next(line_data), next(column_widths), next(align))
+            yield (next(line_data), next(column_widths), next(align), next(col_spans))
+
+    @property
+    def heading_line(self):
+        return self._heading_line
 
     def column_widths(self, font, column_widths):
         for index, data in enumerate(self._line_data):

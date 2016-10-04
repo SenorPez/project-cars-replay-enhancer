@@ -12,6 +12,7 @@ from replayenhancer.DefaultCards \
 from replayenhancer.GTStandings import GTStandings
 from replayenhancer.RaceData import RaceData
 from replayenhancer.RaceResultsWithChange import RaceResultsWithChange
+from replayenhancer.SeriesStandingsWithChange import SeriesStandingsWithChange
 
 
 def test_race(telemetry_data, config_file, output_prefix):
@@ -61,14 +62,14 @@ def test_race(telemetry_data, config_file, output_prefix):
         output_prefix + '_results.png')
     results = mpy.ImageClip(pcre_results.to_frame()).set_duration(20)
 
-    # pcre_series_standings = SeriesStandings(
-    #     result_data.classification,
-    #     size=source_video.size,
-    #     **configuration)
-    # Image.fromarray(pcre_series_standings.to_frame()).save(
-    #     output_prefix + '_series_standings.png')
-    # series_standings = mpy.ImageClip(pcre_series_standings.to_frame()).set_duration(20)
-    #
+    pcre_series_standings = SeriesStandingsWithChange(
+        result_data.classification,
+        size=source_video.size,
+        **configuration)
+    Image.fromarray(pcre_series_standings.to_frame()).save(
+        output_prefix + '_series_standings.png')
+    series_standings = mpy.ImageClip(pcre_series_standings.to_frame()).set_duration(20)
+
     # pcre_champion = SeriesChampion(
     #     result_data.classification,
     #     size=source_video.size,
@@ -90,4 +91,29 @@ if __name__ == '__main__':
         'assets/race1',
         'assets/race1.json',
         'outputs/race1')
+
+    test_race(
+        'assets/race2',
+        'assets/race2.json',
+        'outputs/race2')
+
+    test_race(
+        'assets/race3',
+        'assets/race3.json',
+        'outputs/race3')
+
+    test_race(
+        'assets/race4',
+        'assets/race4.json',
+        'outputs/race4')
+
+    test_race(
+        'assets/race5',
+        'assets/race5.json',
+        'outputs/race5')
+
+    test_race(
+        'assets/race6',
+        'assets/race6.json',
+        'outputs/race6')
 
