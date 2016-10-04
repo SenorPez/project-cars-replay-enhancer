@@ -116,4 +116,3 @@ if __name__ == '__main__':
         'assets/race6',
         'assets/race6.json',
         'outputs/race6')
-

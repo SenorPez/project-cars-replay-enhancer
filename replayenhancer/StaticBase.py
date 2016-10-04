@@ -246,17 +246,15 @@ class StaticBase:
             text_x_position = margin
             text_y_position = int((row_height-font.getsize("A")[1])/2)
 
-            for display_text, column_width, align, col_span in line:
+            iline = iter(line)
+            for display_text, column_width, align, col_span in iline:
                 if isinstance(display_text, str):
                     if align == 'center' and line.heading_line and col_span > 1:
-                        data, restore = tee(line)
                         span = col_span
                         while span > 1:
-                            _, next_column_width, _, _ = next(data)
-                            column_width += next_column_width
+                            _, next_column_width, _, _ = next(iline)
+                            column_width += next_column_width + column_margin
                             span -= 1
-
-                        line = restore
 
                     if align == 'center':
                         text_width = font.getsize(display_text)[0]

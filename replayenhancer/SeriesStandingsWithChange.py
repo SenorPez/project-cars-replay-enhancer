@@ -60,18 +60,30 @@ class SeriesStandingsWithChange(SeriesStandings):
                 'font_color': font_color,
                 'text_height': font.getsize("A")[1],
                 'point_structure': point_structure,
-                'point_lookup': points_lookup})
+                'points_lookup': points_lookup})
 
     def _make_charm(self, value, **kwargs):
-        text_height = kwargs['text_height']
-        old_rank = self.calc_rank(value, **kwargs)
-        new_rank = self.calc_series_rank(value, **kwargs)
-        change = int(old_rank) - int(new_rank)
+        #  How many people had more points than us?
+        driver_name, _, _ = value
+        old_points = kwargs['points_lookup'][driver_name]
+        old_more_points = len([
+            points for points in kwargs['points_lookup'].values()
+            if points > old_points])
+
+        #  How many people have more points than us?
+        new_points = int(self.calc_series_points(value, **kwargs))
+        current_points = [
+            int(self.calc_series_points(entry.calc_points_data, **kwargs))
+            for entry in self._data]
+        new_more_points = len([
+            points for points in current_points
+            if points > new_points])
+
+        change = old_more_points - new_more_points
 
         font = kwargs['font']
-        charm_width = text_height \
-                      + font.getsize(str(abs(change)))[0] \
-                      + 2
+        text_height = kwargs['text_height']
+        charm_width = text_height + 1
         charm_height = text_height + 1
 
         charm = Image.new(
@@ -88,11 +100,13 @@ class SeriesStandingsWithChange(SeriesStandings):
                     (int(text_height/2), 0)],
                 fill=(0, 255, 0, 255),
                 outline=(0, 0, 0, 255))
+            """
             draw.text(
                 (text_height + 2, 0),
                 str(abs(change)),
                 fill=(0, 0, 0, 255),
                 font=kwargs['font'])
+            """
         elif change < 0:
             draw.polygon(
                 [
@@ -101,11 +115,13 @@ class SeriesStandingsWithChange(SeriesStandings):
                     (int(text_height/2), text_height)],
                 fill=(255, 0, 0, 255),
                 outline=(0, 0, 0, 255))
+            """
             draw.text(
                 (text_height + 2, 0),
                 str(abs(change)),
                 fill=(0, 0, 0, 255),
                 font=kwargs['font'])
+            """
         else:
             draw.rectangle(
                 [
@@ -113,11 +129,13 @@ class SeriesStandingsWithChange(SeriesStandings):
                     (text_height, int(text_height*.75))],
                 fill=(255, 255, 0, 255),
                 outline=(0, 0, 0, 255))
+            """
             draw.text(
                 (text_height + 2, 0),
                 str(abs(change)),
                 fill=(0, 0, 0, 255),
                 font=kwargs['font'])
+            """
 
         return charm
 
@@ -126,10 +144,14 @@ class SeriesStandingsWithChange(SeriesStandings):
         ranks = dict()
         last_points = None
         last_rank = 0
-        for entry in self._data:
-            if last_points != kwargs['point_lookup'][entry.driver_name]:
-                last_points = kwargs['point_lookup'][entry.driver_name]
+
+        for entry in sorted(
+                kwargs['points_lookup'].items(),
+                key=lambda x: x[1],
+                reverse=True):
+            if last_points != entry[1]:
+                last_points = entry[1]
                 last_rank += 1
-            ranks[entry.driver_name] = last_rank
+            ranks[entry[0]] = last_rank
 
         return str(ranks[driver_name])
