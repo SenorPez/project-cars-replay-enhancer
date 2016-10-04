@@ -37,15 +37,14 @@ class StaticBase:
 
     def add_column(self, attribute, heading=None, *,
                    align='left', formatter=None, formatter_args=None,
-                   charm=None, charm_args=None):
+                   colspan=1):
         self._columns.append(DisplayColumn(
             attribute,
             heading,
             align=align,
             formatter=formatter,
             formatter_args=formatter_args,
-            charm=charm,
-            charm_args=charm_args))
+            colspan=colspan))
 
     def add_lookup(self, attribute, lookup, default, heading=None, *,
                    align='left', formatter=None, formatter_args=None):
@@ -152,7 +151,9 @@ class StaticBase:
         column_widths = list()
         display_lines = list()
 
+        column_headings = False
         if any([column.heading for column in self._columns]):
+            column_headings = True
             line = DisplayLine(self._columns, None, True)
             column_widths = line.column_widths(font, column_widths)
             display_lines.append(line)
@@ -250,7 +251,8 @@ class StaticBase:
                 if isinstance(display_text, str):
                     if align == 'center':
                         text_width = font.getsize(display_text)[0]
-                        draw_x_position = text_x_position + int((column_width-text_width)/2)
+                        draw_x_position = text_x_position + int(
+                            (column_width-text_width)/2)
                     else:
                         draw_x_position = text_x_position
                     draw.text(
@@ -259,10 +261,10 @@ class StaticBase:
                         fill=font_color,
                         font=font)
                 else:
-                    block_height = font.getsize("A")[1]
-                    # display_text.thumbnail(
-                    #     (block_height, block_height))
-                    row_material.paste(display_text, (text_x_position, text_y_position), display_text)
+                    row_material.paste(
+                        display_text,
+                        (text_x_position, text_y_position),
+                        display_text)
 
                 text_x_position += column_width + column_margin
             material.paste(row_material, (0, y_position), row_material)
@@ -315,7 +317,7 @@ class DisplayColumn:
 
     def __init__(self, attribute, heading=None, lookup=None,
                  default=None, *, align='left', formatter=None,
-                 formatter_args=None, charm=None, charm_args=None):
+                 formatter_args=None, colspan=1):
         self._heading = heading
         self._attribute = attribute
         self._lookup = lookup
@@ -323,8 +325,7 @@ class DisplayColumn:
         self._align = align
         self._formatter = formatter
         self._formatter_args = formatter_args
-        self._charm = charm
-        self._charm_args = charm_args
+        self._colspan = colspan
 
     @property
     def align(self):
@@ -335,12 +336,8 @@ class DisplayColumn:
         return self._attribute
 
     @property
-    def charm(self):
-        return self._charm
-
-    @property
-    def charm_args(self):
-        return self._charm_args
+    def colspan(self):
+        return self._colspan
 
     @property
     def default(self):
@@ -379,10 +376,13 @@ class DisplayLine:
 
     def __init__(self, columns, data, make_headings=False):
         self._line_data = list()
+        self._col_spans = list()
         self._align = list()
+        self._heading_line = make_headings
 
         for column in columns:
             self._align.append(column.align)
+            self._col_spans.append(column.colspan)
             try:
                 if make_headings:
                     text_value = str(column.heading)
@@ -413,7 +413,9 @@ class DisplayLine:
 
     def column_widths(self, font, column_widths):
         for index, data in enumerate(self._line_data):
-            if isinstance(data, str):
+            if self._heading_line and self._col_spans[index] > 1:
+                self._column_widths.append(0)
+            elif isinstance(data, str):
                 try:
                     self._column_widths[index] = max(
                         [column_widths[index], font.getsize(data)[0]])
@@ -422,9 +424,9 @@ class DisplayLine:
             else:
                 try:
                     self._column_widths[index] = max(
-                        [column_widths[index], font.getsize("A")[0]])
+                        [column_widths[index], data.size[0]])
                 except IndexError:
-                    self._column_widths.append(font.getsize("A")[0])
+                    self._column_widths.append(data.size[0])
 
         return self._column_widths
 

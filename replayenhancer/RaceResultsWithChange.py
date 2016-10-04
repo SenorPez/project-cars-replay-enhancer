@@ -15,7 +15,8 @@ class RaceResultsWithChange(RaceResults):
 
         position_lookup = dict()
         for entry in data:
-            starting_position = starting_grid[entry.driver.index].position
+            starting_position = \
+                starting_grid[entry.driver.index].position
             finish_position = entry.position
 
             position_lookup[finish_position] = starting_position
@@ -32,21 +33,19 @@ class RaceResultsWithChange(RaceResults):
             font = ImageFont.load_default()
             font_color = (0, 0, 0)
 
+        self.add_column('position', 'Pos.', colspan=2)
+        self._columns.pop(0)
+        self._columns.insert(0, self._columns.pop())
+
         self.add_column(
             'position',
             '',
             formatter=self._make_charm,
             formatter_args={
                 'position_lookup': position_lookup,
-                'text_height': font.getsize("A")[1]})
+                'text_height': font.getsize("A")[1],
+                'font': font})
         self._columns.insert(1, self._columns.pop())
-
-        # self.add_column(
-        #     'position',
-        #     '',
-        #     formatter=self._position_change,
-        #     formatter_args={'position_lookup': position_lookup})
-        # self._columns.insert(2, self._columns.pop())
 
     def _position_change(self, value, **kwargs):
         return "{:+d}".format(kwargs['position_lookup'][value] - value)
@@ -58,7 +57,16 @@ class RaceResultsWithChange(RaceResults):
         except KeyError:
             change = 0
 
-        charm = Image.new('RGBA', (text_height, text_height), (0, 0, 0, 0))
+        font = kwargs['font']
+        charm_width = text_height \
+                      + font.getsize(str(abs(change)))[0] \
+                      + 2
+        charm_height = text_height + 1
+
+        charm = Image.new(
+            'RGBA',
+            (charm_width, charm_height),
+            (0, 0, 0, 0))
 
         draw = ImageDraw.Draw(charm)
         if change > 0:
@@ -68,7 +76,12 @@ class RaceResultsWithChange(RaceResults):
                     (text_height, text_height),
                     (int(text_height/2), 0)],
                 fill=(0, 255, 0, 255),
-                outline=(0, 255, 0, 255))
+                outline=(0, 0, 0, 255))
+            draw.text(
+                (text_height + 2, 0),
+                str(abs(change)),
+                fill=(0, 0, 0, 255),
+                font=kwargs['font'])
         elif change < 0:
             draw.polygon(
                 [
@@ -76,13 +89,23 @@ class RaceResultsWithChange(RaceResults):
                     (text_height, 0),
                     (int(text_height/2), text_height)],
                 fill=(255, 0, 0, 255),
-                outline=(255, 0, 0, 255))
+                outline=(0, 0, 0, 255))
+            draw.text(
+                (text_height + 2, 0),
+                str(abs(change)),
+                fill=(0, 0, 0, 255),
+                font=kwargs['font'])
         else:
             draw.rectangle(
                 [
-                    (0, int(text_height*.35)),
-                    (text_height, int(text_height*.65))],
+                    (0, int(text_height*.45)),
+                    (text_height, int(text_height*.75))],
                 fill=(255, 255, 0, 255),
-                outline=(255, 255, 0, 255))
+                outline=(0, 0, 0, 255))
+            draw.text(
+                (text_height + 2, 0),
+                str(abs(change)),
+                fill=(0, 0, 0, 255),
+                font=kwargs['font'])
 
         return charm

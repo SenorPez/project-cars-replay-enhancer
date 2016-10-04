@@ -61,8 +61,6 @@ def test_race(telemetry_data, config_file, output_prefix):
         output_prefix + '_results.png')
     results = mpy.ImageClip(pcre_results.to_frame()).set_duration(20)
 
-    pass
-
     # pcre_series_standings = SeriesStandings(
     #     result_data.classification,
     #     size=source_video.size,
