@@ -36,13 +36,16 @@ class StaticBase:
         self._row_colors = value
 
     def add_column(self, attribute, heading=None, *,
-                   align='left', formatter=None, formatter_args=None):
+                   align='left', formatter=None, formatter_args=None,
+                   charm=None, charm_args=None):
         self._columns.append(DisplayColumn(
             attribute,
             heading,
             align=align,
             formatter=formatter,
-            formatter_args=formatter_args))
+            formatter_args=formatter_args,
+            charm=charm,
+            charm_args=charm_args))
 
     def add_lookup(self, attribute, lookup, default, heading=None, *,
                    align='left', formatter=None, formatter_args=None):
@@ -168,10 +171,6 @@ class StaticBase:
         heading_height = 0
         heading_material = None
         if heading:
-            # heading_height = sum([
-            #     heading_font.getsize(str(heading_text))[1],
-            #     font.getsize(str(subheading_text))[1]])
-            # heading_height += 2*margin
             heading_block_height = sum([
                 heading_font.getsize("A")[1],
                 font.getsize("A")[1]])
@@ -248,16 +247,23 @@ class StaticBase:
             text_y_position = int((row_height-font.getsize("A")[1])/2)
 
             for display_text, column_width, align in line:
-                if align == 'center':
-                    text_width = font.getsize(display_text)[0]
-                    draw_x_position = text_x_position + int((column_width-text_width)/2)
+                if isinstance(display_text, str):
+                    if align == 'center':
+                        text_width = font.getsize(display_text)[0]
+                        draw_x_position = text_x_position + int((column_width-text_width)/2)
+                    else:
+                        draw_x_position = text_x_position
+                    draw.text(
+                        (draw_x_position, text_y_position),
+                        display_text,
+                        fill=font_color,
+                        font=font)
                 else:
-                    draw_x_position = text_x_position
-                draw.text(
-                    (draw_x_position, text_y_position),
-                    display_text,
-                    fill=font_color,
-                    font=font)
+                    block_height = font.getsize("A")[1]
+                    # display_text.thumbnail(
+                    #     (block_height, block_height))
+                    row_material.paste(display_text, (text_x_position, text_y_position), display_text)
+
                 text_x_position += column_width + column_margin
             material.paste(row_material, (0, y_position), row_material)
             y_position += row_height
@@ -309,7 +315,7 @@ class DisplayColumn:
 
     def __init__(self, attribute, heading=None, lookup=None,
                  default=None, *, align='left', formatter=None,
-                 formatter_args=None):
+                 formatter_args=None, charm=None, charm_args=None):
         self._heading = heading
         self._attribute = attribute
         self._lookup = lookup
@@ -317,6 +323,8 @@ class DisplayColumn:
         self._align = align
         self._formatter = formatter
         self._formatter_args = formatter_args
+        self._charm = charm
+        self._charm_args = charm_args
 
     @property
     def align(self):
@@ -325,6 +333,14 @@ class DisplayColumn:
     @property
     def attribute(self):
         return self._attribute
+
+    @property
+    def charm(self):
+        return self._charm
+
+    @property
+    def charm_args(self):
+        return self._charm_args
 
     @property
     def default(self):
@@ -397,11 +413,19 @@ class DisplayLine:
 
     def column_widths(self, font, column_widths):
         for index, data in enumerate(self._line_data):
-            try:
-                self._column_widths[index] = max(
-                    [column_widths[index], font.getsize(data)[0]])
-            except IndexError:
-                self._column_widths.append(font.getsize(data)[0])
+            if isinstance(data, str):
+                try:
+                    self._column_widths[index] = max(
+                        [column_widths[index], font.getsize(data)[0]])
+                except IndexError:
+                    self._column_widths.append(font.getsize(data)[0])
+            else:
+                try:
+                    self._column_widths[index] = max(
+                        [column_widths[index], font.getsize("A")[0]])
+                except IndexError:
+                    self._column_widths.append(font.getsize("A")[0])
+
         return self._column_widths
 
     @classmethod
