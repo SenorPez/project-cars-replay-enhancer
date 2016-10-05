@@ -700,14 +700,17 @@ class GapTimeFlyout(TimeFlyout):
             ups=ups)
 
         self._font = font
+        classification = sorted(
+            self._race_data.classification,
+            key=lambda x: x.position)
 
         lap_difference = \
-            self._race_data.classification[0].driver.laps_complete \
+            classification[0].driver.laps_complete \
             - self._driver.laps_complete
 
         if lap_difference == 0:
             leader_time = sum(
-                self._race_data.classification[0].driver.lap_times)
+                classification[0].driver.lap_times)
             driver_time = sum(
                 self._driver.lap_times)
             self._gap = "+{}".format(
