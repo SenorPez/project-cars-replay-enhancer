@@ -319,8 +319,8 @@ class RaceData:
             add_time = 0.0
             last_packet = None
         else:
-            if last_packet is not None and last_packet.current_time >\
-                    next_packet.current_time:
+            if last_packet is not None and last_packet.current_time \
+                    - next_packet.current_time > 0.5:
                 add_time += last_packet.current_time
 
             elapsed_time = add_time + next_packet.current_time
