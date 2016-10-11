@@ -152,6 +152,21 @@ class RaceData:
         return self._elapsed_time
 
     @property
+    def race_state(self):
+        """
+        Returns the current race state.
+        0: RACESTATE_INVALID
+        1: RACESTATE_NOT_STARTED
+        2: RACESTATE_RACING,
+        3: RACESTATE_FINISHED,
+        4: RACESTATE_DISQUALIFIED,
+        5: RACESTATE_RETIRED,
+        6: RACESTATE_DNF,
+        7: RACESTATE_MAX
+        """
+        return self._next_packet.race_state
+
+    @property
     def starting_grid(self):
         """
         Returns the starting grid for the race.

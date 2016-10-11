@@ -203,6 +203,7 @@ class GTStandings:
                 line.position = entry.position
 
             if entry.laps_complete != line.laps_complete \
+                    and self._race_data.race_state == 2 \
                     and line.flyout is None:
                 block_height = self._font.getsize("A")[1]
                 flyout_margin = int(
