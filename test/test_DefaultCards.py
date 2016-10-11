@@ -132,3 +132,31 @@ class TestRaceResults(unittest.TestCase):
         time = 3702.9876
         expected_result = '1:01:42.988'
         self.assertEqual(RaceResults.format_time(time), expected_result)
+
+
+class TestStartingGrid(unittest.TestCase):
+    """
+    Unit tests for Starting Grid card.
+    """
+
+    @patch('replayenhancer.RaceData.StartingGridEntry', autospec=True)
+    def test_init_no_config(self, mock_starting_grid_entry):
+        instance = StartingGrid(mock_starting_grid_entry)
+        expected_result = StartingGrid
+        self.assertIsInstance(instance, expected_result)
+
+    @patch('replayenhancer.RaceData.StartingGridEntry', autospec=True)
+    def test_init_config(self, mock_starting_grid_entry):
+        configuration = {
+            'participant_config': {
+                'Kobernulf Monnur': {
+                    'display': 'Senor Pez',
+                    'car': '125cc Shifter Kart',
+                    'team': 'DarkNitro',
+                    'points': 0
+                }
+            }
+        }
+        instance = StartingGrid([mock_starting_grid_entry], **configuration)
+        expected_result = StartingGrid
+        self.assertIsInstance(instance, expected_result)
