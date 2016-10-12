@@ -5,6 +5,8 @@ Tests DefaultCards.py
 import unittest
 from unittest.mock import PropertyMock, patch, sentinel
 
+import numpy
+
 from replayenhancer.DefaultCards \
     import RaceResults, SeriesStandings, StartingGrid, SeriesChampion
 
@@ -322,3 +324,58 @@ class TestSeriesStandings(unittest.TestCase):
                 ('Third Place', 3, 42.0),
                 **configuration),
             expected_result)
+
+
+class TestSeriesChampion(unittest.TestCase):
+    """
+    Unit tests for Series Champion card.
+    """
+
+    @patch('replayenhancer.StaticBase.StaticBase.sort_data', autospec=True)
+    @patch('replayenhancer.RaceData.ClassificationEntry', autospec=True)
+    def test_init_no_config(self, mock_classification_entry, mock_sort_data):
+        mock_sort_data.return_value = ('Kobernulf Monnur', 1, 42.0)
+
+        instance = SeriesChampion([mock_classification_entry])
+        expected_result = SeriesChampion
+        self.assertIsInstance(instance, expected_result)
+
+    @patch('replayenhancer.StaticBase.StaticBase.sort_data', autospec=True)
+    @patch('replayenhancer.RaceData.ClassificationEntry', autospec=True)
+    def test_init_config(self, mock_classification_entry, mock_sort_data):
+        mock_sort_data.return_value = ('Kobernulf Monnur', 1,  42.0)
+
+        configuration = {
+            'participant_config': {
+                'Kobernulf Monnur': {
+                    'display': 'Senor Pez',
+                    'car': '125cc Shifter Kart',
+                    'team': 'Dark Nitro',
+                    'points': 15
+                }
+            },
+            'point_structure': [5, 15, 12, 10, 8, 6, 4, 2, 1]
+        }
+
+        instance = SeriesChampion([mock_classification_entry], **configuration)
+        expected_result = SeriesChampion
+        self.assertIsInstance(instance, expected_result)
+
+    @patch('replayenhancer.StaticBase.PIL_to_npimage', autospec=True)
+    @patch('replayenhancer.StaticBase.StaticBase.sort_data', autospec=True)
+    @patch('replayenhancer.RaceData.ClassificationEntry', autospec=True)
+    def test_method_to_frame(self, mock_classification_entry, mock_sort_data, mock_mpy):
+        driver_name = 'Kobernulf Monnur'
+        position = 1
+        best_lap = 42.0
+
+        type(mock_classification_entry).calc_points_data = PropertyMock(
+            return_value=(driver_name, position, best_lap))
+        type(mock_classification_entry).driver_name = PropertyMock(
+            return_value=driver_name)
+        mock_sort_data.return_value = (driver_name, position, best_lap)
+        mock_mpy.return_value = numpy.array(sentinel.test)
+
+        instance = SeriesChampion([mock_classification_entry])
+        expected_value = numpy.ndarray
+        self.assertIsInstance(instance.to_frame(), expected_value)

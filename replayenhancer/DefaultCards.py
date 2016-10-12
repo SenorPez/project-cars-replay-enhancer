@@ -100,7 +100,7 @@ class RaceResults(StaticBase):
                     [entry.best_lap for entry in self._data]):
                 points += kwargs['point_structure'][0]
             points += kwargs['point_structure'][position]
-        except KeyError:
+        except (KeyError, TypeError):
             points += 0
         return str(points)
 
@@ -265,7 +265,7 @@ class SeriesStandings(RaceResults):
         driver_name, position, best_lap = value
         try:
             points = kwargs['points_lookup'][driver_name]
-        except KeyError:
+        except (KeyError, TypeError):
             points = 0
 
         points += int(self.calc_points(value, **kwargs))
@@ -304,7 +304,7 @@ class SeriesChampion(SeriesStandings):
                 k: v['display']
                 for k, v in kwargs['participant_config'].items()}
         except KeyError:
-            self._name_lookup = None
+            self._name_lookup = {entry.driver_name:entry.driver_name for entry in self._data}
 
         try:
             self._car_lookup = {
@@ -365,8 +365,8 @@ class SeriesChampion(SeriesStandings):
             heading_text = self._options['heading_text']
         except KeyError:
             heading_color = None
-            heading_font_color = None
-            heading_font = None
+            heading_font_color = (0, 0, 0)
+            heading_font = ImageFont.load_default()
             heading_text = None
             heading = False
             series_logo = None
@@ -444,19 +444,21 @@ class SeriesChampion(SeriesStandings):
                 text_width = max([text_width, width + 2 * margin])
                 text_height += height
 
-            width, height = font.getsize(
-                self._team_lookup[entry.driver_name])
-            text_width = max([
-                text_width,
-                width + column_margin + 2 * margin])
-            text_height += height
+            if self._team_lookup is not None:
+                width, height = font.getsize(
+                    self._team_lookup[entry.driver_name])
+                text_width = max([
+                    text_width,
+                    width + column_margin + 2 * margin])
+                text_height += height
 
-            width, height = font.getsize(
-                self._car_lookup[entry.driver_name])
-            text_width = max([
-                text_width,
-                width + column_margin + 2 * margin])
-            text_height += height
+            if self._car_lookup is not None:
+                width, height = font.getsize(
+                    self._car_lookup[entry.driver_name])
+                text_width = max([
+                    text_width,
+                    width + column_margin + 2 * margin])
+                text_height += height
 
             text_height += margin
 
@@ -545,19 +547,22 @@ class SeriesChampion(SeriesStandings):
                 y_position += font.getsize("A")[1]
                 x_position += column_margin
 
-            draw.text(
-                (x_position, y_position),
-                self._team_lookup[entry.driver_name],
-                fill=font_color,
-                font=font)
-            y_position += font.getsize("A")[1]
+            if self._team_lookup is not None:
+                draw.text(
+                    (x_position, y_position),
+                    self._team_lookup[entry.driver_name],
+                    fill=font_color,
+                    font=font)
+                y_position += font.getsize("A")[1]
 
-            draw.text(
-                (x_position, y_position),
-                self._car_lookup[entry.driver_name],
-                fill=font_color,
-                font=font)
-            y_position += font.getsize("A")[1]
+            if self._car_lookup is not None:
+                draw.text(
+                    (x_position, y_position),
+                    self._car_lookup[entry.driver_name],
+                    fill=font_color,
+                    font=font)
+                y_position += font.getsize("A")[1]
+
             y_position += margin
             x_position -= column_margin
 
