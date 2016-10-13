@@ -286,7 +286,7 @@ class SeriesStandings(RaceResults):
                     self.calc_series_points(
                         entry.calc_points_data,
                         **kwargs))
-                last_rank += 1
+                last_rank = len(ranks) + 1
             ranks[entry.driver_name] = last_rank
 
         return str(ranks[driver_name])

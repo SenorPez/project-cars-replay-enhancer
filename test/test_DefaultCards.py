@@ -250,7 +250,7 @@ class TestSeriesStandings(unittest.TestCase):
 
     @patch('replayenhancer.StaticBase.StaticBase.sort_data', autospec=True)
     @patch('replayenhancer.RaceData.ClassificationEntry', autospec=True)
-    def test_method_calc_series_rank(self, mock_classification_entry, mock_sort_data):
+    def test_method_calc_series_rank_first(self, mock_classification_entry, mock_sort_data):
         driver_name = 'Kobernulf Monnur'
         position = 1
         best_lap = 42.0
@@ -280,7 +280,54 @@ class TestSeriesStandings(unittest.TestCase):
 
     @patch('replayenhancer.StaticBase.StaticBase.sort_data', autospec=True)
     @patch('replayenhancer.RaceData.ClassificationEntry')
-    def test_method_calc_series_rank_2(self, mock_classification_entry, mock_sort_data):
+    def test_method_calc_series_rank_tie_second(self, mock_classification_entry, mock_sort_data):
+        mock_sort_data.return_value = [
+            ('First Place', 1, 42.0),
+            ('Second Place', 2, 42.0),
+            ('Third Place', 3, 42.0)
+        ]
+
+        patcher = patch(
+            'replayenhancer.RaceData.ClassificationEntry',
+            best_lap=42.0,
+            calc_points_data=('First Place', 1, 42.0),
+            driver_name='First Place')
+        first_place = patcher.start()
+
+        patcher = patch(
+            'replayenhancer.RaceData.ClassificationEntry',
+            best_lap=42.0,
+            calc_points_data=('Second Place', 2, 42.0),
+            driver_name='Second Place')
+        second_place = patcher.start()
+
+        patcher = patch(
+            'replayenhancer.RaceData.ClassificationEntry',
+            best_lap=42.0,
+            calc_points_data=('Third Place', 3, 42.0),
+            driver_name='Third Place')
+        third_place = patcher.start()
+
+        configuration = {
+            'points_lookup': {
+                'First Place': 10,
+                'Second Place': 5,
+                'Third Place': 5
+            },
+            'point_structure': [0, 10, 6, 6]
+        }
+
+        instance = SeriesStandings([first_place, second_place, third_place])
+        expected_result = '2'
+        self.assertEqual(
+            instance.calc_series_rank(
+                ('Third Place', 3, 42.0),
+                **configuration),
+            expected_result)\
+
+    @patch('replayenhancer.StaticBase.StaticBase.sort_data', autospec=True)
+    @patch('replayenhancer.RaceData.ClassificationEntry')
+    def test_method_calc_series_rank_third(self, mock_classification_entry, mock_sort_data):
         mock_sort_data.return_value = [
             ('First Place', 1, 42.0),
             ('Second Place', 2, 42.0),
@@ -318,7 +365,7 @@ class TestSeriesStandings(unittest.TestCase):
         }
 
         instance = SeriesStandings([first_place, second_place, third_place])
-        expected_result = '2'
+        expected_result = '3'
         self.assertEqual(
             instance.calc_series_rank(
                 ('Third Place', 3, 42.0),
