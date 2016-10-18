@@ -42,7 +42,7 @@ setup(
         'replayenhancer': [
             'lib/Roboto-Medium.ttf',
             'lib/Roboto-Regular.ttf',
-            'track_data.json']
+            'lib/track_data.json']
     },
     entry_points={
         'console_scripts': [
