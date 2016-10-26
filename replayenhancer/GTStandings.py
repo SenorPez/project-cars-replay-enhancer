@@ -91,7 +91,10 @@ class GTStandings:
             + (entries + 1) * 1 \
             + self._margin
 
-        material_width = self._margin + self._row_width + self._flyout_width
+        material_width = \
+            self._margin \
+            + self._row_width \
+            + self._flyout_width
 
         self._size = (
             material_width,
@@ -195,8 +198,10 @@ class GTStandings:
                         if line.driver.name == entry.driver_name)
 
             position_diff = line.position - entry.position
-            animation_offset = self._row_height * position_diff \
-                               + 1 * position_diff
+            animation_offset = \
+                self._row_height \
+                * position_diff \
+                + position_diff
             if animation_offset != 0:
                 line.animations.append(
                     Animation(self._ups, (0, animation_offset)))
@@ -521,12 +526,12 @@ class Animation:
         Returns
         -------
         offset = (x, y) defining the offset, and then updates the offset
-            and ticks reminaing.
+            and ticks remaining.
         Use offset_static to not update.
         """
         if self._delay > 0:
             self._delay -= 1
-            return (0, 0)
+            return 0, 0
         else:
             self._ticks_remaining = max(self._ticks_remaining-1, 0)
 
@@ -645,6 +650,12 @@ class TimeFlyout(Flyout):
             return "{1:d}:{2:0>6.3f}".format(*return_value)
         else:
             return "{2:.3f}".format(*return_value)
+
+    @abc.abstractmethod
+    def _make_material(self):
+        """
+        Create flyout.
+        """
 
 
 class LapTimeFlyout(TimeFlyout):

@@ -7,7 +7,9 @@ Customized for use by the Project CARS Replay Enhancer.
 
 from hashlib import md5
 
-from replayenhancer.TelemetryDataPacket import ParticipantInfo, TelemetryDataPacket
+from replayenhancer.TelemetryDataPacket import \
+    ParticipantInfo, TelemetryDataPacket
+
 
 class REParticipantInfo(ParticipantInfo):
     # pylint: disable=super-init-not-called
@@ -30,6 +32,7 @@ class REParticipantInfo(ParticipantInfo):
         self.current_lap = int(unpacked_data.popleft())
         self._sector = int(unpacked_data.popleft())
         self.last_sector_time = float(unpacked_data.popleft())
+
 
 class RETelemetryDataPacket(TelemetryDataPacket):
     # pylint: disable=super-init-not-called
@@ -100,21 +103,21 @@ class RETelemetryDataPacket(TelemetryDataPacket):
         _packet_string += "fBBB"
         """
         packet_string = "HB"
-        packet_string += "B" #Game states
-        packet_string += "bb" #Participant info
-        packet_string += "4xB" #Unfiltered infput
-        packet_string += "B" #Event Information
-        packet_string += "8xf12xf56x" #Timings
-        packet_string += "2x" #Joypad
-        packet_string += "x" #Flags
-        packet_string += "x" #Pit info
-        packet_string += "10x6x8x4x4x" #Car state
+        packet_string += "B"  # Game states
+        packet_string += "bb"  # Participant info
+        packet_string += "4xB"  # Unfiltered input
+        packet_string += "B"  # Event Information
+        packet_string += "8xf12xf56x"  # Timings
+        packet_string += "2x"  # Joypad
+        packet_string += "x"  # Flags
+        packet_string += "x"  # Pit info
+        packet_string += "10x6x8x4x4x"  # Car state
         packet_string += "88x"
-        packet_string += "228x" #Wheels / tyres
-        packet_string += "8x" #Extras
-        packet_string += "2x" #Car damage
-        packet_string += "6x" #Weather
-        packet_string += "hhh2xBBBBf"*56 #Participant info
+        packet_string += "228x"  # Wheels / tyres
+        packet_string += "8x"  # Extras
+        packet_string += "2x"  # Car damage
+        packet_string += "6x"  # Weather
+        packet_string += "hhh2xBBBBf"*56  # Participant info
         packet_string += "fxxx"
 
         return packet_string
@@ -131,7 +134,7 @@ class RETelemetryDataPacket(TelemetryDataPacket):
     @property
     def event_duration(self):
         """Returns the event duration, in laps or time."""
-        #TODO: Time
+        # TODO: Time
         return int(self.laps_in_event)
 
     @property
@@ -144,7 +147,7 @@ class RETelemetryDataPacket(TelemetryDataPacket):
 
     @property
     def drivers_by_position(self):
-        """Returns drivers, srted by race position."""
+        """Returns drivers, sorted by race position."""
         return sorted(
             self.drivers_by_index,
             key=lambda x: x.race_position)
@@ -152,7 +155,8 @@ class RETelemetryDataPacket(TelemetryDataPacket):
     @property
     def drivers_by_index(self):
         """Returns drivers, sorted by their index."""
-        return [x for x in self.participant_info if x.is_active][:self.num_participants]
+        return [x for x in self.participant_info if x.is_active]\
+            [:self.num_participants]
 
     @property
     def leader_lap(self):
@@ -165,6 +169,7 @@ class RETelemetryDataPacket(TelemetryDataPacket):
     def last_place(self):
         """Returns the last place race position."""
         return max(
-            [x.race_position \
-                for x in self.participant_info \
+            [
+                x.race_position
+                for x in self.participant_info
                 if x.is_active])

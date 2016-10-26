@@ -9,6 +9,7 @@ from hashlib import md5
 
 from replayenhancer.ParticipantPacket import ParticipantPacket
 
+
 class REParticipantPacket(ParticipantPacket):
     # pylint: disable=super-init-not-called
     """

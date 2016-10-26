@@ -73,7 +73,9 @@ class SeriesStandingsWithChange(SeriesStandings):
         #  How many people have more points than us?
         new_points = int(self.calc_series_points(value, **kwargs))
         current_points = [
-            int(self.calc_series_points(entry.calc_points_data, **kwargs))
+            int(self.calc_series_points(
+                entry.calc_points_data,
+                **kwargs))
             for entry in self._data]
         new_more_points = len([
             points for points in current_points
@@ -81,7 +83,6 @@ class SeriesStandingsWithChange(SeriesStandings):
 
         change = old_more_points - new_more_points
 
-        font = kwargs['font']
         text_height = kwargs['text_height']
         charm_width = text_height + 1
         charm_height = text_height + 1
@@ -100,13 +101,6 @@ class SeriesStandingsWithChange(SeriesStandings):
                     (int(text_height/2), 0)],
                 fill=(0, 255, 0, 255),
                 outline=(0, 0, 0, 255))
-            """
-            draw.text(
-                (text_height + 2, 0),
-                str(abs(change)),
-                fill=(0, 0, 0, 255),
-                font=kwargs['font'])
-            """
         elif change < 0:
             draw.polygon(
                 [
@@ -115,13 +109,6 @@ class SeriesStandingsWithChange(SeriesStandings):
                     (int(text_height/2), text_height)],
                 fill=(255, 0, 0, 255),
                 outline=(0, 0, 0, 255))
-            """
-            draw.text(
-                (text_height + 2, 0),
-                str(abs(change)),
-                fill=(0, 0, 0, 255),
-                font=kwargs['font'])
-            """
         else:
             draw.rectangle(
                 [
@@ -129,17 +116,11 @@ class SeriesStandingsWithChange(SeriesStandings):
                     (text_height, int(text_height*.75))],
                 fill=(255, 255, 0, 255),
                 outline=(0, 0, 0, 255))
-            """
-            draw.text(
-                (text_height + 2, 0),
-                str(abs(change)),
-                fill=(0, 0, 0, 255),
-                font=kwargs['font'])
-            """
 
         return charm
 
-    def calc_rank(self, value, **kwargs):
+    @staticmethod
+    def calc_rank(value, **kwargs):
         driver_name, _, _ = value
         ranks = dict()
         last_points = None

@@ -3,8 +3,6 @@ Provides base class for static objects. Static objects are those
 objects that do not update continuously based on the telemetry
 feed.
 """
-from itertools import tee
-
 from PIL import ImageFont, Image, ImageDraw
 from moviepy.video.io.bindings import PIL_to_npimage
 
@@ -249,11 +247,15 @@ class StaticBase:
             iline = iter(line)
             for display_text, column_width, align, col_span in iline:
                 if isinstance(display_text, str):
-                    if align == 'center' and line.heading_line and col_span > 1:
+                    if align == 'center' \
+                            and line.heading_line \
+                            and col_span > 1:
                         span = col_span
                         while span > 1:
                             _, next_column_width, _, _ = next(iline)
-                            column_width += next_column_width + column_margin
+                            column_width += \
+                                next_column_width \
+                                + column_margin
                             span -= 1
 
                     if align == 'center':
@@ -417,7 +419,11 @@ class DisplayLine:
         col_spans = iter(self._col_spans)
         align = iter(self._align)
         while True:
-            yield (next(line_data), next(column_widths), next(align), next(col_spans))
+            yield (
+                next(line_data),
+                next(column_widths),
+                next(align),
+                next(col_spans))
 
     @property
     def heading_line(self):

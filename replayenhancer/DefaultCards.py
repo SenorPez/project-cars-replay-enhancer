@@ -304,7 +304,9 @@ class SeriesChampion(SeriesStandings):
                 k: v['display']
                 for k, v in kwargs['participant_config'].items()}
         except KeyError:
-            self._name_lookup = {entry.driver_name:entry.driver_name for entry in self._data}
+            self._name_lookup = {
+                entry.driver_name: entry.driver_name
+                for entry in self._data}
 
         try:
             self._car_lookup = {

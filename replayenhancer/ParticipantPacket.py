@@ -7,6 +7,7 @@ from hashlib import md5
 
 from replayenhancer.Packet import Packet
 
+
 class ParticipantPacket(Packet):
     """
     Creates an object from a participant info string packet.

@@ -44,13 +44,16 @@ class RaceResultsWithChange(RaceResults):
             formatter_args={
                 'position_lookup': position_lookup,
                 'text_height': font.getsize("A")[1],
-                'font': font})
+                'font': font,
+                'font_color': font_color})
         self._columns.insert(1, self._columns.pop())
 
-    def _position_change(self, value, **kwargs):
+    @staticmethod
+    def _position_change(value, **kwargs):
         return "{:+d}".format(kwargs['position_lookup'][value] - value)
 
-    def _make_charm(self, value, **kwargs):
+    @staticmethod
+    def _make_charm(value, **kwargs):
         text_height = kwargs['text_height']
         try:
             change = kwargs['position_lookup'][value] - value
@@ -58,9 +61,10 @@ class RaceResultsWithChange(RaceResults):
             change = 0
 
         font = kwargs['font']
-        charm_width = text_height \
-                      + font.getsize(str(abs(change)))[0] \
-                      + 2
+        charm_width = \
+            text_height \
+            + font.getsize(str(abs(change)))[0] \
+            + 2
         charm_height = text_height + 1
 
         charm = Image.new(
@@ -80,7 +84,7 @@ class RaceResultsWithChange(RaceResults):
             draw.text(
                 (text_height + 2, 0),
                 str(abs(change)),
-                fill=(0, 0, 0, 255),
+                fill=kwargs['font_color'],
                 font=kwargs['font'])
         elif change < 0:
             draw.polygon(
@@ -93,7 +97,7 @@ class RaceResultsWithChange(RaceResults):
             draw.text(
                 (text_height + 2, 0),
                 str(abs(change)),
-                fill=(0, 0, 0, 255),
+                fill=kwargs['font_color'],
                 font=kwargs['font'])
         else:
             draw.rectangle(
@@ -105,7 +109,7 @@ class RaceResultsWithChange(RaceResults):
             draw.text(
                 (text_height + 2, 0),
                 str(abs(change)),
-                fill=(0, 0, 0, 255),
+                fill=kwargs['font_color'],
                 font=kwargs['font'])
 
         return charm

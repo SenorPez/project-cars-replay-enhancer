@@ -7,7 +7,8 @@ from hashlib import md5
 
 from replayenhancer.Packet import Packet
 
-class ParticipantInfo():
+
+class ParticipantInfo:
     """
     Creates an object containing the participant info from the
     telemetry data.
@@ -76,6 +77,7 @@ class ParticipantInfo():
     def sector(self):
         """Determines the Participant's current sector."""
         return self._sector & int('00000111', 2)
+
 
 class TelemetryDataPacket(Packet):
     # pylint: disable=too-many-instance-attributes

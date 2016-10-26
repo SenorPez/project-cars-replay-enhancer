@@ -31,8 +31,8 @@ class Packet(metaclass=abc.ABCMeta):
             packet_type = int(packet_type) & int('00000011', 2)
             if packet_type != self.packet_type:
                 raise ValueError(
-                    "Incorrect packet type detected." + \
-                    "Packet type is {}".format(packet_type) + \
+                    "Incorrect packet type detected." +
+                    "Packet type is {}".format(packet_type) +
                     "Packet type should be {}".format(
                         self.packet_type))
         except ValueError:

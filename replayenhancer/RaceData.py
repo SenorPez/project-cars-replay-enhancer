@@ -135,7 +135,10 @@ class RaceData:
 
     @property
     def current_lap(self):
-        leader_lap = max([participant.current_lap for participant in self._next_packet.participant_info])
+        leader_lap = max(
+            [
+                participant.current_lap for participant
+                in self._next_packet.participant_info])
         return min(leader_lap, self.total_laps)
 
     @property
