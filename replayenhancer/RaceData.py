@@ -440,7 +440,7 @@ class Driver:
     """
     Represents a driver in the race.
     """
-    _next_sector_invalid = False;
+    _invalidate_next_sector_count = 0
 
     def __init__(self, index, name):
         self._index = index
@@ -453,7 +453,7 @@ class Driver:
     def best_lap(self):
         valid_laps = list()
         for invalid, time in zip(
-                self._lap_validity(), self._lap_times()):
+                self._lap_invalid(), self._lap_times()):
             if not invalid:
                 valid_laps.append(time)
 
@@ -489,7 +489,7 @@ class Driver:
     @property
     def last_lap_invalid(self):
         try:
-            return self._lap_validity()[-1]
+            return self._lap_invalid()[-1]
         except IndexError:
             return None
 
@@ -528,12 +528,20 @@ class Driver:
             self._sector_times.append(sector_time)
         elif self._sector_times[-1].time != sector_time.time \
                 and self._sector_times[-1].sector != sector_time.sector:
-            self._sector_times.append(SectorTime(
-                sector_time.time,
-                sector_time.sector,
-                self._next_sector_invalid))
+            if self._invalidate_next_sector_count > 0:
+                self._sector_times.append(SectorTime(
+                    sector_time.time,
+                    sector_time.sector,
+                    True))
+                self._invalidate_next_sector_count -= 1
+            else:
+                self._sector_times.append(SectorTime(
+                    sector_time.time,
+                    sector_time.sector,
+                    False))
 
-        self._next_sector_invalid = sector_time.invalid
+        if sector_time.invalid:
+            self._invalidate_lap(sector_time)
 
     def _best_sector(self, sector):
         try:
@@ -545,14 +553,18 @@ class Driver:
         except ValueError:
             return None
 
-    def _invalidate_lap(self):
-        pass
-        # print("Bonk")
-        # last_lap_sectors = [
-        #     sector_time for sector_time in self._sector_times[-3:]
-        #     if sector_time.sector <= self._sector_times[-1].sector]
-        # for sector in last_lap_sectors:
-        #     sector.invalid = True
+    def _invalidate_lap(self, sector_time):
+        if sector_time.sector == 3:
+            self._invalidate_next_sector_count = 3
+        elif sector_time.sector == 1:
+            self._invalidate_next_sector_count = 2
+            self._sector_times[-1].invalid = True
+        elif sector_time.sector == 2:
+            self._invalidate_next_sector_count = 1
+            for sector in self._sector_times[-2:]:
+                sector.invalid = True
+        else:
+            raise ValueError("Invalid Sector Number")
 
     def _lap_times(self):
         """
@@ -575,7 +587,7 @@ class Driver:
                 lap_times.append(None)
         return lap_times
 
-    def _lap_validity(self):
+    def _lap_invalid(self):
         """
         Check to see if the first sector in the list is sector 1.
         Trim if not.
@@ -589,15 +601,11 @@ class Driver:
 
         invalids = [sector.invalid for sector in sector_times]
         lap_validity = list()
-        lap_validity_check = list()
         for lap in zip(*[iter(invalids)]*3):
             try:
                 lap_validity.append(any(lap))
-                lap_validity_check.append(all(lap))
             except TypeError:
                 lap_validity.append(None)
-                lap_validity_check.append(None)
-        print(lap_validity_check)
         return lap_validity
 
 
