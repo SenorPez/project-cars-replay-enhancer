@@ -440,6 +440,8 @@ class Driver:
     """
     Represents a driver in the race.
     """
+    _next_sector_invalid = False;
+
     def __init__(self, index, name):
         self._index = index
         self._name = name
@@ -449,10 +451,14 @@ class Driver:
 
     @property
     def best_lap(self):
+        valid_laps = list()
+        for invalid, time in zip(
+                self._lap_validity(), self._lap_times()):
+            if not invalid:
+                valid_laps.append(time)
+
         try:
-            return min([
-                lap for lap in self._lap_times()
-                if lap is not None])
+            return min(valid_laps)
         except ValueError:
             return None
 
@@ -479,6 +485,13 @@ class Driver:
     @property
     def lap_times(self):
         return self._lap_times()
+
+    @property
+    def last_lap_invalid(self):
+        try:
+            return self._lap_validity()[-1]
+        except IndexError:
+            return None
 
     @property
     def last_lap_time(self):
@@ -509,18 +522,18 @@ class Driver:
         return self._sector_times
 
     def add_sector_time(self, sector_time):
-        if len(self._sector_times) > 10:
-            pass
         if sector_time.time == -123.0:
             pass
         elif len(self._sector_times) == 0:
             self._sector_times.append(sector_time)
         elif self._sector_times[-1].time != sector_time.time \
                 and self._sector_times[-1].sector != sector_time.sector:
-            self._sector_times.append(sector_time)
+            self._sector_times.append(SectorTime(
+                sector_time.time,
+                sector_time.sector,
+                self._next_sector_invalid))
 
-        if sector_time.invalid:
-            self._invalidate_lap()
+        self._next_sector_invalid = sector_time.invalid
 
     def _best_sector(self, sector):
         try:
@@ -533,11 +546,13 @@ class Driver:
             return None
 
     def _invalidate_lap(self):
-        last_lap_sectors = [
-            sector_time for sector_time in self._sector_times[-3:]
-            if sector_time.sector <= self._sector_times[-1].sector]
-        for sector in last_lap_sectors:
-            sector.invalid = True
+        pass
+        # print("Bonk")
+        # last_lap_sectors = [
+        #     sector_time for sector_time in self._sector_times[-3:]
+        #     if sector_time.sector <= self._sector_times[-1].sector]
+        # for sector in last_lap_sectors:
+        #     sector.invalid = True
 
     def _lap_times(self):
         """
@@ -551,8 +566,7 @@ class Driver:
         except IndexError:
             pass
 
-        times = [None if sector.invalid else sector.time
-                 for sector in sector_times]
+        times = [sector.time for sector in sector_times]
         lap_times = list()
         for lap in zip(*[iter(times)]*3):
             try:
@@ -560,6 +574,31 @@ class Driver:
             except TypeError:
                 lap_times.append(None)
         return lap_times
+
+    def _lap_validity(self):
+        """
+        Check to see if the first sector in the list is sector 1.
+        Trim if not.
+        """
+        sector_times = self._sector_times
+        try:
+            while sector_times[0].sector != 1:
+                sector_times = sector_times[1:]
+        except IndexError:
+            pass
+
+        invalids = [sector.invalid for sector in sector_times]
+        lap_validity = list()
+        lap_validity_check = list()
+        for lap in zip(*[iter(invalids)]*3):
+            try:
+                lap_validity.append(any(lap))
+                lap_validity_check.append(all(lap))
+            except TypeError:
+                lap_validity.append(None)
+                lap_validity_check.append(None)
+        print(lap_validity_check)
+        return lap_validity
 
 
 class SectorTime:
@@ -569,7 +608,7 @@ class SectorTime:
     def __init__(self, time, sector, invalid):
         self._time = time
         self._sector = sector
-        self._invalid = invalid
+        self._invalid = False if invalid == 0 else True
 
     @property
     def sector(self):

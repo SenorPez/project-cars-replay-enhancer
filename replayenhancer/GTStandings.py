@@ -619,9 +619,9 @@ class TimeFlyout(Flyout):
 
     @property
     def text_color(self):
-        #  TODO: Support for invalid lap
-
-        if self._driver.last_lap_time <= self._race_data.best_lap:
+        if self._driver.last_lap_invalid:
+            return self._invalid_text_color
+        elif self._driver.last_lap_time <= self._race_data.best_lap:
             return self._session_best_text_color
         elif self._driver.last_lap_time <= self._driver.best_lap:
             return self._personal_best_text_color
