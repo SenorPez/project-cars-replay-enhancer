@@ -20,13 +20,18 @@ from replayenhancer.SeriesStandingsWithChange \
     import SeriesStandingsWithChange
 
 
-def make_video(config_file, *, champion=False, sync_index=None):
+def make_video(config_file, *, sync=False):
     """
     Test of race data.
     """
     configuration = json.load(open(config_file))
     race_data = RaceData(configuration['source_telemetry'])
     result_data = RaceData(configuration['source_telemetry'])
+
+    try:
+        champion = configuration['show_champion']
+    except KeyError:
+        champion = False
 
     output_prefix = os.path.splitext(configuration['output_video'])[0]
 
@@ -55,44 +60,43 @@ def make_video(config_file, *, champion=False, sync_index=None):
         make_frame=pcre_standings.make_frame
     ).set_mask(standings_clip_mask)
 
-    try:
-        if sync_index is not None:
-            def timecode_frame(time):
-                """
-                Custom make frame for timecode.
-                """
-                timecode_image = Image.new('RGB', (200, 50))
-                draw = ImageDraw.Draw(timecode_image)
-                draw.text((50, 25), "%.02f"%(time))
-                return PIL_to_npimage(timecode_image)
+    if sync:
+        def timecode_frame(time):
+            """
+            Custom make frame for timecode.
+            """
+            timecode_image = Image.new('RGB', (100, 40))
+            draw = ImageDraw.Draw(timecode_image)
+            draw.text((10, 10), "%.02f"%(time))
+            return PIL_to_npimage(timecode_image)
 
-            timecode_clip = mpy.VideoClip(
-                timecode_frame,
-                duration=source_video.duration
-            ).set_position(('center', 'top'))
+        timecode_clip = mpy.VideoClip(
+            timecode_frame,
+            duration=source_video.duration
+        ).set_position(('center', 'top'))
 
-            first_lap_data = RaceData(configuration['source_telemetry'])
-            if sync_index == -1:
-                while not all(
-                        [x.laps_complete < 1
-                         for x in first_lap_data.drivers_by_index]):
-                    _ = first_lap_data.get_data()
-            else:
-                while first_lap_data.drivers_by_index[sync_index]\
-                        .laps_complete < 1:
-                    _ = first_lap_data.get_data()
+        first_lap_data = RaceData(configuration['source_telemetry'])
+        while not any(
+                [x.laps_complete > 0
+                 for x in first_lap_data.drivers_by_index]):
+            _ = first_lap_data.get_data()
 
-            main_event = mpy.CompositeVideoClip(
-                [source_video, standings_clip, timecode_clip]
-            ).set_duration(
-                source_video.duration
-            ).subclip(
-                first_lap_data.elapsed_time-5,
-                first_lap_data.elapsed_time+5)
-        else:
-            raise IndexError
+        start_time = first_lap_data.elapsed_time - 10
 
-    except IndexError:
+        while not all(
+                [x.laps_complete > 0
+                 for x in first_lap_data.drivers_by_index]):
+            _ = first_lap_data.get_data()
+
+        end_time = first_lap_data.elapsed_time + 10
+
+        main_event = mpy.CompositeVideoClip(
+            [source_video, standings_clip, timecode_clip]
+        ).set_duration(
+            source_video.duration
+        ).subclip(start_time, end_time)
+
+    else:
         main_event = mpy.CompositeVideoClip(
             [source_video, standings_clip]
         ).set_duration(source_video.duration)
@@ -175,13 +179,6 @@ def main():
     parser.add_argument(
         '-s',
         '--sync',
-        nargs='?',
-        const=-1,
-        type=int)
-
-    parser.add_argument(
-        '-c',
-        '--champion',
         action='store_true')
 
     parser.add_argument(
@@ -194,8 +191,7 @@ def main():
 
     make_video(
         args.config,
-        champion=args.champion,
-        sync_index=args.sync)
+        sync=args.sync)
 
 if __name__ == '__main__':
     main()
