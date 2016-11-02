@@ -32,6 +32,10 @@ class RaceData:
         self._classification = list()
         self._starting_grid = list()
         self._current_drivers = dict()
+        self._retired_drivers = dict()
+
+        self._drivers = list()
+        self._last_drivers = list()
 
         self._elapsed_time = 0.0
         self._add_time = 0.0
@@ -93,8 +97,6 @@ class RaceData:
         Returns a dictionary that maps telemetry names (keys) to
         driver objects (values).
         """
-        last_drivers = list()
-
         if len(self._current_drivers):
             return self._current_drivers
         else:
@@ -109,18 +111,17 @@ class RaceData:
 
             while True:
                 try:
-                    if packet.num_participants != len(last_drivers):
-                        drivers = self._get_drivers(
+                    if packet.num_participants != len(self._last_drivers):
+                        self._last_drivers = self._drivers
+                        self._drivers = self._get_drivers(
                             driver_data,
                             packet.num_participants,
                             progress=progress)
 
                         self._build_driver_name_lookup(
-                            drivers,
-                            last_drivers,
+                            self._drivers,
+                            self._last_drivers,
                             packet.num_participants)
-
-                        last_drivers = drivers
                     else:
                         packet = next(driver_data)
                         progress.update()
@@ -248,15 +249,14 @@ class RaceData:
                     or self._next_packet.num_participants \
                     != self._last_packet.num_participants:
                 data, restore = tee(self.telemetry_data, 2)
-                drivers = self._get_drivers(
+                self._last_drivers = self._drivers
+                self._drivers = self._get_drivers(
                     data,
                     self._next_packet.num_participants)
 
                 self._build_driver_name_lookup(
-                    drivers,
-                    sorted(
-                        self._current_drivers.values(),
-                        key=lambda x: x.index),
+                    self._drivers,
+                    self._last_drivers,
                     self._next_packet.num_participants
                 )
 
@@ -278,7 +278,10 @@ class RaceData:
             elif participant_info.sector == 3:
                 sector = 2
             else:
-                raise ValueError("Invalid sector number.")
+                error_message = \
+                    "Invalid sector number. Value was: {}".format(
+                        participant_info.sector)
+                raise ValueError(error_message)
 
             sector_time = SectorTime(
                 participant_info.last_sector_time,
@@ -695,6 +698,35 @@ class TelemetryData:
             'race_end': None,
             'race_finish': None,
             'race_start': None}
+
+        telemetry_data = self._get_telemetry_data(telemetry_directory)
+        progress = tqdm(
+            desc='Detecting Race End',
+            total=self.packet_count,
+            unit='packets')
+
+        packet = None
+        old_packet = None
+        while True:
+            old_packet = packet
+            packet = next(telemetry_data)
+            progress.update()
+            if packet.packet_type == 0 and packet.race_state == 3:
+                break
+
+        # Exhaust packets until the race end.
+        # TODO: Support for other ways to finish a race?
+        while True:
+            old_packet = packet
+            packet = next(telemetry_data)
+            progress.update()
+            if packet.packet_type == 0 and packet.race_state != 3:
+                break
+
+        progress.close()
+
+        descriptor['race_end'] = old_packet.data_hash
+
         telemetry_data = self._get_telemetry_data(
             telemetry_directory,
             reverse=True)
@@ -703,14 +735,12 @@ class TelemetryData:
             total=self.packet_count,
             unit='packets')
 
-        # Exhaust packets after the race end.
+        # Exhaust packets until the race end.
         while True:
             packet = next(telemetry_data)
             progress.update()
-            if packet.packet_type == 0 and packet.race_state == 3:
+            if packet.data_hash == descriptor['race_end']:
                 break
-
-        descriptor['race_end'] = packet.data_hash
 
         # Exhaust packets after the race finish.
         while True:
@@ -769,6 +799,9 @@ class TelemetryData:
                 reverse=reverse):
             with open(packet, 'rb') as packet_file:
                 packet_data = packet_file.read()
+
+            if descriptor is not None and md5(packet_data).hexdigest() == descriptor['race_end']:
+                raise StopIteration
 
             if find_start and \
                     md5(packet_data).hexdigest() == \

@@ -10,6 +10,7 @@ import sys
 import moviepy.editor as mpy
 from moviepy.video.io.bindings import PIL_to_npimage
 from PIL import Image, ImageDraw
+from tqdm import tqdm
 
 from replayenhancer.DefaultCards \
     import SeriesChampion, SeriesStandings, StartingGrid
@@ -21,19 +22,22 @@ from replayenhancer.SeriesStandingsWithChange \
 
 
 def make_video(config_file, *, sync=False):
-    """
-    Test of race data.
-    """
     configuration = json.load(open(config_file))
-    race_data = RaceData(configuration['source_telemetry'])
-    result_data = RaceData(configuration['source_telemetry'])
+    try:
+        race_data = RaceData(configuration['source_telemetry'])
+        result_data = RaceData(configuration['source_telemetry'])
+    except KeyError:
+        sys.exit("Configuration Error: Source Telemetry not found.")
+
+    try:
+        output_prefix = os.path.splitext(configuration['output_video'])[0]
+    except KeyError:
+        sys.exit("Configuration Error: Output Video not found.")
 
     try:
         champion = configuration['show_champion']
     except KeyError:
         champion = False
-
-    output_prefix = os.path.splitext(configuration['output_video'])[0]
 
     if os.environ.get('HEADINGFONTOVERRIDE') is not None:
         configuration['heading_font'] = \
@@ -43,11 +47,33 @@ def make_video(config_file, *, sync=False):
 
     framerate = 30
 
-    source_video = mpy.VideoFileClip(
-        configuration['source_video']
-    ).subclip(
-        configuration['video_skipstart'],
-        configuration['video_skipend'])
+    try:
+        video_skipstart = configuration['video_skipstart']
+    except KeyError:
+        video_skipstart = 0
+
+    try:
+        video_skipend = configuration['video_skipend']
+    except KeyError:
+        video_skipend = 0
+
+    try:
+        source_video = mpy.VideoFileClip(
+            configuration['source_video']
+        ).subclip(
+            video_skipstart,
+            video_skipend)
+    except KeyError:
+        time_data = RaceData(configuration['source_telemetry'])
+        with tqdm(desc="Processing telemetry") as progress:
+            while True:
+                try:
+                    _ = time_data.get_data()
+                    progress.update()
+                except StopIteration:
+                    break
+        source_video = mpy.ColorClip((1280, 1024)).set_duration(
+            time_data.elapsed_time)
 
     pcre_standings = GTStandings(
         race_data,
