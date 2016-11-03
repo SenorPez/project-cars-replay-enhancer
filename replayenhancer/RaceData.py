@@ -93,6 +93,10 @@ class RaceData:
 
     @property
     def current_drivers(self):
+        return {driver_name: driver for driver_name, driver in self.all_drivers.items() if driver.index is not None}
+
+    @property
+    def all_drivers(self):
         """
         Returns a dictionary that maps telemetry names (keys) to
         driver objects (values).
@@ -145,7 +149,7 @@ class RaceData:
     @property
     def drivers_by_index(self):
         return sorted(
-            self.current_drivers.values(),
+            set(self.current_drivers.values()),
             key=lambda x: x.index)
 
     @property
@@ -287,6 +291,7 @@ class RaceData:
                 participant_info.last_sector_time,
                 sector,
                 participant_info.invalid_lap)
+
             for name, driver in self._current_drivers.items():
                 if driver.index == index:
                     driver.add_sector_time(sector_time)
@@ -322,6 +327,9 @@ class RaceData:
             for index, driver in enumerate(drivers):
                 if last_drivers[index].name \
                         != drivers[index].name:
+
+                    self._current_drivers[last_drivers[index].name].clear_index()
+
                     self._current_drivers = \
                         self._set_driver(
                             self._current_drivers,
@@ -548,6 +556,9 @@ class Driver:
 
         if sector_time.invalid:
             self._invalidate_lap(sector_time)
+
+    def clear_index(self):
+        self._index = None
 
     def _best_sector(self, sector):
         try:

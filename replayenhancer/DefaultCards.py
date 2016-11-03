@@ -55,7 +55,16 @@ class RaceResults(StaticBase):
             point_structure = None
 
         self.add_column('position', 'Pos.')
-        self.add_lookup('driver_name', name_lookup, 'ERROR', 'Driver')
+
+        if name_lookup is None:
+            self.add_column('driver_name', 'Driver')
+        else:
+            self.add_lookup(
+                'driver_name',
+                name_lookup,
+                'ERROR',
+                'Driver')
+
         self.add_lookup('driver_name', team_lookup, '', 'Team')
         self.add_lookup('driver_name', car_lookup, '', 'Car')
         self.add_column('laps_complete', 'Laps', align='center')
@@ -110,17 +119,20 @@ class RaceResults(StaticBase):
         Converts seconds into seconds, minutes:seconds, or
         hours:minutes.seconds as appropriate.
         """
-        minutes, seconds = divmod(float(seconds), 60)
-        hours, minutes = divmod(minutes, 60)
+        try:
+            minutes, seconds = divmod(float(seconds), 60)
+            hours, minutes = divmod(minutes, 60)
 
-        return_value = (int(hours), int(minutes), float(seconds))
+            return_value = (int(hours), int(minutes), float(seconds))
 
-        if hours:
-            return "{0:d}:{1:0>2d}:{2:0>6.3f}".format(*return_value)
-        elif minutes:
-            return "{1:d}:{2:0>6.3f}".format(*return_value)
-        else:
-            return "{2:.3f}".format(*return_value)
+            if hours:
+                return "{0:d}:{1:0>2d}:{2:0>6.3f}".format(*return_value)
+            elif minutes:
+                return "{1:d}:{2:0>6.3f}".format(*return_value)
+            else:
+                return "{2:.3f}".format(*return_value)
+        except TypeError:
+            return ""
 
 
 class StartingGrid(StaticBase):
@@ -166,11 +178,16 @@ class StartingGrid(StaticBase):
             points_lookup = None
 
         self.add_column('position', 'Pos.')
-        self.add_lookup(
-            'driver_name',
-            name_lookup,
-            'ERROR',
-            'Driver')
+
+        if name_lookup is None:
+            self.add_column('driver_name', 'Driver')
+        else:
+            self.add_lookup(
+                'driver_name',
+                name_lookup,
+                'ERROR',
+                'Driver')
+
         self.add_lookup('driver_name', team_lookup, '', 'Team')
         self.add_lookup('driver_name', car_lookup, '', 'Car')
         self.add_lookup(
@@ -243,11 +260,16 @@ class SeriesStandings(RaceResults):
             'Rank',
             formatter=self.calc_series_rank,
             formatter_args=formatter_args)
-        self.add_lookup(
-            'driver_name',
-            name_lookup,
-            'ERROR',
-            'Driver')
+
+        if name_lookup is None:
+            self.add_column('driver_name', 'Driver')
+        else:
+            self.add_lookup(
+                'driver_name',
+                name_lookup,
+                'ERROR',
+                'Driver')
+
         self.add_lookup(
             'driver_name',
             team_lookup,

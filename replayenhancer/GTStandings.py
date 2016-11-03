@@ -137,7 +137,7 @@ class GTStandings:
             try:
                 display_name = \
                     self._short_name_lookup[entry.driver_name]
-            except KeyError:
+            except (KeyError, TypeError):
                 display_name = None
             finally:
                 self._standings_lines.append(StandingLine(

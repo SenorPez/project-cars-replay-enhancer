@@ -142,6 +142,8 @@ def make_video(config_file, *, sync=False):
         except StopIteration:
             break
 
+    end_titles = list();
+
     pcre_results = RaceResultsWithChange(
         sorted(result_data.classification, key=lambda x: x.position),
         result_data.starting_grid,
@@ -151,22 +153,51 @@ def make_video(config_file, *, sync=False):
         output_prefix + '_results.png')
     results = mpy.ImageClip(pcre_results.to_frame()).set_duration(20)
 
-    if not any([
-            x['points'] for x
-            in configuration['participant_config'].values()]):
-        pcre_series_standings = SeriesStandings(
-            result_data.classification,
-            size=source_video.size,
-            **configuration)
-    else:
-        pcre_series_standings = SeriesStandingsWithChange(
-            result_data.classification,
-            size=source_video.size,
-            **configuration)
-    Image.fromarray(pcre_series_standings.to_frame()).save(
-        output_prefix + '_series_standings.png')
-    series_standings = mpy.ImageClip(
-        pcre_series_standings.to_frame()).set_duration(20)
+    end_titles.append(results)
+
+    try:
+        if not any([
+                x['points'] for x
+                in configuration['participant_config'].values()]):
+            pcre_series_standings = SeriesStandings(
+                result_data.classification,
+                size=source_video.size,
+                **configuration)
+
+            Image.fromarray(pcre_series_standings.to_frame()).save(
+                output_prefix + '_series_standings.png')
+            series_standings = mpy.ImageClip(
+                pcre_series_standings.to_frame()).set_duration(20)
+
+            end_titles.append(series_standings)
+        else:
+            pcre_series_standings = SeriesStandingsWithChange(
+                result_data.classification,
+                size=source_video.size,
+                **configuration)
+
+            Image.fromarray(pcre_series_standings.to_frame()).save(
+                output_prefix + '_series_standings.png')
+            series_standings = mpy.ImageClip(
+                pcre_series_standings.to_frame()).set_duration(20)
+
+            end_titles.append(series_standings)
+    except KeyError:
+        try:
+            _ = configuration['point_structure']
+            pcre_series_standings = SeriesStandings(
+                result_data.classification,
+                size=source_video.size,
+                **configuration)
+
+            Image.fromarray(pcre_series_standings.to_frame()).save(
+                output_prefix + '_series_standings.png')
+            series_standings = mpy.ImageClip(
+                pcre_series_standings.to_frame()).set_duration(20)
+
+            end_titles.append(series_standings)
+        except:
+            pass
 
     if champion:
         pcre_series_champion = SeriesChampion(
@@ -178,21 +209,11 @@ def make_video(config_file, *, sync=False):
         series_champion = mpy.ImageClip(
             pcre_series_champion.to_frame()).set_duration(20)
 
-        output = mpy.concatenate_videoclips([
-            starting_grid.fadeout(1),
-            main_event,
-            results.fadein(1).fadeout(1),
-            series_standings.fadein(1).fadeout(1),
-            series_champion.fadein(1)
-        ], method="compose")
+        end_titles.append(series_champion)
 
-    else:
-        output = mpy.concatenate_videoclips([
-            starting_grid.fadeout(1),
-            main_event,
-            results.fadein(1).fadeout(1),
-            series_standings.fadein(1)
-        ], method="compose")
+    output = mpy.concatenate_videoclips([starting_grid.fadeout(1), main_event] + [clip.fadein(1).fadeout(1) for clip in end_titles[:-1]] + [end_titles[-1].fadein(1)], method="compose")
+
+
     output.write_videofile(configuration['output_video'], fps=framerate)
 
 
