@@ -158,10 +158,6 @@ class RaceData:
             grid_data = TelemetryData(
                 self._telemetry_directory,
                 descriptor_filename=self._descriptor_filename)
-            progress = tqdm(
-                desc='Calculating Starting Grid',
-                total=grid_data.packet_count,
-                unit='packets')
             packet = None
 
             while packet is None or packet.packet_type != 0:
@@ -182,7 +178,10 @@ class RaceData:
                 for index, participant_info
                 in enumerate(packet.participant_info)]
 
-            progress.close()
+            self._starting_grid = [
+                entry for entry in self._starting_grid
+                if entry is not None]
+
             return self._starting_grid
 
     @property
