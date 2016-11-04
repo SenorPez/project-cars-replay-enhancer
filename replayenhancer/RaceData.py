@@ -9,8 +9,6 @@ from hashlib import md5
 from itertools import tee
 
 from natsort import natsorted
-from tqdm import tqdm
-
 from replayenhancer.AdditionalParticipantPacket \
     import AdditionalParticipantPacket \
     as AdditionalParticipantPacket
@@ -21,6 +19,7 @@ from replayenhancer.RETelemetryDataPacket \
     import RETelemetryDataPacket \
     as TelemetryDataPacket
 from replayenhancer.StartingGridEntry import StartingGridEntry
+from tqdm import tqdm
 
 
 class RaceData:
@@ -31,11 +30,7 @@ class RaceData:
                  descriptor_filename='descriptor.json'):
         self._classification = list()
         self._starting_grid = list()
-        self._current_drivers = dict()
-        self._retired_drivers = dict()
-
-        self._drivers = list()
-        self._last_drivers = list()
+        self._drivers = dict()
 
         self._elapsed_time = 0.0
         self._add_time = 0.0
@@ -55,7 +50,7 @@ class RaceData:
         try:
             return min([
                 driver.best_lap for driver
-                in self._current_drivers.values()
+                in self._drivers.values()
                 if driver.best_lap is not None])
         except ValueError:
             return None
@@ -86,57 +81,35 @@ class RaceData:
                 self._next_packet.viewed_participant_index == index)
             for index, participant_info
             in enumerate(self._next_packet.participant_info)
-            if self._next_packet.participant_info[index].is_active]\
-                [:self._next_packet.num_participants]
+            if self._next_packet.participant_info[
+                index].is_active][:self._next_packet.num_participants]
 
         return classification
 
     @property
     def current_drivers(self):
-        return {driver_name: driver for driver_name, driver in self.all_drivers.items() if driver.index is not None}
+        """
+        Returns current drivers in the race as a dictionary. Drivers
+        that appear with multiple names in the race (due to UDP trash
+        data) have separate keys, but share the same Driver object as
+        the value.
+        """
+        return {
+            driver_name: driver for driver_name, driver
+            in self.all_drivers.items() if driver.index is not None}
 
     @property
     def all_drivers(self):
         """
-        Returns a dictionary that maps telemetry names (keys) to
-        driver objects (values).
+        Returns all drivers in the data as a dictionary. Drivers that
+        appear with multiple names in the race (due to UDP trash data)
+        have separate keys, but share the same Driver object as the
+        value.
         """
-        if len(self._current_drivers):
-            return self._current_drivers
+        if len(self._drivers):
+            return self._drivers
         else:
-            driver_data = TelemetryData(
-                self._telemetry_directory,
-                descriptor_filename=self._descriptor_filename)
-            progress = tqdm(
-                desc='Getting Drivers',
-                total=driver_data.packet_count,
-                unit='packets')
-            packet = None
-
-            while True:
-                try:
-                    if packet.num_participants != len(self._last_drivers):
-                        self._last_drivers = self._drivers
-                        self._drivers = self._get_drivers(
-                            driver_data,
-                            packet.num_participants,
-                            progress=progress)
-
-                        self._build_driver_name_lookup(
-                            self._drivers,
-                            self._last_drivers,
-                            packet.num_participants)
-                    else:
-                        packet = next(driver_data)
-                        progress.update()
-
-                except AttributeError:
-                    packet = next(driver_data)
-                    progress.update()
-
-                except StopIteration:
-                    progress.close()
-                    return self._current_drivers
+            return None
 
     @property
     def current_lap(self):
@@ -194,21 +167,20 @@ class RaceData:
             while packet is None or packet.packet_type != 0:
                 packet = next(grid_data)
 
-            drivers = self._get_drivers(
-                grid_data,
-                packet.num_participants,
-                progress=progress)
+            drivers = sorted(
+                self._get_drivers(
+                    grid_data,
+                    packet.num_participants).values(),
+                key=lambda x: x.index)
 
             self._starting_grid = [
                 StartingGridEntry(
                     participant_info.race_position,
                     index,
-                    drivers[index].name if len(drivers) > index
-                    else None)
+                    drivers[index].name)
+                if index < len(drivers) else None
                 for index, participant_info
-                in enumerate(packet.participant_info)
-                if packet.participant_info[index].is_active]\
-                    [:packet.num_participants]
+                in enumerate(packet.participant_info)]
 
             progress.close()
             return self._starting_grid
@@ -253,16 +225,15 @@ class RaceData:
                     or self._next_packet.num_participants \
                     != self._last_packet.num_participants:
                 data, restore = tee(self.telemetry_data, 2)
-                self._last_drivers = self._drivers
-                self._drivers = self._get_drivers(
+
+                last_drivers = self._drivers.copy()
+                drivers = self._get_drivers(
                     data,
                     self._next_packet.num_participants)
 
-                self._build_driver_name_lookup(
-                    self._drivers,
-                    self._last_drivers,
-                    self._next_packet.num_participants
-                )
+                self._drivers = self._build_driver_name_lookup(
+                    drivers,
+                    last_drivers)
 
                 del data
                 self._telemetry_data = restore
@@ -271,6 +242,91 @@ class RaceData:
 
             if at_time is None or self._elapsed_time >= at_time:
                 return self._next_packet
+
+    @staticmethod
+    def _build_driver_name_lookup(current_drivers, previous_drivers):
+        return_value = previous_drivers.copy()
+
+        current_drivers_indexed = sorted(
+            [
+                driver for driver in current_drivers.values()
+                if driver.index is not None],
+            key=lambda x: x.index)
+        previous_drivers_indexed = sorted(
+            [
+                driver for driver in set(previous_drivers.values())
+                if driver.index is not None],
+            key=lambda x: x.index)
+
+        """
+        Previous drivers is less than the number of participants.
+        A driver was added, and is in current drivers already. Right?
+        """
+        if len(previous_drivers_indexed) \
+                <= len(current_drivers_indexed):
+            return current_drivers
+
+        """
+        Otherwise, someone was dropped. Need to find the position he
+        was dropped from. The last driver in previous drivers is
+        inserted into that slot.
+
+        First clear all indexes. This accounts for the fact that the
+        dropped driver might be the last driver in previous drivers.
+        We'll reset them during the iteration.
+        """
+        for driver in current_drivers_indexed:
+            driver.clear_index()
+
+        for index, driver in enumerate(current_drivers_indexed):
+            if current_drivers_indexed[index].name \
+                    != previous_drivers_indexed[index].name:
+                """
+                Names don't match, so this is the change. We do the
+                following:
+                1. Clear the index on the previous driver object.
+                """
+                deleted_driver = previous_drivers_indexed[index]
+                deleted_driver.clear_index()
+                return_value[deleted_driver.name] = deleted_driver
+
+                """
+                The last indexed previous driver object is the incoming
+                driver. We retain this one, since it has all the
+                sector and race data to this point.
+                2. Update the index on the last indexed previous driver
+                   object to the new index.
+                3. Set the real name on the last indexed driver object
+                   to the greatest common prefix of the previous and
+                   current driver object names.
+                4. Set the name on the last indexed driver object
+                   to the name of the current driver object.
+                5. Set the dictionary keys for the current and previous
+                   names to the last indexed previous driver object.
+                   They'll point to the same object, so updates happen
+                   in both.
+                """
+                moving_driver = previous_drivers_indexed[-1]
+                moving_driver.index = index
+
+                common_name = os.path.commonprefix([
+                    current_drivers_indexed[index].name,
+                    moving_driver.name])
+                moving_driver.real_name = common_name
+                moving_driver_old_name = moving_driver.name
+                moving_driver.name = current_drivers_indexed[index].name
+
+                return_value[current_drivers_indexed[index].name] \
+                    = moving_driver
+                return_value[moving_driver_old_name] = moving_driver
+            else:
+                """
+                Names match, so this is still the same. Just need to
+                reset the index.
+                """
+                return_value[driver.name].index = index
+
+        return return_value
 
     def _add_sector_times(self, packet):
         for index, participant_info in enumerate(
@@ -292,7 +348,7 @@ class RaceData:
                 sector,
                 participant_info.invalid_lap)
 
-            for name, driver in self._current_drivers.items():
+            for name, driver in self._drivers.items():
                 if driver.index == index:
                     driver.add_sector_time(sector_time)
 
@@ -301,45 +357,20 @@ class RaceData:
             if sector == 1:
                 return min([
                     driver.best_sector_1
-                    for driver in self._current_drivers.values()
+                    for driver in self._drivers.values()
                     ])
             elif sector == 2:
                 return min([
                     driver.best_sector_2
-                    for driver in self._current_drivers.values()])
+                    for driver in self._drivers.values()])
             elif sector == 3:
                 return min([
                     driver.best_sector_3
-                    for driver in self._current_drivers.values()])
+                    for driver in self._drivers.values()])
             else:
                 raise ValueError
         except ValueError:
             return None
-
-    def _build_driver_name_lookup(self, drivers, last_drivers, count):
-        if len(last_drivers) < count:
-            for driver in drivers:
-                self._current_drivers = \
-                    self._set_driver(
-                        self._current_drivers,
-                        driver)
-        else:
-            for index, driver in enumerate(drivers):
-                if last_drivers[index].name \
-                        != drivers[index].name:
-
-                    self._current_drivers[last_drivers[index].name].clear_index()
-
-                    self._current_drivers = \
-                        self._set_driver(
-                            self._current_drivers,
-                            drivers[index],
-                            last_drivers[-1])
-                else:
-                    self._current_drivers = \
-                        self._set_driver(
-                            self._current_drivers,
-                            drivers[index])
 
     @staticmethod
     def _calc_elapsed_time(next_packet, add_time, last_packet):
@@ -357,11 +388,9 @@ class RaceData:
         return elapsed_time, add_time, last_packet
 
     @staticmethod
-    def _get_drivers(telemetry_data, count, *, progress=None):
+    def _get_drivers(telemetry_data, count):
         drivers = list()
         packet = next(telemetry_data)
-        if progress is not None:
-            progress.update()
 
         while len(drivers) < count:
             if packet.packet_type == 0 \
@@ -378,22 +407,8 @@ class RaceData:
                     drivers.append(Driver(index, name))
 
             packet = next(telemetry_data)
-            if progress is not None:
-                progress.update()
 
-        return drivers[:count]
-
-    @staticmethod
-    def _set_driver(driver_lookup, driver_1, driver_2=None):
-        if driver_2 is not None:
-            common = os.path.commonprefix([driver_1.name,
-                                           driver_2.name])
-            driver_1.real_name = common
-            driver_lookup[driver_1.name] = driver_1
-            driver_lookup[driver_2.name] = driver_1
-        elif driver_1.name not in driver_lookup:
-            driver_lookup[driver_1.name] = driver_1
-        return driver_lookup
+        return {driver.name: driver for driver in drivers[:count]}
 
 
 class ClassificationEntry:
@@ -459,7 +474,7 @@ class Driver:
     def __init__(self, index, name):
         self._index = index
         self._name = name
-        self._real_name = name
+        self._real_name = None
 
         self._sector_times = list()
 
@@ -492,6 +507,10 @@ class Driver:
     def index(self):
         return self._index
 
+    @index.setter
+    def index(self, value):
+        self._index = value
+
     @property
     def laps_complete(self):
         return len(self._sector_times) // 3
@@ -518,6 +537,10 @@ class Driver:
     def name(self):
         return self._name
 
+    @name.setter
+    def name(self, value):
+        self._name = value
+
     @property
     def race_time(self):
         return sum([
@@ -525,7 +548,8 @@ class Driver:
 
     @property
     def real_name(self):
-        return self._real_name
+        return self._name if self._real_name is None \
+            else self._real_name
 
     @real_name.setter
     def real_name(self, value):
@@ -811,7 +835,8 @@ class TelemetryData:
             with open(packet, 'rb') as packet_file:
                 packet_data = packet_file.read()
 
-            if descriptor is not None and md5(packet_data).hexdigest() == descriptor['race_end']:
+            if descriptor is not None and md5(packet_data).hexdigest() \
+                    == descriptor['race_end']:
                 raise StopIteration
 
             if find_start and \
