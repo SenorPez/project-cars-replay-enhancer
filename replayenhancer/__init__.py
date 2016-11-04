@@ -142,7 +142,7 @@ def make_video(config_file, *, sync=False):
         except StopIteration:
             break
 
-    end_titles = list();
+    end_titles = list()
 
     pcre_results = RaceResultsWithChange(
         sorted(result_data.classification, key=lambda x: x.position),
@@ -212,7 +212,6 @@ def make_video(config_file, *, sync=False):
         end_titles.append(series_champion)
 
     output = mpy.concatenate_videoclips([starting_grid.fadeout(1), main_event] + [clip.fadein(1).fadeout(1) for clip in end_titles[:-1]] + [end_titles[-1].fadein(1)], method="compose")
-
 
     output.write_videofile(configuration['output_video'], fps=framerate)
 

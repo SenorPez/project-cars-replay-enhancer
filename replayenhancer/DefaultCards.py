@@ -65,8 +65,12 @@ class RaceResults(StaticBase):
                 'ERROR',
                 'Driver')
 
-        self.add_lookup('driver_name', team_lookup, '', 'Team')
-        self.add_lookup('driver_name', car_lookup, '', 'Car')
+        if team_lookup is not None:
+            self.add_lookup('driver_name', team_lookup, '', 'Team')
+
+        if car_lookup is not None:
+            self.add_lookup('driver_name', car_lookup, '', 'Car')
+
         self.add_column('laps_complete', 'Laps', align='center')
         self.add_column(
             'race_time',
@@ -93,13 +97,15 @@ class RaceResults(StaticBase):
             'Best S3',
             formatter=self.format_time,
             align='center')
-        formatter_args = {'point_structure': point_structure}
-        self.add_column(
-            'calc_points_data',
-            'Points',
-            formatter=self.calc_points,
-            formatter_args=formatter_args,
-            align='center')
+
+        if point_structure is not None:
+            formatter_args = {'point_structure': point_structure}
+            self.add_column(
+                'calc_points_data',
+                'Points',
+                formatter=self.calc_points,
+                formatter_args=formatter_args,
+                align='center')
 
     def calc_points(self, value, **kwargs):
         driver_name, position, best_lap = value
@@ -188,14 +194,19 @@ class StartingGrid(StaticBase):
                 'ERROR',
                 'Driver')
 
-        self.add_lookup('driver_name', team_lookup, '', 'Team')
-        self.add_lookup('driver_name', car_lookup, '', 'Car')
-        self.add_lookup(
-            'driver_name',
-            points_lookup,
-            0,
-            'Points',
-            align='center')
+        if team_lookup is not None:
+            self.add_lookup('driver_name', team_lookup, '', 'Team')
+
+        if car_lookup is not None:
+            self.add_lookup('driver_name', car_lookup, '', 'Car')
+
+        if points_lookup is not None or 'point_structure' in kwargs:
+            self.add_lookup(
+                'driver_name',
+                points_lookup,
+                0,
+                'Points',
+                align='center')
 
 
 class SeriesStandings(RaceResults):
@@ -270,12 +281,12 @@ class SeriesStandings(RaceResults):
                 'ERROR',
                 'Driver')
 
-        self.add_lookup(
-            'driver_name',
-            team_lookup,
-            '',
-            'Team')
-        self.add_lookup('driver_name', car_lookup, '', 'Car')
+        if team_lookup is not None:
+            self.add_lookup('driver_name', team_lookup, '', 'Team')
+
+        if car_lookup is not None:
+            self.add_lookup('driver_name', car_lookup, '', 'Car')
+
         self.add_column(
             'calc_points_data',
             'Points',
