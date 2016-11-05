@@ -55,15 +55,15 @@ def make_video(config_file, *, sync=False):
     try:
         video_skipend = configuration['video_skipend']
     except KeyError:
-        video_skipend = 0
+        video_skipend = None
 
-    try:
+    if 'source_video' in configuration:
         source_video = mpy.VideoFileClip(
             configuration['source_video']
         ).subclip(
             video_skipstart,
             video_skipend)
-    except KeyError:
+    else:
         time_data = RaceData(configuration['source_telemetry'])
         with tqdm(desc="Processing telemetry") as progress:
             while True:
