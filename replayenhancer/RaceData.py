@@ -99,6 +99,18 @@ class RaceData:
             in self.all_drivers.items() if driver.index is not None}
 
     @property
+    def driver_names(self):
+        """
+        Returns a dictionary. For each key, all possible names appear.
+        """
+        drivers = self.all_drivers
+        driver_names = dict().fromkeys(drivers.keys())
+        for driver_name in driver_names.keys():
+            driver_names[driver_name] = [key for key, value in drivers.items() if value == drivers[driver_name]]
+
+        return driver_names
+
+    @property
     def all_drivers(self):
         """
         Returns all drivers in the data as a dictionary. Drivers that

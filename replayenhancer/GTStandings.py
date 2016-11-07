@@ -185,50 +185,142 @@ class GTStandings:
         _, material_height = self._size
         y_position = material_height-self._row_height-1
 
+        # classification = sorted(
+        #     self._race_data.classification,
+        #     key=lambda x: x.position,
+        #     reverse=True)
+        # standings_lines = list()
+
+        # if len(classification) != len(self._standings_lines):
+        #     classification_names = {entry.driver_name for entry in classification}
+        #     standings_names = {entry.driver.name for entry in self._standings_lines}
+        #     missing_name = standings_names - classification_names
+        #
+        #     for name in missing_name:
+        #         line = next(
+        #             line for line in self._standings_lines
+        #             if line.driver.name == name)
+        #         y_position -= self._row_height + 1
+        #
+        # for entry in classification:
+        #     x_offset = 0
+        #     y_offset = 0
+        #
+        #     names = self._race_data.driver_names
+        #     try:
+        #         line = next(
+        #             line for line in self._standings_lines
+        #             if line.driver.name in names[entry.driver_name])
+        #     except StopIteration:
+        #         line = StandingLine(
+        #             entry,
+        #             (self._row_width, self._row_height),
+        #             self._font,
+        #             flyout_width=self._flyout_width,
+        #             display_name=entry.driver.name,
+        #             ups=self._ups
+        #         )
+        #         self._standings_lines.insert(entry.position, line)
+        #
+        #     position_diff = line.position - entry.position
+        #     animation_offset = \
+        #         self._row_height \
+        #         * position_diff \
+        #         + position_diff
+        #     if animation_offset != 0:
+        #         line.animations.append(
+        #             Animation(self._ups, (0, animation_offset)))
+        #         line.position = entry.position
+        #
+        #     if entry.laps_complete != line.laps_complete \
+        #             and self._race_data.race_state == 2 \
+        #             and line.flyout is None:
+        #         block_height = self._font.getsize("A")[1]
+        #         flyout_margin = int(
+        #             (self._row_height - block_height) / 2)
+        #         if entry.position == 1:
+        #             line.flyout = LapTimeFlyout(
+        #                 self._race_data,
+        #                 entry.driver,
+        #                 self._font,
+        #                 (self._flyout_width, self._row_height),
+        #                 margin=flyout_margin)
+        #         else:
+        #             line.flyout = GapTimeFlyout(
+        #                 self._race_data,
+        #                 entry.driver,
+        #                 self._font,
+        #                 (self._flyout_width, self._row_height),
+        #                 margin=flyout_margin)
+        #
+        #     line.driver = copy(entry.driver)
+        #
+        #     for animation in line.animations:
+        #         x_adj, y_adj = animation.offset
+        #         x_offset += x_adj
+        #         y_offset += y_adj
+        #
+        #     line_output = line.to_frame()
+        #
+        #     material.paste(
+        #         line_output,
+        #         (x_position+x_offset, y_position+y_offset))
+        #
+        #     standings_lines.append(line)
+        #     y_position -= self._row_height + 1
+
+        standings_lines = list()
         classification = sorted(
             self._race_data.classification,
-            key=lambda x: x.position,
-            reverse=True)
-        standings_lines = list()
+            key=lambda x: x.position)
 
-        for entry in classification:
-            x_offset = 0
-            y_offset = 0
-            line = next(line for line in self._standings_lines
-                        if line.driver.name == entry.driver_name)
+        dropping_lines = set()
+        # for line in reversed(self._standings_lines):
+        for line in sorted(self._standings_lines, key=lambda x: x.position, reverse=True):
+            try:
+                x_offset = 0
+                y_offset = 0
 
-            position_diff = line.position - entry.position
-            animation_offset = \
-                self._row_height \
-                * position_diff \
-                + position_diff
-            if animation_offset != 0:
-                line.animations.append(
-                    Animation(self._ups, (0, animation_offset)))
-                line.position = entry.position
+                names = self._race_data.driver_names
+                entry = next(
+                    entry for entry in classification
+                    if entry.driver_name in names[line.driver.name])
+            except StopIteration:
+                if line not in dropping_lines:
+                    line.animations.append(
+                        Animation(self._ups, (0, 0), (-self._row_width, 0)))
+                    y_position += self._row_height + 1
+                    dropping_lines.add(line)
+            else:
+                position_diff = line.position - entry.position
+                animation_offset = self._row_height * position_diff + position_diff
+                if animation_offset != 0:
+                    line.animations.append(
+                        Animation(self._ups, (0, animation_offset)))
+                    line.position = entry.position
 
-            if entry.laps_complete != line.laps_complete \
-                    and self._race_data.race_state == 2 \
-                    and line.flyout is None:
-                block_height = self._font.getsize("A")[1]
-                flyout_margin = int(
-                    (self._row_height - block_height) / 2)
-                if entry.position == 1:
-                    line.flyout = LapTimeFlyout(
-                        self._race_data,
-                        entry.driver,
-                        self._font,
-                        (self._flyout_width, self._row_height),
-                        margin=flyout_margin)
-                else:
-                    line.flyout = GapTimeFlyout(
-                        self._race_data,
-                        entry.driver,
-                        self._font,
-                        (self._flyout_width, self._row_height),
-                        margin=flyout_margin)
+                if entry.laps_complete != line.laps_complete \
+                        and self._race_data.race_state == 2 \
+                        and line.flyout is None:
+                    block_height = self._font.getsize("A")[1]
+                    flyout_margin = int(
+                        (self._row_height - block_height) / 2)
+                    if entry.position == 1:
+                        line.flyout = LapTimeFlyout(
+                            self._race_data,
+                            entry.driver,
+                            self._font,
+                            (self._flyout_width, self._row_height),
+                            margin=flyout_margin)
+                    else:
+                        line.flyout = GapTimeFlyout(
+                            self._race_data,
+                            entry.driver,
+                            self._font,
+                            (self._flyout_width, self._row_height),
+                            margin=flyout_margin)
 
-            line.driver = copy(entry.driver)
+                line.driver = copy(entry.driver)
 
             for animation in line.animations:
                 x_adj, y_adj = animation.offset
@@ -239,9 +331,9 @@ class GTStandings:
 
             material.paste(
                 line_output,
-                (x_position+x_offset, y_position+y_offset))
+                (x_position + x_offset, y_position + y_offset))
 
-            standings_lines.append(line)
+            standings_lines.insert(0, line)
             y_position -= self._row_height + 1
 
         self._standings_lines = standings_lines
@@ -626,9 +718,13 @@ class TimeFlyout(Flyout):
     def text_color(self):
         if self._driver.last_lap_invalid:
             return self._invalid_text_color
-        elif self._driver.last_lap_time <= self._race_data.best_lap:
+        elif self._race_data.best_lap is not None \
+                and self._driver.last_lap_time is not None \
+                and self._driver.last_lap_time <= self._race_data.best_lap:
             return self._session_best_text_color
-        elif self._driver.last_lap_time <= self._driver.best_lap:
+        elif self._driver.best_lap is not None \
+                and self._driver.last_lap_time is not None \
+                and self._driver.last_lap_time <= self._driver.best_lap:
             return self._personal_best_text_color
         else:
             return self._text_color
