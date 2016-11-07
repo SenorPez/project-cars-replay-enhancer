@@ -29,6 +29,8 @@ class GTStandings:
         self._options = kwargs
         self._flyout = None
 
+        self._dropping_lines = set()
+
         self._last_frame = None
 
         #  If set, get the telemetry synchronization value.
@@ -113,14 +115,6 @@ class GTStandings:
                     self._margin + self._row_width - 1,
                     self._margin + self._row_height)],
             fill='white', width=1)
-        draw.line(
-            [
-                (0, material_height - 1),
-                (
-                    self._margin + self._row_width - 1,
-                    material_height - 1)],
-            fill='white',
-            width=1)
 
         self._timer = Header(
             self._race_data,
@@ -176,128 +170,71 @@ class GTStandings:
 
     def _make_material(self):
         material = self._base_material.copy()
-
-        x_position = self._margin
-        y_position = self._margin
-
-        material.paste(self._timer.to_frame(), (x_position, y_position))
-
-        _, material_height = self._size
-        y_position = material_height-self._row_height-1
-
-        # classification = sorted(
-        #     self._race_data.classification,
-        #     key=lambda x: x.position,
-        #     reverse=True)
-        # standings_lines = list()
-
-        # if len(classification) != len(self._standings_lines):
-        #     classification_names = {entry.driver_name for entry in classification}
-        #     standings_names = {entry.driver.name for entry in self._standings_lines}
-        #     missing_name = standings_names - classification_names
-        #
-        #     for name in missing_name:
-        #         line = next(
-        #             line for line in self._standings_lines
-        #             if line.driver.name == name)
-        #         y_position -= self._row_height + 1
-        #
-        # for entry in classification:
-        #     x_offset = 0
-        #     y_offset = 0
-        #
-        #     names = self._race_data.driver_names
-        #     try:
-        #         line = next(
-        #             line for line in self._standings_lines
-        #             if line.driver.name in names[entry.driver_name])
-        #     except StopIteration:
-        #         line = StandingLine(
-        #             entry,
-        #             (self._row_width, self._row_height),
-        #             self._font,
-        #             flyout_width=self._flyout_width,
-        #             display_name=entry.driver.name,
-        #             ups=self._ups
-        #         )
-        #         self._standings_lines.insert(entry.position, line)
-        #
-        #     position_diff = line.position - entry.position
-        #     animation_offset = \
-        #         self._row_height \
-        #         * position_diff \
-        #         + position_diff
-        #     if animation_offset != 0:
-        #         line.animations.append(
-        #             Animation(self._ups, (0, animation_offset)))
-        #         line.position = entry.position
-        #
-        #     if entry.laps_complete != line.laps_complete \
-        #             and self._race_data.race_state == 2 \
-        #             and line.flyout is None:
-        #         block_height = self._font.getsize("A")[1]
-        #         flyout_margin = int(
-        #             (self._row_height - block_height) / 2)
-        #         if entry.position == 1:
-        #             line.flyout = LapTimeFlyout(
-        #                 self._race_data,
-        #                 entry.driver,
-        #                 self._font,
-        #                 (self._flyout_width, self._row_height),
-        #                 margin=flyout_margin)
-        #         else:
-        #             line.flyout = GapTimeFlyout(
-        #                 self._race_data,
-        #                 entry.driver,
-        #                 self._font,
-        #                 (self._flyout_width, self._row_height),
-        #                 margin=flyout_margin)
-        #
-        #     line.driver = copy(entry.driver)
-        #
-        #     for animation in line.animations:
-        #         x_adj, y_adj = animation.offset
-        #         x_offset += x_adj
-        #         y_offset += y_adj
-        #
-        #     line_output = line.to_frame()
-        #
-        #     material.paste(
-        #         line_output,
-        #         (x_position+x_offset, y_position+y_offset))
-        #
-        #     standings_lines.append(line)
-        #     y_position -= self._row_height + 1
+        material.paste(
+            self._timer.to_frame(),
+            (self._margin, self._margin))
 
         standings_lines = list()
-        classification = sorted(
-            self._race_data.classification,
-            key=lambda x: x.position)
+        classification = self._race_data.classification
 
-        dropping_lines = set()
-        # for line in reversed(self._standings_lines):
-        for line in sorted(self._standings_lines, key=lambda x: x.position, reverse=True):
+        max_y_position = 0
+
+        for line in sorted(
+                self._standings_lines,
+                key=lambda x: (x.position, x in self._dropping_lines),
+                reverse=True):
+            x_position = self._margin
+            y_position = \
+                self._margin \
+                + self._row_height * line.position \
+                + line.position
+
+            x_offset = 0
+            y_offset = 0
+
             try:
-                x_offset = 0
-                y_offset = 0
-
                 names = self._race_data.driver_names
                 entry = next(
                     entry for entry in classification
                     if entry.driver_name in names[line.driver.name])
             except StopIteration:
-                if line not in dropping_lines:
-                    line.animations.append(
-                        Animation(self._ups, (0, 0), (-self._row_width, 0)))
-                    y_position += self._row_height + 1
-                    dropping_lines.add(line)
+                if line in self._dropping_lines and all([
+                        animation.complete
+                        for animation in line.animations]):
+                    self._dropping_lines.remove(line)
+                else:
+                    if line not in self._dropping_lines:
+                        line.flyout = None
+                        line.animations.append(
+                            Animation(
+                                self._ups,
+                                (0, 0),
+                                (-line.size[0], 0)))
+                        self._dropping_lines.add(line)
+                    for animation in line.animations:
+                        x_adj, y_adj = animation.offset
+                        x_offset += x_adj
+                        y_offset += y_adj
+
+                    line_output = line.to_frame()
+                    line_output = line_output.crop(
+                        (0, 0, line.size[0], line.size[1]))
+
+                    material.paste(
+                        line_output,
+                        (x_position + x_offset, y_position + y_offset))
+
+                    standings_lines.insert(0, line)
             else:
                 position_diff = line.position - entry.position
-                animation_offset = self._row_height * position_diff + position_diff
+                animation_offset = \
+                    self._row_height * position_diff \
+                    + position_diff
                 if animation_offset != 0:
                     line.animations.append(
                         Animation(self._ups, (0, animation_offset)))
                     line.position = entry.position
+                    y_offset -= animation_offset
 
                 if entry.laps_complete != line.laps_complete \
                         and self._race_data.race_state == 2 \
@@ -322,19 +259,32 @@ class GTStandings:
 
                 line.driver = copy(entry.driver)
 
-            for animation in line.animations:
-                x_adj, y_adj = animation.offset
-                x_offset += x_adj
-                y_offset += y_adj
+                for animation in line.animations:
+                    x_adj, y_adj = animation.offset
+                    x_offset += x_adj
+                    y_offset += y_adj
 
-            line_output = line.to_frame()
+                line_output = line.to_frame()
 
-            material.paste(
-                line_output,
-                (x_position + x_offset, y_position + y_offset))
+                material.paste(
+                    line_output,
+                    (x_position + x_offset, y_position + y_offset))
 
-            standings_lines.insert(0, line)
-            y_position -= self._row_height + 1
+                standings_lines.insert(0, line)
+
+                max_y_position = max(
+                    max_y_position,
+                    y_position + y_offset)
+
+        draw = ImageDraw.Draw(material)
+        draw.line(
+            [
+                (0, max_y_position + self._row_height),
+                (
+                    self._margin + self._row_width - 1,
+                    max_y_position + self._row_height)],
+            fill='white',
+            width=1)
 
         self._standings_lines = standings_lines
         return material
@@ -489,6 +439,10 @@ class StandingLine:
             return self._viewed_position_text_color
         else:
             return self._position_text_color
+
+    @property
+    def size(self):
+        return self._size
 
     @property
     def ups(self):
