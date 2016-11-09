@@ -349,10 +349,12 @@ class RaceData:
             elif participant_info.sector == 3:
                 sector = 2
             else:
-                error_message = \
-                    "Invalid sector number. Value was: {}".format(
-                        participant_info.sector)
-                raise ValueError(error_message)
+                """
+                TODO: Investigate instance of a driver existing but having an
+                invalid sector number (0). I suspect it's due to a network
+                timeout.
+                """
+                return
 
             sector_time = SectorTime(
                 participant_info.last_sector_time,
@@ -862,11 +864,18 @@ class TelemetryData:
             elif find_populate and \
                     len(packet_data) == 1367:
                 packet = TelemetryDataPacket(packet_data)
-                if not any([
-                        participant.race_position
-                        for participant
-                        in packet.participant_info]
-                           [:packet.num_participants]):
+                """
+                TODO: Make sure this is actually correct. I think it's due
+                to network lag during race loading.
+                """
+                positions = [
+                    participant.race_position for participant
+                    in packet.participant_info][:packet.num_participants]
+                sectors = [
+                    participant.sector for participant
+                    in packet.participant_info][:packet.num_participants]
+
+                if not all(positions) or not all(sectors):
                     continue
                 else:
                     find_populate = False
