@@ -17,6 +17,11 @@ The scripts are currently not fast enough for live broadcasting.
 * [NumPy](http://www.numpy.org/ "NumPy")
 * [Pillow](https://pypi.python.org/pypi/Pillow "Pillow")
 
+##Installation
+The Project CARS Replay Enhancer can be installed with `pip`: `pip install replayenhancer`.
+
+> **NOTE:** Depending on your environment, you may need to explicitly call pip using your python installation. For example: `python -m pip install replayenhancer` or `python3 -m pip install replayenhancer`.
+
 ## Usage
 ###Telemetry Capture:
 Telemetry packet capture is performed by running the `packetgrab.py` script on the network. This captures UDP packets broadcast by Project CARS (make sure you've enabled UDP broadcast) and store them to a subdirectory for future processing.
