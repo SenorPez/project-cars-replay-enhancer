@@ -18,7 +18,7 @@ setup(
     long_description=long_description,
     url='https://github.com/SenorPez/project-cars-replay-enhancer',
     author='Senor Pez',
-    author_email='see@github',
+    author_email='contact_at_github@example.org',
     license='MIT',
     classifiers=[
         'Development Status :: 3 - Alpha',
