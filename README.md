@@ -1,9 +1,9 @@
-# Project CARS Replay Enhancer [![Build Status](https://travis-ci.org/SenorPez/project-cars-replay-enhancer.svg?branch=0.4-rewrite)](https://travis-ci.org/SenorPez/project-cars-replay-enhancer) [![codecov](https://codecov.io/gh/SenorPez/project-cars-replay-enhancer/branch/0.4-rewrite/graph/badge.svg)](https://codecov.io/gh/SenorPez/project-cars-replay-enhancer)
+# Project CARS Replay Enhancer [![Build Status](https://travis-ci.org/SenorPez/project-cars-replay-enhancer.svg?branch=0.5-devel)](https://travis-ci.org/SenorPez/project-cars-replay-enhancer) [![codecov](https://codecov.io/gh/SenorPez/project-cars-replay-enhancer/branch/0.5-devel/graph/badge.svg)](https://codecov.io/gh/SenorPez/project-cars-replay-enhancer)
 
 Combines telemetry data with replay video to improve Project CARS replays.
 
-Current release: 0.4  
-Current edge state: Very Rough  
+Current release: 0.5
+Current edge state: Getting There, Maybe
 Current mood: Frustrated  
 
 The Project CARS Replay Enhancer (I'd call it PCRE, [but that's taken](http://www.pcre.org/ "PCRE")) is intended to augment Project CARS replays by combining captured telemetry data with replay video. The project is currently in a rough state, being rewritten from the ground-up to be more stable, better tested, and faster.
@@ -11,7 +11,7 @@ The Project CARS Replay Enhancer (I'd call it PCRE, [but that's taken](http://ww
 The scripts are currently not fast enough for live broadcasting.
 
 ## Requirements
-* [Python 3.3](https://www.python.org/download/releases/3.4.0/ "Python 3.3.0") or greater
+* [Python 3.3](https://www.python.org/download/releases/3.3.0/ "Python 3.3.0") or greater
 * [MoviePy](http://zulko.github.io/moviepy/ "MoviePy")
 * [natsort](https://pypi.python.org/pypi/natsort "natsort")
 * [NumPy](http://www.numpy.org/ "NumPy")
@@ -33,25 +33,19 @@ There are a few things to do to optimize the telemetry data used by the Project 
 ###Video Capture:
 There is no video capture functionality included in the scripts. How you get the video to your local machine is left as an exercise for the reader. For my PS4, I stream the replay to YouTube which then archives it and then can be downloaded using [youtube-dl](https://rg3.github.io/youtube-dl/ "youtube-dl"). Video capture devices such as an Elgato work just fine as well (probably better, actually).
     
-###Getting Started:
-> **NOTE:** Depending on your install environment, you may need to substitute `python3` for `python` in the following commands, to force usage of Python 3.3+. This is most typical on a Linux system, where Python 2.x is the default.
+###Configuration Files:
+Project CARS Replay Enhancer configuration files are JSON files, and can be created by using the [Project CARS Replay Enhancer UI](https://github.com/SenorPez/project-cars-replay-enhancer-ui) or by creating them by hand. See [Configuration File Format](https://github.com/SenorPez/project-cars-replay-enhancer/wiki/Configuration-File-Format) for details on recognized fields.
 
-To create a new configuration file, run the Project CARS Replay Enhancer with no command line arguments: `python ReplayEnhancer.py`.
+###Telemetry Synchronization:
+For best results, the telemetry data feed must be synchronized to the video feed; there is no way to automatically perform this. To aid with this synchronization, run the Project CARS Replay Enhancer is the `-s` option and the desired configuration file. For example, `replayenhancer -s config.json`.
 
-To edit an existing configuration file, or use an existing configuration file as the defaults for a new configuration file, run the Project CARS Replay Enhancer with the `-c` option and the name of the configuration file: `python ReplayEnhancer.py -c config_file.json`
-
-Once the configuration file is completed, the Project CARS Replay Enhancer creates a low-quality, shortened video. This video can be used to confirm the title, results, standings, and--if enabled--champion screens, as well as the video trimming.
-
-To adjust the video trimming, run the Project CARS Replay Enhancer with the `-t` option and the name of the configuration file: `python ReplayEnhancer.py -t config_file.json`. The trimming parameters are adjusted and another low-quality, shortened video is created to confirm the trimming.
-
-> **NOTE:** If you have previously set a telemetry synchronization value (see below), it will be reset to 0.0 if either the detection parameters or start trimming parameters are changed.
-
-To adjust the telemetry synchronization, run the Project CARS Replay Enhancer with the `-r` option and the name of the configuration file: `python ReplayEnhancer.py -r config_file.json`. To determine the telemetry synchronization value, view the time on the timer when the subject car crosses the start-finish line to begin Lap #2.
-* If the timer shows Lap 2 has already begun, the telemetry needs to start later. Add the amount of time on the timer to the telemetry synchronization value. (This is the typical scenario.)
-* If the timer shows Lap 1 is still in progress, the telemetry needs to start sooner. Subtract the difference between the time on the timer and the time of Lap 1 (obtainable from the standings display) from the telemetry synchronization value.
+A low-quality video that encompasses only the first lap of the race is created, along with a timer overlay. To determine the telemetry synchronization, compare the time on this overlay with the lap time of a car as it crosses the start-finish line. These two times should be identical; if they are not, the syncronization needs to be adjusted.
+* If the value on the timer is greater than the lap time (this is the typical scenario), add the difference between the timer and the lap time to the telemetry synchronization value.
+* If the value on the timer is less than the lap time, subtract the difference between the timer and the lap time from the telemetry synchronization value.
 After adjusting the telemetry synchronization, another low-quality, shortened video is created to confirm the synchronization.
 
-Once the configuration is complete, create the full-length, full-quality video by providing the Project CARS Replay Enhancer with the configuration file, and no options: `python ReplayEnhancer.py config_file.json`.
+###Creating a Replay
+To create the full, enhanced replay, provide the Project Cars Replay Enhancer with a valid configuration file. For example, `replayenhancer config.json`.
       
 ##Enhancing the Enhancer?
 You're more than welcome to do so! Write new modules, speed up new modules, feel free. If you have any issues or questions please communicate them here! I'm always looking for help.
