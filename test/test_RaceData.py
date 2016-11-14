@@ -525,9 +525,12 @@ class TestDriver(unittest.TestCase):
     def test_method_add_sector_time_invalidate_first_lap(self):
         instance = Driver(sentinel.index, sentinel.name)
         sectors = [
-            (sentinel.time_1, 1, False),
-            (sentinel.time_2, 2, False),
-            (sentinel.time_3, 3, True)]
+            (sentinel.time_s1, 1, False),
+            (sentinel.time_s2, 2, False),
+            (sentinel.time_s2, 2, True),
+            (sentinel.time_s3, 3, False)
+        ]
+
         for time, sector, invalid in sectors:
             with patch(
                     'replayenhancer.RaceData.SectorTime',
@@ -535,23 +538,28 @@ class TestDriver(unittest.TestCase):
                 sector_time = SectorTime(time, sector, invalid)
                 sector_time.sector = sector
                 sector_time.time = time
-                sector_time.invalid = invalid
+                if instance._invalidate_next_sector_count > 0:
+                    sector_time.invalid = True
+                else:
+                    sector_time.invalid = invalid
 
                 instance.add_sector_time(sector_time)
 
-        self.assertEqual(len(instance._sector_times), len(sectors))
-        self.assertTrue(all([sector_time.invalid for sector_time in
-                             instance._sector_times]))
+        self.assertEqual(len(instance._sector_times), 3)
+        self.assertTrue(all([sector_time.invalid for sector_time in instance._sector_times]))
 
     def test_method_add_sector_time_invalidate_later_lap(self):
         instance = Driver(sentinel.index, sentinel.name)
         sectors = [
-            (sentinel.time_1, 1, False),
-            (sentinel.time_2, 2, False),
-            (sentinel.time_3, 3, False),
-            (sentinel.time_4, 1, False),
-            (sentinel.time_5, 2, True),
-            (sentinel.time_6, 3, True)]
+            (sentinel.time_l1s1, 1, False),
+            (sentinel.time_l1s2, 2, False),
+            (sentinel.time_l1s3, 3, False),
+            (sentinel.time_l2s1, 1, False),
+            (sentinel.time_l2s2, 2, False),
+            (sentinel.time_l2s2, 2, True),
+            (sentinel.time_l2s3, 3, True)
+        ]
+
         for time, sector, invalid in sectors:
             with patch(
                     'replayenhancer.RaceData.SectorTime',
@@ -559,7 +567,7 @@ class TestDriver(unittest.TestCase):
                 sector_time = SectorTime(time, sector, invalid)
                 sector_time.sector = sector
                 sector_time.time = time
-                sector_time.invalid = invalid
+                sector_time.invalid = True if instance._invalidate_next_sector_count > 0 else invalid
 
                 instance.add_sector_time(sector_time)
 
@@ -574,7 +582,6 @@ class TestDriver(unittest.TestCase):
             sector_time.invalid
             for sector_time in instance._sector_times[3:]]
         self.assertTrue(all(result))
-
 
 if __name__ == "__main__":
     unittest.main()
