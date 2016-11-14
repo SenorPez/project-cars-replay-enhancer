@@ -765,10 +765,14 @@ class TelemetryData:
         # Exhaust packets until the race end.
         # TODO: Support for other ways to finish a race?
         while True:
-            old_packet = packet
-            packet = next(telemetry_data)
-            progress.update()
-            if packet.packet_type == 0 and packet.race_state != 3:
+            try:
+                old_packet = packet
+                packet = next(telemetry_data)
+                progress.update()
+                if packet.packet_type == 0 and packet.race_state != 3:
+                    break
+            except StopIteration:
+                old_packet = packet
                 break
 
         progress.close()
