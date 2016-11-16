@@ -92,6 +92,7 @@ class TestRaceData(unittest.TestCase):
         self.instance._drivers = dict()
         self.assertIsNone(self.instance.best_lap)
 
+    @unittest.skipIf(sys.version_info < (3, 5), "Not supported.")
     def test_property_best_lap_error(self):
         with patch('replayenhancer.RaceData.min') as mock_min:
             mock_min.side_effect = ValueError

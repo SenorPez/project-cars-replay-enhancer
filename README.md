@@ -3,7 +3,9 @@
 Combines telemetry data with replay video to improve Project CARS replays.
 
 Current release: 0.5
+
 Current edge state: Getting There, Maybe
+
 Current mood: Frustrated  
 
 The Project CARS Replay Enhancer (I'd call it PCRE, [but that's taken](http://www.pcre.org/ "PCRE")) is intended to augment Project CARS replays by combining captured telemetry data with replay video. The project is currently in a rough state, being rewritten from the ground-up to be more stable, better tested, and faster.
