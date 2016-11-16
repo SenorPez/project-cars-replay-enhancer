@@ -2,7 +2,7 @@
 Tests RaceData.py.
 """
 import unittest
-from unittest.mock import patch, sentinel
+from unittest.mock import MagicMock, PropertyMock, patch, sentinel
 
 from replayenhancer.RaceData import RaceData, Driver
 
@@ -11,36 +11,136 @@ class TestRaceData(unittest.TestCase):
     """
     Tests against the RaceData object.
     """
+    instance = None
 
-    @unittest.skip("Not sure why this broke?"
-                   "Further implementation needed.")
-    @patch('replayenhancer.RaceData.TelemetryData', autospec=True)
-    def test_init(self, mock_telemetry):
-        mock_telemetry.return_value = sentinel.telemetry_data
+    def setUp(self):
+        with patch('replayenhancer.RaceData.TelemetryData') \
+                as mock_telemetry_data, \
+                patch('replayenhancer.RaceData.RaceData.get_data') \
+                as mock_get_data:
+            mock_telemetry_data.return_value = sentinel.telemetry_data
+            mock_get_data.return_value = sentinel.get_data
+            self.instance = RaceData(sentinel.directory)
 
-        instance = RaceData(sentinel.directory)
+        mock_driver_1 = MagicMock(spec=Driver)
+        type(mock_driver_1).best_lap = PropertyMock(return_value=24.88)
+        type(mock_driver_1).best_sector_1 = PropertyMock(return_value=2.83)
+        type(mock_driver_1).best_sector_2 = PropertyMock(return_value=13.64)
+        type(mock_driver_1).best_sector_3 = PropertyMock(return_value=8.37)
+        type(mock_driver_1).index = PropertyMock(return_value=1)
+
+        mock_driver_2 = MagicMock(spec=Driver)
+        type(mock_driver_2).best_lap = PropertyMock(return_value=29.77)
+        type(mock_driver_2).best_sector_1 = PropertyMock(return_value=3.12)
+        type(mock_driver_2).best_sector_2 = PropertyMock(return_value=15.93)
+        type(mock_driver_2).best_sector_3 = PropertyMock(return_value=10.67)
+        type(mock_driver_2).index = PropertyMock(return_value=2)
+
+        mock_driver_3 = MagicMock(spec=Driver)
+        type(mock_driver_3).best_lap = PropertyMock(return_value=30.12)
+        type(mock_driver_3).best_sector_1 = PropertyMock(return_value=3.15)
+        type(mock_driver_3).best_sector_2 = PropertyMock(return_value=16.23)
+        type(mock_driver_3).best_sector_3 = PropertyMock(return_value=10.70)
+        type(mock_driver_3).index = PropertyMock(return_value=None)
+
+        self.driver_data = {
+            "Kobernulf Monnur": mock_driver_1,
+            "Scott Winstead": mock_driver_2,
+            "Timon Putzker": mock_driver_3
+        }
+        self.instance._drivers = self.driver_data
+
+    def test_init(self):
         expected_result = RaceData
-        self.assertIsInstance(instance, expected_result)
+        self.assertIsInstance(self.instance, expected_result)
 
-    @unittest.skip("Depends on driver_name lookup."
-                   "Further implementation needed.")
-    def test_property_best_lap_default(self, mock_telemetry):
-        pass
+    def test_init_directory(self):
+        expected_result = sentinel.directory
+        self.assertEqual(self.instance._telemetry_directory, expected_result)
 
-    @unittest.skip("Depends on driver_name lookup."
-                   "Further implementation needed.")
-    def test_property_best_sector_1_default(self, mock_telemetry):
-        pass
+    def test_init_descriptor(self):
+        expected_result = "descriptor.json"
+        self.assertEqual(self.instance._descriptor_filename, expected_result)
 
-    @unittest.skip("Depends on driver_name lookup."
-                   "Further implementation needed.")
-    def test_property_best_sector_2_default(self, mock_telemetry):
-        pass
+    def test_init_custom_descriptor(self):
+        with patch('replayenhancer.RaceData.TelemetryData') \
+                as mock_telemetry_data, \
+                patch('replayenhancer.RaceData.RaceData.get_data') \
+                as mock_get_data:
+            mock_telemetry_data.return_value = sentinel.telemetry_data
+            mock_get_data.return_value = sentinel.get_data
+            instance = RaceData(sentinel.directory, descriptor_filename=sentinel.descriptor)
 
-    @unittest.skip("Depends on driver_name lookup."
-                   "Further implementation needed.")
-    def test_property_best_sector_3_default(self, mock_telemetry):
-        pass
+        expected_result = sentinel.descriptor
+        self.assertEqual(instance._descriptor_filename, expected_result)
+
+    def test_property_all_drivers(self):
+        expected_result = self.driver_data
+        self.assertDictEqual(self.instance.all_drivers, expected_result)
+
+    def test_property_all_drivers_empty(self):
+        self.instance._drivers = dict()
+        self.assertIsNone(self.instance.all_drivers)
+
+    def test_property_best_lap(self):
+        expected_result = 24.88
+        self.assertEqual(self.instance.best_lap, expected_result)
+
+    def test_property_best_lap_no_laps(self):
+        self.instance._drivers = dict()
+        self.assertIsNone(self.instance.best_lap)
+
+    def test_property_best_lap_error(self):
+        with patch('replayenhancer.RaceData.min') as mock_min:
+            mock_min.side_effect = ValueError
+            self.assertIsNone(self.instance.best_lap)
+
+    def test_property_best_sector_1(self):
+        expected_result = 2.83
+        self.assertEqual(self.instance.best_sector_1, expected_result)
+
+    def test_property_best_sector_1_no_laps(self):
+        self.instance._drivers = dict()
+        self.assertIsNone(self.instance.best_sector_1)
+
+    def test_property_best_sector_1_error(self):
+        with patch('replayenhancer.RaceData.min') as mock_min:
+            mock_min.side_effect = ValueError
+            self.assertIsNone(self.instance.best_sector_1)
+
+    def test_property_best_sector_2(self):
+        expected_result = 13.64
+        self.assertEqual(self.instance.best_sector_2, expected_result)
+
+    def test_property_best_sector_2_no_laps(self):
+        self.instance._drivers = dict()
+        self.assertIsNone(self.instance.best_sector_2)
+
+    def test_property_best_sector_2_error(self):
+        with patch('replayenhancer.RaceData.min') as mock_min:
+            mock_min.side_effect = ValueError
+            self.assertIsNone(self.instance.best_sector_2)
+
+    def test_property_best_sector_3(self):
+        expected_result = 8.37
+        self.assertEqual(self.instance.best_sector_3, expected_result)
+
+    def test_property_best_sector_3_no_laps(self):
+        self.instance._drivers = dict()
+        self.assertIsNone(self.instance.best_sector_3)
+
+    def test_property_best_sector_3_error(self):
+        with patch('replayenhancer.RaceData.min') as mock_min:
+            mock_min.side_effect = ValueError
+            self.assertIsNone(self.instance.best_sector_3)
+
+    def test_property_current_drivers(self):
+        expected_result = {k:v for k, v in self.driver_data.items() if v.index is not None}
+        self.assertDictEqual(self.instance.current_drivers, expected_result)
+
+    def test_property_current_drivers_empty(self):
+        self.instance._drivers = dict()
+        self.assertIsNone(self.instance.current_drivers)
 
     @unittest.skip("Need further implmentation.")
     @patch('replayenhancer.RaceData.TelemetryData', autospec=True)
@@ -50,10 +150,6 @@ class TestRaceData(unittest.TestCase):
         instance = RaceData(sentinel.directory)
         expected_result = list
         self.assertIsInstance(instance.classification, expected_result)
-
-    @unittest.skip("Further implementation needed.")
-    def test_property_current_drivers(self, mock_telemetry):
-        pass
 
     @unittest.skip("Not sure why this broke?"
                    "Further implementation needed.")

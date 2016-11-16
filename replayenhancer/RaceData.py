@@ -94,9 +94,12 @@ class RaceData:
         data) have separate keys, but share the same Driver object as
         the value.
         """
-        return {
-            driver_name: driver for driver_name, driver
-            in self.all_drivers.items() if driver.index is not None}
+        if self.all_drivers is None:
+            return None
+        else:
+            return {
+                driver_name: driver for driver_name, driver
+                in self.all_drivers.items() if driver.index is not None}
 
     @property
     def driver_names(self):
