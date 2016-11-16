@@ -4,6 +4,8 @@ Tests RaceData.py.
 import unittest
 from unittest.mock import MagicMock, PropertyMock, patch, sentinel
 
+import sys
+
 from replayenhancer.RaceData import RaceData, Driver
 
 
@@ -103,6 +105,7 @@ class TestRaceData(unittest.TestCase):
         self.instance._drivers = dict()
         self.assertIsNone(self.instance.best_sector_1)
 
+    @unittest.skipIf(sys.version_info < (3, 5), "Not supported.")
     def test_property_best_sector_1_error(self):
         with patch('replayenhancer.RaceData.min') as mock_min:
             mock_min.side_effect = ValueError
@@ -116,6 +119,7 @@ class TestRaceData(unittest.TestCase):
         self.instance._drivers = dict()
         self.assertIsNone(self.instance.best_sector_2)
 
+    @unittest.skipIf(sys.version_info < (3, 5), "Not supported.")
     def test_property_best_sector_2_error(self):
         with patch('replayenhancer.RaceData.min') as mock_min:
             mock_min.side_effect = ValueError
@@ -129,6 +133,7 @@ class TestRaceData(unittest.TestCase):
         self.instance._drivers = dict()
         self.assertIsNone(self.instance.best_sector_3)
 
+    @unittest.skipIf(sys.version_info < (3, 5), "Not supported.")
     def test_property_best_sector_3_error(self):
         with patch('replayenhancer.RaceData.min') as mock_min:
             mock_min.side_effect = ValueError
