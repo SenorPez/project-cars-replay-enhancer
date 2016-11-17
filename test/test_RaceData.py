@@ -1,12 +1,12 @@
 """
 Tests RaceData.py.
 """
+import sys
 import unittest
 from unittest.mock import MagicMock, PropertyMock, patch, sentinel
 
-import sys
-
-from replayenhancer.RaceData import RaceData, Driver
+from replayenhancer.RaceData import RaceData, Driver, \
+    ClassificationEntry, SectorTime
 
 
 class TestRaceData(unittest.TestCase):
@@ -248,6 +248,76 @@ class TestRaceData(unittest.TestCase):
     @unittest.skip("I'm not smart enough to do this.")
     def test_method_get_data(self):
         pass
+
+
+class TestClassificationEntry(unittest.TestCase):
+    """
+    Unit tests for ClassificationEntry object.
+    """
+    instance = None
+
+    def setUp(self):
+        mock_driver = MagicMock(
+            spec=Driver,
+            best_lap=24.88,
+            best_sector_1=2.83,
+            best_sector_2=13.64,
+            best_sector_3=8.37,
+            laps_complete=3,
+            race_time=181.00)
+        mock_driver.configure_mock(name="Kobernulf Monnur")
+        self.instance = ClassificationEntry(1, mock_driver, True)
+
+    def tearDown(self):
+        self.instance = None
+
+    def test_init(self):
+        expected_result = ClassificationEntry
+        self.assertIsInstance(self.instance, expected_result)
+
+    def test_property_best_lap(self):
+        expected_result = 24.88
+        self.assertEqual(self.instance.best_lap, expected_result)
+
+    def test_property_best_sector_1(self):
+        expected_result = 2.83
+        self.assertEqual(self.instance.best_sector_1, expected_result)
+
+    def test_property_best_sector_2(self):
+        expected_result = 13.64
+        self.assertEqual(self.instance.best_sector_2, expected_result)
+
+    def test_property_best_sector_3(self):
+        expected_result = 8.37
+        self.assertEqual(self.instance.best_sector_3, expected_result)
+
+    def test_property_driver(self):
+        expected_result = Driver
+        self.assertIsInstance(self.instance.driver, expected_result)
+
+    def test_property_driver_name(self):
+        expected_result = "Kobernulf Monnur"
+        self.assertEqual(self.instance.driver_name, expected_result)
+
+    def test_property_viewed_driver(self):
+        expected_result = True
+        self.assertEqual(self.instance.viewed_driver, expected_result)
+
+    def test_property_laps_complete(self):
+        expected_result = 3
+        self.assertEqual(self.instance.laps_complete, expected_result)
+
+    def test_property_calc_points_data(self):
+        expected_result = ("Kobernulf Monnur", 1, 24.88)
+        self.assertTupleEqual(self.instance.calc_points_data, expected_result)
+
+    def test_property_position(self):
+        expected_result = 1
+        self.assertEqual(self.instance.position, expected_result)
+
+    def test_property_race_time(self):
+        expected_result = 181.00
+        self.assertEqual(self.instance.race_time, expected_result)
 
 
 class TestDriver(unittest.TestCase):
@@ -604,10 +674,202 @@ class TestDriver(unittest.TestCase):
         expected_result = sentinel.index
         self.assertEqual(instance.index, expected_result)
 
+    def test_property_index_setter(self):
+        instance = Driver(sentinel.index, sentinel.name)
+        instance.index = sentinel.new_index
+        expected_result = sentinel.new_index
+        self.assertEqual(instance.index, expected_result)
+
+    def test_property_laps_complete(self):
+        instance = Driver(sentinel.index, sentinel.name)
+        times = [
+            sentinel.time_1,
+            sentinel.time_2,
+            sentinel.time_3,
+            sentinel.time_4,
+            sentinel.time_5,
+            sentinel.time_6
+        ]
+        for sector, time in enumerate(times, 1):
+            with patch(
+                    'replayenhancer.RaceData.SectorTime',
+                    autospec=True) as SectorTime:
+                sector_time = SectorTime(
+                    time,
+                    sector % 3,
+                    False)
+                sector_time.sector = sector % 3
+                sector_time.time = time
+                sector_time.invalid = False
+
+                instance.add_sector_time(sector_time)
+
+        expected_result = 2
+        self.assertEqual(instance.laps_complete, expected_result)
+
+    def test_property_laps_complete_empty(self):
+        instance = Driver(sentinel.index, sentinel.name)
+        expected_result = 0
+        self.assertEqual(instance.laps_complete, expected_result)
+
+    def test_property_lap_times(self):
+        instance = Driver(sentinel.index, sentinel.name)
+        times = [
+            5,
+            5,
+            5,
+            10,
+            10,
+            10
+        ]
+        for sector, time in enumerate(times, 1):
+            with patch(
+                    'replayenhancer.RaceData.SectorTime',
+                    autospec=True) as SectorTime:
+                sector_time = SectorTime(
+                    time,
+                    sector % 3,
+                    False)
+                sector_time.sector = sector % 3
+                sector_time.time = time
+                sector_time.invalid = False
+
+                instance.add_sector_time(sector_time)
+
+        expected_result = [15, 30]
+        self.assertListEqual(instance.lap_times, expected_result)
+
+    def test_property_lap_times_empty(self):
+        instance = Driver(sentinel.index, sentinel.name)
+        expected_result = list()
+        self.assertListEqual(instance.lap_times, expected_result)
+
+    def test_property_last_lap_invalid(self):
+        instance = Driver(sentinel.index, sentinel.name)
+        sectors = [
+            (sentinel.time_l1s1, 1, False),
+            (sentinel.time_l1s2, 2, False),
+            (sentinel.time_l1s3, 3, False),
+            (sentinel.time_l2s1, 1, False),
+            (sentinel.time_l2s2, 2, False),
+            (sentinel.time_l2s2, 2, True),
+            (sentinel.time_l2s3, 3, True)
+        ]
+
+        for time, sector, invalid in sectors:
+            with patch(
+                    'replayenhancer.RaceData.SectorTime',
+                    autospec=True) as SectorTime:
+                sector_time = SectorTime(time, sector, invalid)
+                sector_time.sector = sector
+                sector_time.time = time
+                sector_time.invalid = True if instance._invalidate_next_sector_count > 0 else invalid
+
+                instance.add_sector_time(sector_time)
+
+        self.assertTrue(instance.last_lap_invalid)
+
+    def test_property_last_lap_invalid_previous_invalid(self):
+        instance = Driver(sentinel.index, sentinel.name)
+        sectors = [
+            (sentinel.time_l1s1, 1, False),
+            (sentinel.time_l1s2, 2, False),
+            (sentinel.time_l1s2, 2, True),
+            (sentinel.time_l1s3, 3, True),
+            (sentinel.time_l2s1, 1, False),
+            (sentinel.time_l2s2, 2, False),
+            (sentinel.time_l2s3, 3, False)
+        ]
+
+        for time, sector, invalid in sectors:
+            with patch(
+                    'replayenhancer.RaceData.SectorTime',
+                    autospec=True) as SectorTime:
+                sector_time = SectorTime(time, sector, invalid)
+                sector_time.sector = sector
+                sector_time.time = time
+                sector_time.invalid = invalid
+                instance.add_sector_time(sector_time)
+
+        self.assertFalse(instance.last_lap_invalid)
+
+    def test_property_last_lap_invalid_no_laps(self):
+        instance = Driver(sentinel.index, sentinel.name)
+        self.assertIsNone(instance.last_lap_invalid)
+
+    def test_property_last_lap_time(self):
+        instance = Driver(sentinel.index, sentinel.name)
+        times = [
+            5,
+            5,
+            5,
+            10,
+            10,
+            10
+        ]
+        for sector, time in enumerate(times, 1):
+            with patch(
+                    'replayenhancer.RaceData.SectorTime',
+                    autospec=True) as SectorTime:
+                sector_time = SectorTime(
+                    time,
+                    sector % 3,
+                    False)
+                sector_time.sector = sector % 3
+                sector_time.time = time
+                sector_time.invalid = False
+
+                instance.add_sector_time(sector_time)
+
+        expected_result = 30
+        self.assertEqual(instance.last_lap_time, expected_result)
+
+    def test_property_last_lap_time_no_laps(self):
+        instance = Driver(sentinel.index, sentinel.name)
+        self.assertIsNone(instance.last_lap_time)
+
     def test_property_name(self):
         instance = Driver(sentinel.index, sentinel.name)
         expected_result = sentinel.name
         self.assertEqual(instance.name, expected_result)
+
+    def test_property_name_setter(self):
+        instance = Driver(sentinel.index, sentinel.name)
+        instance.name = sentinel.new_name
+        expected_result = sentinel.new_name
+        self.assertEqual(instance.name, expected_result)
+
+    def test_property_race_time(self):
+        instance = Driver(sentinel.index, sentinel.name)
+        times = [
+            5,
+            5,
+            5,
+            10,
+            10,
+            10
+        ]
+        for sector, time in enumerate(times, 1):
+            with patch(
+                    'replayenhancer.RaceData.SectorTime',
+                    autospec=True) as SectorTime:
+                sector_time = SectorTime(
+                    time,
+                    sector % 3,
+                    False)
+                sector_time.sector = sector % 3
+                sector_time.time = time
+                sector_time.invalid = False
+
+                instance.add_sector_time(sector_time)
+
+        expected_result = 45
+        self.assertEqual(instance.race_time, expected_result)
+
+    def test_property_race_time_no_laps(self):
+        instance = Driver(sentinel.index, sentinel.name)
+        expected_result = 0.0
+        self.assertEqual(instance.race_time, expected_result)
 
     def test_property_real_name_default(self):
         instance = Driver(sentinel.index, sentinel.name)
@@ -625,8 +887,7 @@ class TestDriver(unittest.TestCase):
         expected_result = list
         self.assertIsInstance(instance.sector_times, expected_result)
 
-    @patch('replayenhancer.RaceData.SectorTime', autospec=True)
-    def test_property_sector_times_values(self, sector_time):
+    def test_property_sector_times_values(self):
         instance = Driver(sentinel.index, sentinel.name)
         times = [
             sentinel.time_1,
@@ -694,7 +955,7 @@ class TestDriver(unittest.TestCase):
             (sentinel.time_s1, 1, False),
             (sentinel.time_s2, 2, False),
             (sentinel.time_s2, 2, True),
-            (sentinel.time_s3, 3, False)
+            (sentinel.time_s3, 3, True)
         ]
 
         for time, sector, invalid in sectors:
@@ -704,10 +965,7 @@ class TestDriver(unittest.TestCase):
                 sector_time = SectorTime(time, sector, invalid)
                 sector_time.sector = sector
                 sector_time.time = time
-                if instance._invalidate_next_sector_count > 0:
-                    sector_time.invalid = True
-                else:
-                    sector_time.invalid = invalid
+                sector_time.invalid = invalid
 
                 instance.add_sector_time(sector_time)
 
@@ -733,8 +991,7 @@ class TestDriver(unittest.TestCase):
                 sector_time = SectorTime(time, sector, invalid)
                 sector_time.sector = sector
                 sector_time.time = time
-                sector_time.invalid = True if instance._invalidate_next_sector_count > 0 else invalid
-
+                sector_time.invalid = invalid
                 instance.add_sector_time(sector_time)
 
         # First lap should still be valid.
@@ -748,6 +1005,80 @@ class TestDriver(unittest.TestCase):
             sector_time.invalid
             for sector_time in instance._sector_times[3:]]
         self.assertTrue(all(result))
+
+    def test_method_add_sector_time_invalidate_earlier_lap(self):
+        instance = Driver(sentinel.index, sentinel.name)
+        sectors = [
+            (sentinel.time_l1s1, 1, False),
+            (sentinel.time_l1s2, 2, False),
+            (sentinel.time_l1s2, 2, True),
+            (sentinel.time_l1s3, 3, True),
+            (sentinel.time_l2s1, 1, False),
+            (sentinel.time_l2s2, 2, False),
+            (sentinel.time_l2s3, 3, False)
+        ]
+
+        for time, sector, invalid in sectors:
+            with patch(
+                    'replayenhancer.RaceData.SectorTime',
+                    autospec=True) as SectorTime:
+                sector_time = SectorTime(time, sector, invalid)
+                sector_time.sector = sector
+                sector_time.time = time
+                sector_time.invalid = invalid
+                instance.add_sector_time(sector_time)
+
+        # First lap should be invalid.
+        result = [
+            sector_time.invalid
+            for sector_time in instance._sector_times[:3]]
+        self.assertTrue(any(result))
+
+        # Second lap should be invalid.
+        result = [
+            sector_time.invalid
+            for sector_time in instance._sector_times[3:]]
+        self.assertTrue(not all(result))
+
+    def test_method_clear_index(self):
+        instance = Driver(sentinel.index, sentinel.name)
+        instance.clear_index()
+        self.assertIsNone(instance.index)
+
+
+class TestSectorTime(unittest.TestCase):
+    """
+    Unit tests for SectorTime object.
+    """
+    def setUp(self):
+        self.instance = SectorTime(sentinel.time, sentinel.sector, 0)
+
+    def tearDown(self):
+        self.instance = None
+
+    def test_init(self):
+        expected_result = SectorTime
+        self.assertIsInstance(self.instance, expected_result)
+
+    def test_property_sector(self):
+        expected_result = sentinel.sector
+        self.assertEqual(self.instance.sector, expected_result)
+
+    def test_property_time(self):
+        expected_result = sentinel.time
+        self.assertEqual(self.instance.time, expected_result)
+
+    def test_property_invalid_false(self):
+        self.assertFalse(self.instance.invalid)
+
+    def test_property_invalid_true(self):
+        instance = SectorTime(sentinel.time, sentinel.sector, 128)
+        self.assertTrue(instance.invalid)
+
+    def test_property_invalid_setter(self):
+        self.instance.invalid = sentinel.new_invalid
+        expected_result = sentinel.new_invalid
+        self.assertEqual(self.instance.invalid, expected_result)
 
 if __name__ == "__main__":
     unittest.main()

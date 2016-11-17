@@ -581,7 +581,7 @@ class Driver:
         elif len(self._sector_times) == 0:
             self._sector_times.append(sector_time)
         elif self._sector_times[-1].time != sector_time.time \
-                and self._sector_times[-1].sector != sector_time.sector:
+                or self._sector_times[-1].sector != sector_time.sector:
             if self._invalidate_next_sector_count > 0:
                 self._sector_times.append(SectorTime(
                     sector_time.time,
