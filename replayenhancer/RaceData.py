@@ -109,7 +109,7 @@ class RaceData:
         drivers = self.all_drivers
         driver_names = dict().fromkeys(drivers.keys())
         for driver_name in driver_names.keys():
-            driver_names[driver_name] = [key for key, value in drivers.items() if value == drivers[driver_name]]
+            driver_names[driver_name] = {key for key, value in drivers.items() if value == drivers[driver_name]}
 
         return driver_names
 

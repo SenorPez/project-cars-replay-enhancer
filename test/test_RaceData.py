@@ -48,9 +48,13 @@ class TestRaceData(unittest.TestCase):
         self.driver_data = {
             "Kobernulf Monnur": mock_driver_1,
             "Scott Winstead": mock_driver_2,
-            "Timon Putzker": mock_driver_3
+            "Timon Putzkerd": mock_driver_3,
+            "Timon Putzkernur": mock_driver_3
         }
         self.instance._drivers = self.driver_data
+
+    def tearDown(self):
+        self.instance = None
 
     def test_init(self):
         expected_result = RaceData
@@ -148,7 +152,7 @@ class TestRaceData(unittest.TestCase):
         self.instance._drivers = dict()
         self.assertIsNone(self.instance.current_drivers)
 
-    @unittest.skip("Need further implmentation.")
+    @unittest.skip("I'm not smart enough to do this.")
     @patch('replayenhancer.RaceData.TelemetryData', autospec=True)
     def test_property_classification(self, mock_telemetry):
         mock_telemetry.return_value = sentinel.telemetry_data
@@ -157,31 +161,67 @@ class TestRaceData(unittest.TestCase):
         expected_result = list
         self.assertIsInstance(instance.classification, expected_result)
 
-    @unittest.skip("Not sure why this broke?"
-                   "Further implementation needed.")
-    @patch('replayenhancer.RaceData.TelemetryData', autospec=True)
-    def test_property_elapsed_time(self, mock_telemetry):
-        mock_telemetry.return_value = sentinel.telemetry_data
+    def test_property_current_lap(self):
+        mock_driver_1 = MagicMock(spec='replayenhancer.RETelemetryDataPacket.REParticipantInfo')
+        type(mock_driver_1).current_lap = PropertyMock(return_value=3)
 
-        instance = RaceData(sentinel.directory)
-        expected_result = float
-        self.assertIsInstance(instance.elapsed_time, expected_result)
+        mock_driver_2 = MagicMock(spec='replayenhancer.RETelemetryDataPacket.REParticipantInfo')
+        type(mock_driver_2).current_lap = PropertyMock(return_value=3)
 
-    @unittest.skip("Further implementation needed.")
-    def test_property_starting_grid(self):
-        pass
+        mock_driver_3 = MagicMock(spec='replayenhancer.RETelemetryDataPacket.REParticipantInfo')
+        type(mock_driver_3).current_lap = PropertyMock(return_value=2)
 
-    @unittest.skip("Not sure why this broke?"
-                   "Further implementation needed.")
-    @patch('replayenhancer.RaceData.TelemetryData', autospec=True)
-    def test_property_telemetry_data(self, mock_telemetry):
-        mock_telemetry.return_value = sentinel.telemetry_data
+        mock_driver_4 = MagicMock(spec='replayenhancer.RETelemetryDataPacket.REParticipantInfo')
+        type(mock_driver_4).current_lap = PropertyMock(return_value=1)
 
-        instance = RaceData(sentinel.directory)
+        self.instance._next_packet = MagicMock('replayenhancer.RETelemetryDataPacket.RETelemetryDataPacket', laps_in_event=10, participant_info=[
+            mock_driver_1, mock_driver_2, mock_driver_3, mock_driver_4])
+
+        expected_value = 3
+        self.assertEqual(self.instance.current_lap, expected_value)
+
+    def test_property_current_lap_overflow(self):
+        mock_driver_1 = MagicMock(spec='replayenhancer.RETelemetryDataPacket.REParticipantInfo')
+        type(mock_driver_1).current_lap = PropertyMock(return_value=11)
+
+        mock_driver_2 = MagicMock(spec='replayenhancer.RETelemetryDataPacket.REParticipantInfo')
+        type(mock_driver_2).current_lap = PropertyMock(return_value=10)
+
+        mock_driver_3 = MagicMock(spec='replayenhancer.RETelemetryDataPacket.REParticipantInfo')
+        type(mock_driver_3).current_lap = PropertyMock(return_value=6)
+
+        mock_driver_4 = MagicMock(spec='replayenhancer.RETelemetryDataPacket.REParticipantInfo')
+        type(mock_driver_4).current_lap = PropertyMock(return_value=5)
+
+        self.instance._next_packet = MagicMock('replayenhancer.RETelemetryDataPacket.RETelemetryDataPacket', laps_in_event=10, participant_info=[
+            mock_driver_1, mock_driver_2, mock_driver_3, mock_driver_4])
+
+        expected_value = 10
+        self.assertEqual(self.instance.current_lap, expected_value)
+
+    def test_property_driver_names(self):
+        expected_result = {
+            "Kobernulf Monnur": {"Kobernulf Monnur"},
+            "Scott Winstead": {"Scott Winstead"},
+            "Timon Putzkerd": {"Timon Putzkerd", "Timon Putzkernur"},
+            "Timon Putzkernur": {"Timon Putzkernur", "Timon Putzkerd"}
+        }
+        self.assertDictEqual(self.instance.driver_names, expected_result)
+
+    def test_property_elapsed_time(self):
+        expected_result = 0.0
+        self.assertEqual(self.instance.elapsed_time, expected_result)
+
+    def test_property_telemetry_data(self):
         expected_result = sentinel.telemetry_data
-        self.assertEqual(instance.telemetry_data, expected_result)
+        self.assertEqual(self.instance.telemetry_data, expected_result)
 
-    @unittest.skip("Further implementation needed.")
+    def test_property_total_laps(self):
+        self.instance._next_packet = MagicMock('replayenhancer.RETelemetryDataPacket.RETelemetryDataPacket', laps_in_event=10)
+        expected_value = 10
+        self.assertEqual(self.instance.total_laps, expected_value)
+
+    @unittest.skip("I'm not smart enough to do this.")
     def test_method_get_data(self):
         pass
 
