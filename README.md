@@ -37,7 +37,7 @@ For a complete list of commands to get the Project CARS Replay Enhancer running 
 
 ## Usage
 ### Telemetry Capture:
-Telemetry packet capture is performed by running the `packetgrab.py` script on the network. This captures UDP packets broadcast by Project CARS (make sure you've enabled UDP broadcast) and store them to a subdirectory for future processing.
+Telemetry packet capture is performed by running the command `packetcapture` on the network. This captures UDP packets broadcast by Project CARS (make sure you've enabled UDP broadcast) and store them to a subdirectory for future processing.
 
 > **NOTE:** As most internet video runs at 30 frames per second, you want to set your UDP broadcast rate to at least 30 packets per second, otherwise there may be noticeable "phasing" between video and data displays.
 
