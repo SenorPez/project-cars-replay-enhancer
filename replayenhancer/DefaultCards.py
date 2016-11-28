@@ -137,7 +137,7 @@ class RaceResults(StaticBase):
                 return "{1:d}:{2:0>6.3f}".format(*return_value)
             else:
                 return "{2:.3f}".format(*return_value)
-        except TypeError:
+        except (TypeError, ValueError):
             return ""
 
 
@@ -383,13 +383,18 @@ class SeriesChampion(SeriesStandings):
         #  If data exists, create a heading.
         try:
             heading_color = tuple(self._options['heading_color'])
-            heading_font_color = tuple(
-                self._options['heading_font_color'])
+
+            try:
+                heading_font_color = tuple(
+                    self._options['heading_font_color'])
+            except KeyError:
+                heading_font_color = (0, 0, 0)
+
             try:
                 heading_font = ImageFont.truetype(
                     self._options['heading_font'],
                     self._options['heading_font_size'])
-            except OSError:
+            except (KeyError, OSError):
                 heading_font = ImageFont.load_default()
 
             try:
@@ -397,7 +402,11 @@ class SeriesChampion(SeriesStandings):
             except (KeyError, OSError):
                 series_logo = None
 
-            heading_text = self._options['heading_text']
+            try:
+                heading_text = self._options['heading_text']
+            except KeyError:
+                heading_text = None
+
         except KeyError:
             heading_color = None
             heading_font_color = (0, 0, 0)
@@ -405,6 +414,7 @@ class SeriesChampion(SeriesStandings):
             heading_text = None
             heading = False
             series_logo = None
+
         else:
             heading = True
 
@@ -520,11 +530,12 @@ class SeriesChampion(SeriesStandings):
 
             draw = ImageDraw.Draw(heading_material)
 
-            draw.text(
-                (margin, margin),
-                heading_text,
-                fill=heading_font_color,
-                font=heading_font)
+            if heading_text is not None:
+                draw.text(
+                    (margin, margin),
+                    heading_text,
+                    fill=heading_font_color,
+                    font=heading_font)
 
         material_height = sum([
             heading_height,

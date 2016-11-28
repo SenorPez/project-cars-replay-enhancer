@@ -3,9 +3,10 @@ Tests DefaultCards.py
 """
 
 import unittest
-from unittest.mock import PropertyMock, patch, sentinel
+from unittest.mock import MagicMock, PropertyMock, patch, sentinel
 
 import numpy
+from PIL import ImageFont
 
 from replayenhancer.DefaultCards \
     import RaceResults, SeriesStandings, StartingGrid, SeriesChampion
@@ -133,6 +134,16 @@ class TestRaceResults(unittest.TestCase):
     def test_method_format_time_round(self):
         time = 3702.9876
         expected_result = '1:01:42.988'
+        self.assertEqual(RaceResults.format_time(time), expected_result)
+
+    def test_method_format_time_passed_none(self):
+        time = None
+        expected_result = ""
+        self.assertEqual(RaceResults.format_time(time), expected_result)
+
+    def test_method_format_time_passed_string(self):
+        time = "ERROR"
+        expected_result = ""
         self.assertEqual(RaceResults.format_time(time), expected_result)
 
 
@@ -408,21 +419,79 @@ class TestSeriesChampion(unittest.TestCase):
         expected_result = SeriesChampion
         self.assertIsInstance(instance, expected_result)
 
-    @patch('replayenhancer.StaticBase.PIL_to_npimage', autospec=True)
     @patch('replayenhancer.StaticBase.StaticBase.sort_data', autospec=True)
     @patch('replayenhancer.RaceData.ClassificationEntry', autospec=True)
-    def test_method_to_frame(self, mock_classification_entry, mock_sort_data, mock_mpy):
-        driver_name = 'Kobernulf Monnur'
-        position = 1
-        best_lap = 42.0
+    def test_method_to_frame_no_header(self, mock_classification_entry, mock_sort_data):
+        first_place = mock_classification_entry
+        type(first_place).calc_points_data = PropertyMock(return_value=(
+            'Kobernulf Monnur',
+            1,
+            42.0))
+        type(first_place).driver_name = PropertyMock(return_value=(
+            'Kobernulf Monnur'))
 
-        type(mock_classification_entry).calc_points_data = PropertyMock(
-            return_value=(driver_name, position, best_lap))
-        type(mock_classification_entry).driver_name = PropertyMock(
-            return_value=driver_name)
-        mock_sort_data.return_value = (driver_name, position, best_lap)
-        mock_mpy.return_value = numpy.array(sentinel.test)
+        second_place = mock_classification_entry
+        type(second_place).calc_points_data = PropertyMock(
+            return_value=(
+                'Second Place',
+                2,
+                43.0))
+        type(second_place).driver_name = PropertyMock(return_value=(
+            'Second Place'))
 
-        instance = SeriesChampion([mock_classification_entry])
+        third_place = mock_classification_entry
+        type(third_place).calc_points_data = PropertyMock(return_value=(
+            'Third Place',
+            3,
+            43.5))
+        type(third_place).driver_name = PropertyMock(return_value=(
+            'Third Place'))
+
+        mock_sort_data.return_value = [
+            ('Kobernulf Monnur', 1, 42.0),
+            ('Second Place', 2, 43.0),
+            ('Third Place', 3, 43.5)]
+
         expected_value = numpy.ndarray
+        instance = SeriesChampion([first_place, second_place, third_place])
+        self.assertIsInstance(instance.to_frame(), expected_value)
+
+    @patch('replayenhancer.StaticBase.StaticBase.sort_data', autospec=True)
+    @patch('replayenhancer.RaceData.ClassificationEntry', autospec=True)
+    def test_method_to_frame_blank_header(self, mock_classification_entry, mock_sort_data):
+        first_place = mock_classification_entry
+        type(first_place).calc_points_data = PropertyMock(return_value=(
+            'Kobernulf Monnur',
+            1,
+            42.0))
+        type(first_place).driver_name = PropertyMock(return_value=(
+            'Kobernulf Monnur'))
+
+        second_place = mock_classification_entry
+        type(second_place).calc_points_data = PropertyMock(
+            return_value=(
+                'Second Place',
+                2,
+                43.0))
+        type(second_place).driver_name = PropertyMock(return_value=(
+            'Second Place'))
+
+        third_place = mock_classification_entry
+        type(third_place).calc_points_data = PropertyMock(return_value=(
+            'Third Place',
+            3,
+            43.5))
+        type(third_place).driver_name = PropertyMock(return_value=(
+            'Third Place'))
+
+        mock_sort_data.return_value = [
+            ('Kobernulf Monnur', 1, 42.0),
+            ('Second Place', 2, 43.0),
+            ('Third Place', 3, 43.5)]
+
+        configuration = {
+            'heading_color': (255, 0, 0)}
+
+        expected_value = numpy.ndarray
+        instance = SeriesChampion([first_place, second_place, third_place], **configuration)
         self.assertIsInstance(instance.to_frame(), expected_value)

@@ -57,7 +57,8 @@ def make_video(config_file, *, sync=False):
     except KeyError:
         video_skipend = None
 
-    if 'source_video' in configuration:
+    if 'source_video' in configuration \
+            and configuration['source_video'] is not None:
         source_video = mpy.VideoFileClip(
             configuration['source_video']
         ).subclip(

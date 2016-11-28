@@ -45,7 +45,7 @@ class GTStandings:
                 self._font = ImageFont.truetype(
                     self._options['font'],
                     self._options['font_size'])
-            except OSError:
+            except (AttributeError, OSError):
                 self._font = ImageFont.load_default()
         except KeyError:
             self._font = ImageFont.load_default()

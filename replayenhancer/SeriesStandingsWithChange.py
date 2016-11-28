@@ -18,7 +18,7 @@ class SeriesStandingsWithChange(SeriesStandings):
                 font = ImageFont.truetype(
                     kwargs['font'],
                     kwargs['font_size'])
-            except OSError:
+            except (AttributeError, OSError):
                 font = ImageFont.load_default()
             font_color = tuple(kwargs['font_color'])
         except KeyError:

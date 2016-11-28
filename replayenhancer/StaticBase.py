@@ -71,22 +71,22 @@ class StaticBase:
                 heading_font = ImageFont.truetype(
                     self._options['heading_font'],
                     self._options['heading_font_size'])
-            except OSError:
+            except (AttributeError, OSError):
                 heading_font = ImageFont.load_default()
 
             try:
                 series_logo = Image.open(self._options['series_logo'])
-            except (KeyError, OSError):
+            except (AttributeError, KeyError, OSError):
                 series_logo = None
 
-            heading_text = self._options['heading_text']
-            subheading_text = self._options['subheading_text']
+            heading_text = self._options['heading_text'] if self._options['heading_text'] is not None else ""
+            subheading_text = self._options['subheading_text'] if self._options['subheading_text'] is not None else ""
         except KeyError:
             heading_color = None
             heading_font_color = None
             heading_font = None
-            heading_text = None
-            subheading_text = None
+            heading_text = ""
+            subheading_text = ""
             heading = False
             series_logo = None
         else:
@@ -98,7 +98,7 @@ class StaticBase:
                 font = ImageFont.truetype(
                     self._options['font'],
                     self._options['font_size'])
-            except OSError:
+            except (AttributeError, OSError):
                 font = ImageFont.load_default()
             font_color = tuple(self._options['font_color'])
         except KeyError:
@@ -132,7 +132,7 @@ class StaticBase:
                 backdrop_size = self._size
             else:
                 backdrop_size = backdrop.size
-        except (KeyError, IOError):
+        except (AttributeError, KeyError, IOError):
             backdrop = None
             backdrop_size = None
 
@@ -142,7 +142,7 @@ class StaticBase:
             logo_size = (
                 self._options['logo_width'],
                 self._options['logo_height'])
-        except (KeyError, IOError):
+        except (AttributeError, KeyError, IOError):
             logo = None
             logo_size = None
 
