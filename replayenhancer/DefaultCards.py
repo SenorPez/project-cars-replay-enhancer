@@ -364,7 +364,7 @@ class SeriesChampion(SeriesStandings):
                 k: v['car']
                 for k, v in kwargs['participant_config'].items()
                 if v['car'] != ""}
-            if len(car_lookup) == 0:
+            if len(self._car_lookup) == 0:
                 self._car_lookup = None
         except KeyError:
             self._car_lookup = None
@@ -374,7 +374,7 @@ class SeriesChampion(SeriesStandings):
                 k: v['team']
                 for k, v in kwargs['participant_config'].items()
                 if v['team'] != ""}
-            if len(team_lookup) == 0:
+            if len(self._team_lookup) == 0:
                 self._team_lookup = None
         except KeyError:
             self._team_lookup = None
