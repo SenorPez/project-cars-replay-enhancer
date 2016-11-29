@@ -36,14 +36,20 @@ class RaceResults(StaticBase):
         try:
             car_lookup = {
                 k: v['car']
-                for k, v in kwargs['participant_config'].items()}
+                for k, v in kwargs['participant_config'].items()
+                if v['car'] != ""}
+            if len(car_lookup) == 0:
+                car_lookup = None
         except KeyError:
             car_lookup = None
 
         try:
             team_lookup = {
                 k: v['team']
-                for k, v in kwargs['participant_config'].items()}
+                for k, v in kwargs['participant_config'].items()
+                if v['team'] != ""}
+            if len(team_lookup) == 0:
+                team_lookup = None
         except KeyError:
             team_lookup = None
 
@@ -165,14 +171,20 @@ class StartingGrid(StaticBase):
         try:
             car_lookup = {
                 k: v['car']
-                for k, v in kwargs['participant_config'].items()}
+                for k, v in kwargs['participant_config'].items()
+                if v['car'] != ""}
+            if len(car_lookup) == 0:
+                car_lookup = None
         except KeyError:
             car_lookup = None
 
         try:
             team_lookup = {
                 k: v['team']
-                for k, v in kwargs['participant_config'].items()}
+                for k, v in kwargs['participant_config'].items()
+                if v['team'] != ""}
+            if len(team_lookup) == 0:
+                team_lookup = None
         except KeyError:
             team_lookup = None
 
@@ -234,14 +246,20 @@ class SeriesStandings(RaceResults):
         try:
             car_lookup = {
                 k: v['car']
-                for k, v in kwargs['participant_config'].items()}
+                for k, v in kwargs['participant_config'].items()
+                if v['car'] != ""}
+            if len(car_lookup) == 0:
+                car_lookup = None
         except KeyError:
             car_lookup = None
 
         try:
             team_lookup = {
                 k: v['team']
-                for k, v in kwargs['participant_config'].items()}
+                for k, v in kwargs['participant_config'].items()
+                if v['team'] != ""}
+            if len(team_lookup) == 0:
+                team_lookup = None
         except KeyError:
             team_lookup = None
 
@@ -344,14 +362,20 @@ class SeriesChampion(SeriesStandings):
         try:
             self._car_lookup = {
                 k: v['car']
-                for k, v in kwargs['participant_config'].items()}
+                for k, v in kwargs['participant_config'].items()
+                if v['car'] != ""}
+            if len(car_lookup) == 0:
+                self._car_lookup = None
         except KeyError:
             self._car_lookup = None
 
         try:
             self._team_lookup = {
                 k: v['team']
-                for k, v in kwargs['participant_config'].items()}
+                for k, v in kwargs['participant_config'].items()
+                if v['team'] != ""}
+            if len(team_lookup) == 0:
+                self._team_lookup = None
         except KeyError:
             self._team_lookup = None
 
