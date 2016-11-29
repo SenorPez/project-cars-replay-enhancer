@@ -35,9 +35,7 @@ class REParticipantPacket(ParticipantPacket):
                 str(
                     unpacked_data.popleft(),
                     encoding='utf-8',
-                    errors='strict').replace(
-                        '\x00',
-                        ''))
+                    errors='strict').split('\x00', 1)[0])
 
     @property
     def _packet_string(self):

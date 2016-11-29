@@ -26,27 +26,19 @@ class ParticipantPacket(Packet):
         self.car_name = str(
             unpacked_data.popleft(),
             encoding='utf-8',
-            errors='strict').replace(
-                '\x00',
-                '')
+            errors='strict').split('\x00', 1)[0]
         self.car_class_name = str(
             unpacked_data.popleft(),
             encoding='utf-8',
-            errors='strict').replace(
-                '\x00',
-                '')
+            errors='strict').split('\x00', 1)[0]
         self.track_location = str(
             unpacked_data.popleft(),
             encoding='utf-8',
-            errors='strict').replace(
-                '\x00',
-                '')
+            errors='strict').split('\x00', 1)[0]
         self.track_variation = str(
             unpacked_data.popleft(),
             encoding='utf-8',
-            errors='strict').replace(
-                '\x00',
-                '')
+            errors='strict').split('\x00', 1)[0]
 
         self.name = list()
         for _ in range(16):
@@ -54,9 +46,7 @@ class ParticipantPacket(Packet):
                 str(
                     unpacked_data.popleft(),
                     encoding='utf-8',
-                    errors='strict').replace(
-                        '\x00',
-                        ''))
+                    errors='strict').split('\x00', 1)[0])
 
     @property
     def packet_type(self):

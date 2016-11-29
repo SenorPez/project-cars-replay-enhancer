@@ -33,9 +33,7 @@ class AdditionalParticipantPacket(Packet):
                     str(
                         unpacked_data.popleft(),
                         encoding='utf-8',
-                        errors='strict').replace(
-                            '\x00',
-                            ''))
+                        errors='strict').split('\x00', 1)[0])
 
         except ValueError:
             raise
