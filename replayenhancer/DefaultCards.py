@@ -284,6 +284,12 @@ class SeriesStandings(RaceResults):
                 -int(self.calc_series_points(
                     x.calc_points_data, **formatter_args)),
                 x.driver_name))
+
+        if ('hide_series_zeros' in kwargs) and (
+                    kwargs['hide_series_zeros'] is True):
+            self._data = [x for x in self._data if int(self.calc_series_points(
+                x.calc_points_data, **formatter_args)) != 0]
+
         self.add_column(
             'calc_points_data',
             'Rank',
