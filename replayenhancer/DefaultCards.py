@@ -118,7 +118,7 @@ class RaceResults(StaticBase):
         points = 0
         try:
             if best_lap == min(
-                    [entry.best_lap for entry in self._data]):
+                    [entry.best_lap for entry in self._data if entry.best_lap is not None]):
                 points += kwargs['point_structure'][0]
             points += kwargs['point_structure'][position]
         except (KeyError, TypeError):
@@ -240,6 +240,10 @@ class SeriesStandings(RaceResults):
             name_lookup = {
                 k: v['display']
                 for k, v in kwargs['participant_config'].items()}
+
+            if 'additional_participant_config' in kwargs:
+                for name in kwargs['additional_participant_config'].keys():
+                    name_lookup[name] = name
         except KeyError:
             name_lookup = None
 
@@ -248,6 +252,10 @@ class SeriesStandings(RaceResults):
                 k: v['car']
                 for k, v in kwargs['participant_config'].items()
                 if v['car'] != ""}
+            if 'additional_participant_config' in kwargs:
+                for name, values in kwargs['additional_participant_config'].items():
+                    if values['car'] != "":
+                        car_lookup[name] = values['car']
             if len(car_lookup) == 0:
                 car_lookup = None
         except KeyError:
@@ -258,6 +266,10 @@ class SeriesStandings(RaceResults):
                 k: v['team']
                 for k, v in kwargs['participant_config'].items()
                 if v['team'] != ""}
+            if 'additional_participant_config' in kwargs:
+                for name, values in kwargs['additional_participant_config'].items():
+                    if values['team'] != "":
+                        team_lookup[name] = values['team']
             if len(team_lookup) == 0:
                 team_lookup = None
         except KeyError:
@@ -274,8 +286,15 @@ class SeriesStandings(RaceResults):
             points_lookup = {
                 k: v['points']
                 for k, v in kwargs['participant_config'].items()}
+            if 'additional_participant_config' in kwargs:
+                for name, values in kwargs['additional_participant_config'].items():
+                    points_lookup[name] = values['points']
         except KeyError:
             points_lookup = None
+
+        if 'additional_participant_config' in kwargs:
+            for name in kwargs['additional_participant_config'].keys():
+                self._data.append(AdditionalClassificationEntry(name))
 
         formatter_args = {'point_structure': point_structure,
                           'points_lookup': points_lookup}
@@ -360,6 +379,10 @@ class SeriesChampion(SeriesStandings):
             self._name_lookup = {
                 k: v['display']
                 for k, v in kwargs['participant_config'].items()}
+
+            if 'additional_participant_config' in kwargs:
+                for name in kwargs['additional_participant_config'].keys():
+                    self._name_lookup[name] = name
         except KeyError:
             self._name_lookup = {
                 entry.driver_name: entry.driver_name
@@ -370,6 +393,10 @@ class SeriesChampion(SeriesStandings):
                 k: v['car']
                 for k, v in kwargs['participant_config'].items()
                 if v['car'] != ""}
+            if 'additional_participant_config' in kwargs:
+                for name, values in kwargs['additional_participant_config'].items():
+                    if values['car'] != "":
+                        self._car_lookup[name] = values['car']
             if len(self._car_lookup) == 0:
                 self._car_lookup = None
         except KeyError:
@@ -380,6 +407,10 @@ class SeriesChampion(SeriesStandings):
                 k: v['team']
                 for k, v in kwargs['participant_config'].items()
                 if v['team'] != ""}
+            if 'additional_participant_config' in kwargs:
+                for name, values in kwargs['additional_participant_config'].items():
+                    if values['team'] != "":
+                        self._team_lookup[name] = values['team']
             if len(self._team_lookup) == 0:
                 self._team_lookup = None
         except KeyError:
@@ -396,8 +427,15 @@ class SeriesChampion(SeriesStandings):
             points_lookup = {
                 k: v['points']
                 for k, v in kwargs['participant_config'].items()}
+            if 'additional_participant_config' in kwargs:
+                for name, values in kwargs['additional_participant_config'].items():
+                    points_lookup[name] = values['points']
         except KeyError:
             points_lookup = None
+
+        if 'additional_participant_config' in kwargs:
+            for name in kwargs['additional_participant_config'].keys():
+                self._data.append(AdditionalClassificationEntry(name))
 
         formatter_args = {'point_structure': point_structure,
                           'points_lookup': points_lookup}
@@ -670,3 +708,20 @@ class SeriesChampion(SeriesStandings):
             material = backdrop
 
         return material
+
+
+class AdditionalClassificationEntry:
+    def __init__(self, name):
+        self._name = name
+
+    @property
+    def best_lap(self):
+        return None
+
+    @property
+    def calc_points_data(self):
+        return (self._name, None, None)
+
+    @property
+    def driver_name(self):
+        return self._name
