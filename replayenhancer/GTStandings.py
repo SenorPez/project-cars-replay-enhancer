@@ -775,8 +775,17 @@ class GapTimeFlyout(TimeFlyout):
                 classification[0].driver.lap_times)
             driver_time = sum(
                 self._driver.lap_times)
-            self._gap = "+{}".format(
-                self.format_time(driver_time-leader_time))
+
+            # If gap time is less than zero (which can happen in the
+            # first few laps of a race), we just turn this into a
+            # laptime flyout.
+
+            if (driver_time-leader_time) > 0:
+                self._gap = "+{}".format(
+                    self.format_time(driver_time-leader_time))
+            else:
+                self._gap = "{}".format(
+                    self.format_time(self._driver.last_lap_time))
         elif lap_difference == 1:
             self._gap = "+{} lap".format(lap_difference)
         else:
