@@ -63,17 +63,31 @@ class GTStandings:
                 for k, v in kwargs['participant_config'].items()}
             name_width = max(
                 [
-                    self._font.getsize(
-                        self._short_name_lookup[driver.name])[0]
-                    for driver
-                    in self._race_data.current_drivers.values()])
+                    self._font.getsize(driver)[0]
+                    for driver in self._short_name_lookup.values()])
+
         except KeyError:
             self._short_name_lookup = None
             name_width = max(
                 [
-                    self._font.getsize(driver.name)[0]
-                    for driver
-                    in self._race_data.current_drivers.values()])
+                    self._font.getsize(driver)[0]
+                    for driver in race_data.current_drivers.keys()])
+
+        # If set, use leader window size.
+        try:
+            self._leader_window_size = kwargs['leader_window_size'] if kwargs['leader_window_size'] >= 0 else 10
+        except KeyError:
+            self._leader_window_size = 10
+
+        # Plus one to account for timer.
+        # TODO: Add setting to make timer optional.
+        self._leader_window_size += 1
+
+        # If set, use field window size.
+        try:
+            self._field_window_size = kwargs['field_window_size'] if kwargs['field_window_size'] >= 0 else 0
+        except KeyError:
+            self._field_window_size = 0
 
         block_height = self._font.getsize("A")[1]
         self._row_height = int(block_height * 2.5)
@@ -179,6 +193,8 @@ class GTStandings:
 
         max_y_position = 0
 
+        viewed_y_position = None
+
         for line in sorted(
                 self._standings_lines,
                 key=lambda x: (x.position, x in self._dropping_lines),
@@ -276,18 +292,87 @@ class GTStandings:
                     max_y_position,
                     y_position + y_offset)
 
-        draw = ImageDraw.Draw(material)
-        draw.line(
-            [
-                (0, max_y_position + self._row_height),
-                (
-                    self._margin + self._row_width - 1,
-                    max_y_position + self._row_height)],
-            fill='white',
-            width=1)
+            if line.viewed_driver:
+                viewed_y_position = y_position + y_offset
+
+        material_width, material_height = material.size
+        draw_middle_line = False
+        draw_bottom_line = False
+
+        leader_window = None
+        field_window = None
+
+        if self._leader_window_size > 0:
+            leader_window_bottom = self._row_height * self._leader_window_size + 1 * self._leader_window_size + self._margin
+            leader_window = material.crop((0, 0, material_width, leader_window_bottom))
+
+        if self._field_window_size > 0:
+            lines_below = self._field_window_size // 2
+            if self._field_window_size % 2:
+                lines_above = self._field_window_size // 2
+            else:
+                lines_above = (self._field_window_size - 1) // 2
+
+            # Are we at the bottom?
+            if (material_height - (self._row_height * (lines_below + 1) + 1 * (lines_below + 1))) < viewed_y_position:
+                field_window_top = material_height - (self._row_height * self._field_window_size + 1 * self._field_window_size)
+                field_window_bottom = material_height
+                draw_middle_line = True
+
+            # Are we at the top?
+            elif self._row_height * (self._leader_window_size + lines_above) + 1 * (self._leader_window_size + lines_above) + self._margin > viewed_y_position:
+                field_window_top = leader_window_bottom
+                field_window_bottom = self._row_height * (self._leader_window_size + self._field_window_size) + 1 * (self._leader_window_size + self._field_window_size) + self._margin
+                draw_middle_line = False
+
+            # Nope, Chuck Testa.
+            else:
+                field_window_top = (viewed_y_position - self._row_height * lines_above - 1 * lines_above)
+                field_window_bottom = (viewed_y_position + self._row_height * (lines_below + 1) + 1 * (lines_below + 1))
+                draw_middle_line = True
+
+            field_window = material.crop((0, field_window_top, material_width, field_window_bottom))
+
+        if leader_window is not None and field_window is not None:
+            combined_material = Image.new('RGBA', (material_width, leader_window.size[1] + field_window.size[1]), (0, 0, 0, 0))
+            combined_material.paste(leader_window, (0, 0), leader_window)
+            combined_material.paste(field_window, (0, leader_window.size[1]), field_window)
+            draw_bottom_line = True
+        elif leader_window is not None and field_window is None:
+            combined_material = leader_window
+            draw_bottom_line = True
+        elif leader_window is None and field_window is not None:
+            combined_material = field_window
+            draw_bottom_line = True
+        else:
+            combined_material = material
+
+        draw = ImageDraw.Draw(combined_material)
+
+        if draw_middle_line:
+            draw.line(
+                [
+                    (0, leader_window.size[1] - 1),
+                    (
+                        self._margin + self._row_width - 1,
+                        leader_window.size[1] - 1
+                    )],
+                fill='white',
+                width=1)
+
+        if draw_bottom_line:
+            draw.line(
+                [
+                    (0, combined_material.size[1] - 1),
+                    (
+                        self._margin + self._row_width - 1,
+                        combined_material.size[1] - 1
+                    )],
+                fill='white',
+                width=1)
 
         self._standings_lines = standings_lines
-        return material
+        return combined_material
 
 
 class Header:
@@ -779,6 +864,7 @@ class GapTimeFlyout(TimeFlyout):
             # If gap time is less than zero (which can happen in the
             # first few laps of a race), we just turn this into a
             # laptime flyout.
+            # TODO: There's gotta be a better way.
 
             if (driver_time-leader_time) > 0:
                 self._gap = "+{}".format(
