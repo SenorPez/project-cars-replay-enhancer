@@ -424,7 +424,9 @@ class RaceData:
 
             packet = next(telemetry_data)
 
-        return {driver.name: driver for driver in drivers[:count]}
+        return {driver.name: driver for driver in sorted(
+            drivers,
+            key=lambda x: x.index)[:count]}
 
 
 class ClassificationEntry:
