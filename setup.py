@@ -13,7 +13,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='replayenhancer',
-    version='0.5rc5',
+    version='0.5',
     description='Replay Enhancer',
     long_description=long_description,
     url='https://github.com/SenorPez/project-cars-replay-enhancer',
@@ -21,10 +21,9 @@ setup(
     author_email='contact_at_github@example.org',
     license='MIT',
     classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
         'Intended Audience :: End Users/Desktop',
         'License :: OSI Approved :: MIT License',
-        'Programming Language :: Python :: 3.2',
         'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
@@ -33,7 +32,7 @@ setup(
     ],
     keywords='gaming racing video data streaming',
     packages=find_packages(exclude=['assets', 'tests', 'utils']),
-    install_requires=['moviepy', 'natsort', 'pillow', 'tqdm'],
+    install_requires=['moviepy', 'natsort', 'Pillow', 'tqdm'],
     extras_require={
         'dev': [],
         'test': []
