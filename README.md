@@ -3,10 +3,8 @@
 Combines telemetry data with replay video to improve Project CARS replays.
 
 Current release: 0.5
-
-Current edge state: Getting There, Maybe
-
-Current mood: Frustrated  
+Current edge state: Pretty Close To Smooth
+Current mood: Content
 
 The Project CARS Replay Enhancer (I'd call it PCRE, [but that's taken](http://www.pcre.org/ "PCRE")) is intended to augment Project CARS replays by combining captured telemetry data with replay video. The project is currently in a rough state, being rewritten from the ground-up to be more stable, better tested, and faster.
 
@@ -14,10 +12,10 @@ The scripts are currently not fast enough for live broadcasting.
 
 ## Requirements
 * [Python 3.3](https://www.python.org/download/releases/3.3.0/ "Python 3.3.0") or greater
-* [MoviePy](http://zulko.github.io/moviepy/ "MoviePy")
+* [moviepy](http://zulko.github.io/moviepy/ "moviepy")
 * [natsort](https://pypi.python.org/pypi/natsort "natsort")
-* [NumPy](http://www.numpy.org/ "NumPy")
 * [Pillow](https://pypi.python.org/pypi/Pillow "Pillow")
+* [tqdm](https://pypi.python.org/pypi/tqdm "tqdm")
 
 ##Installation
 ### Short Version:
@@ -61,6 +59,8 @@ A low-quality video that encompasses only the first lap of the race is created, 
 * If the value on the timer is greater than the lap time (this is the typical scenario), add the difference between the timer and the lap time to the telemetry synchronization value.
 * If the value on the timer is less than the lap time, subtract the difference between the timer and the lap time from the telemetry synchronization value.
 After adjusting the telemetry synchronization, another low-quality, shortened video is created to confirm the synchronization.
+
+For an illustrated tutorial of telemetry synchronization, see [Determining Telemetry Synchronization Value](https://github.com/SenorPez/project-cars-replay-enhancer/wiki/Determining-Telemetry-Synchronization-Value).
 
 ### Creating a Replay
 To create the full, enhanced replay, provide the Project Cars Replay Enhancer with a valid configuration file. For example, `replayenhancer config.json`.
