@@ -1,0 +1,18 @@
+language: python
+
+python:
+  - "3.3"
+  - "3.4"
+  - "3.5"
+  - "3.5-dev"
+  - "nightly"
+
+install:
+  - python setup.py install
+  - pip install coverage
+
+script:
+  - nosetests -v --with-coverage --cover-package=replayenhancer
+
+after_success:
+   - bash <(curl -s https://codecov.io/bash)
