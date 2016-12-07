@@ -1,0 +1,32 @@
+//
+// This file is to be applied to every subproject.
+//
+
+apply plugin: 'java'
+apply plugin: 'jacoco'
+
+sourceCompatibility = '1.8'
+[compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
+
+repositories {
+    jcenter()
+}
+
+configurations {
+    compile.transitive = false
+}
+
+dependencies {
+    compile "com.fasterxml.jackson.core:jackson-databind:2.8.4"
+    testCompile "junit:junit:4.10"
+    testCompile "org.mockito:mockito-core:2.2.15"
+    testCompile "org.testfx:testfx-core:4.0.+"
+    testCompile "org.testfx:testfx-junit:4.0.+"
+}
+
+jacocoTestReport {
+    reports {
+        xml.enabled true
+        html.enabled false
+    }
+}
