@@ -16,6 +16,12 @@ class ParticipantPacket(Packet):
     packet type 1.
     """
     def __init__(self, packet_data):
+        if len(packet_data) != self._packet_length:
+            raise ValueError(
+                "Incorrect packet data length detected. " +
+                "Packet length is {}. ".format(len(packet_data)) +
+                "Packet length should be {}.".format(self._packet_length))
+
         self.data_hash = md5(packet_data).hexdigest()
         unpacked_data = self._unpack_data(packet_data)
 

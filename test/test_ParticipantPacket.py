@@ -1,40 +1,51 @@
-"""
-Tests ParticipantPacket.py
-"""
+"""Tests ParticipantPacket.py
 
+"""
 from hashlib import md5
 from struct import pack
 import unittest
-from unittest.mock import sentinel
 
 from replayenhancer.ParticipantPacket import ParticipantPacket
 
 
-class TestValidPacket(unittest.TestCase):
-    """
-    Unit tests for a valid Participant Packet.
-    """
-    expected_build_version = abs(id(sentinel.build_version))
-    while expected_build_version > 65535:
-        expected_build_version //= 2
+class TestParticipantPacket(unittest.TestCase):
+    """Unit tests against the ParticipantPacket object.
 
+    """
+    expected_build_version_number = 12345
     expected_packet_type = 1
 
-    expected_car_name = str(id(sentinel.car_name))
-    expected_car_class_name = str(id(sentinel.car_class_name))
-    expected_track_location = str(id(sentinel.track_location))
-    expected_track_variation = str(id(sentinel.track_variation))
+    expected_car_name = "Lotus 98T"
+    expected_car_class_name = "Vintage F1"
+    expected_track_location = "Test Track"
+    expected_track_variation = "Grand Prix"
 
-    expected_name = list()
-    expected_name.extend([str(id(sentinel.name)) for _ in range(16)])
+    expected_name = [
+        "Nico Rosberg",
+        "Lewis Hamilton",
+        "Daniel Ricciardo",
+        "Sebastian Vettel",
+        "Max Verstappen",
+        "Kimi Räikkönen",
+        "Sergio Pérez",
+        "Valtteri Bottas",
+        "Nico Hülkenberg",
+        "Fernando Alonso",
+        "Felipe Massa",
+        "Carlos Sainz Jr.",
+        "Romain Grosjean",
+        "Daniil Kvyat",
+        "Jenson Button",
+        "Kevin Magnussen"
+    ]
 
-    packet_length = 1347
+    expected_packet_length = 1347
     packet_string = "HB64s64s64s64s"
     packet_string += "64s" * 16
     packet_string += "64x"
 
     test_data = list()
-    test_data.append(expected_build_version)
+    test_data.append(expected_build_version_number)
     test_data.append(expected_packet_type)
     test_data.append(expected_car_name.encode('utf-8'))
     test_data.append(expected_car_class_name.encode('utf-8'))
@@ -49,18 +60,23 @@ class TestValidPacket(unittest.TestCase):
         expected_result = ParticipantPacket
         self.assertIsInstance(instance, expected_result)
 
+    def test_init_wrong_packet_length(self):
+        test_binary_data = pack("H", 42)
+
+        with self.assertRaises(ValueError):
+            ParticipantPacket(test_binary_data)
+
     def test_init_wrong_packet_type(self):
         test_data = self.test_data
         test_data[1] = 2  # Set incorrect packet type
-
         test_binary_data = pack(self.packet_string, *test_data)
 
         with self.assertRaises(ValueError):
             ParticipantPacket(test_binary_data)
 
-    def test_property_build_version(self):
+    def test_property_build_version_number(self):
         instance = ParticipantPacket(self.test_binary_data)
-        expected_result = self.expected_build_version
+        expected_result = self.expected_build_version_number
         self.assertEqual(instance.build_version_number, expected_result)
 
     def test_property_car_class_name(self):
@@ -79,11 +95,6 @@ class TestValidPacket(unittest.TestCase):
         self.assertEqual(instance.data_hash, expected_result)
 
     def test_property_name(self):
-        instance = ParticipantPacket(self.test_binary_data)
-        expected_result = type(self.expected_name)
-        self.assertIsInstance(instance.name, expected_result)
-
-    def test_property_name_values(self):
         instance = ParticipantPacket(self.test_binary_data)
         expected_result = self.expected_name
         self.assertListEqual(instance.name, expected_result)
