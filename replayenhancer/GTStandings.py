@@ -655,6 +655,11 @@ class StandingLine:
             material.paste(
                 flyout,
                 (row_width, 0))
+            material = material.crop((
+                0,
+                0,
+                self._size[0] + flyout.size[0],
+                max(self._size[1], flyout.size[1])))
 
             if all(
                     [
@@ -663,6 +668,8 @@ class StandingLine:
                     ]) \
                     and not self.flyout.persist:
                 self._flyout = None
+        else:
+            material = material.crop((0, 0, self._size[0], self._size[1]))
 
         return material
 
@@ -976,7 +983,7 @@ class PitStopFlyout(TimeFlyout):
         RaceData object for the race.
     driver : Driver
         Driver object representing the driver of the line.
-    font : ImageFont
+    font : PIL.ImageFont
         ImageFont object representing the font used to write text.
     size : (int, int)
         Tuple representing the size of the flyout.
