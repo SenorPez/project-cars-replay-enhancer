@@ -9,6 +9,8 @@ from hashlib import md5
 from itertools import tee
 
 from natsort import natsorted
+from tqdm import tqdm
+
 from replayenhancer.AdditionalParticipantPacket \
     import AdditionalParticipantPacket \
     as AdditionalParticipantPacket
@@ -19,7 +21,7 @@ from replayenhancer.RETelemetryDataPacket \
     import RETelemetryDataPacket \
     as TelemetryDataPacket
 from replayenhancer.StartingGridEntry import StartingGridEntry
-from tqdm import tqdm
+from replayenhancer.Track import Track
 
 
 class RaceData:
@@ -36,6 +38,8 @@ class RaceData:
         self._add_time = 0.0
         self._last_packet = None
         self._next_packet = None
+
+        self._track = None
 
         self._descriptor_filename = descriptor_filename
         self._telemetry_directory = telemetry_directory
@@ -109,7 +113,9 @@ class RaceData:
         drivers = self.all_drivers
         driver_names = dict().fromkeys(drivers.keys())
         for driver_name in driver_names.keys():
-            driver_names[driver_name] = {key for key, value in drivers.items() if value == drivers[driver_name]}
+            driver_names[driver_name] = {
+                key for key, value in drivers.items()
+                if value == drivers[driver_name]}
 
         return driver_names
 
@@ -210,6 +216,13 @@ class RaceData:
     def total_laps(self):
         return self._next_packet.laps_in_event
 
+    @property
+    def track(self):
+        return self._track
+
+    def driver_world_position(self, index):
+        return self._next_packet.participant_info[index].world_position
+
     def get_data(self, at_time=None):
         """
         Retrieves the next telemetry packet.
@@ -255,6 +268,7 @@ class RaceData:
             self._add_sector_times(self._next_packet)
 
             if at_time is None or self._elapsed_time >= at_time:
+                self._track = Track(self._next_packet.track_length)
                 return self._next_packet
 
     @staticmethod
@@ -758,10 +772,7 @@ class TelemetryData:
             total=self.packet_count,
             unit='packets')
 
-        packet = None
-        old_packet = None
         while True:
-            old_packet = packet
             packet = next(telemetry_data)
             progress.update()
             if packet.packet_type == 0 and packet.race_state == 3:
@@ -857,8 +868,8 @@ class TelemetryData:
             with open(packet, 'rb') as packet_file:
                 packet_data = packet_file.read()
 
-            if descriptor is not None and md5(packet_data).hexdigest() \
-                    == descriptor['race_end']:
+            if descriptor is not None \
+                    and md5(packet_data).hexdigest() == descriptor['race_end']:
                 raise StopIteration
 
             if find_start and \
