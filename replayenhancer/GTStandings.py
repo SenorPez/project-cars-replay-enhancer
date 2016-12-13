@@ -17,11 +17,12 @@ class GTStandings:
         - Position
         - Driver
 
-    Up to 10 drivers are displayed.
-        - Positions 1-5 are always displayed.
-        - Positions n-2 through n+2, where n is the viewed car are
-            displayed if there is no overlap with P1-5.
-        - Additional positions are added to display 10 in total.
+    There are two 'areas' of information:
+        The leader window shows the top x positions (default 16).
+        The field windows shows y positions, centered on the subject car
+            (default 0).
+        If the subject car is in the leader window, the top x + y positions
+            are shown.
     """
     _ups = 30
 
@@ -77,9 +78,9 @@ class GTStandings:
         # If set, use leader window size.
         try:
             self._leader_window_size = kwargs['leader_window_size'] \
-                if kwargs['leader_window_size'] >= 0 else 10
+                if kwargs['leader_window_size'] >= 0 else 16
         except KeyError:
-            self._leader_window_size = 10
+            self._leader_window_size = 16
 
         # Plus one to account for timer.
         # TODO: Add setting to make timer optional.
