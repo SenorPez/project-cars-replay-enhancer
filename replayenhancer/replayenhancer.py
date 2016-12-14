@@ -66,7 +66,7 @@ def make_video(config_file, *, sync=False):
             video_skipend)
     else:
         time_data = RaceData(configuration['source_telemetry'])
-        with tqdm(desc="Processing telemetry") as progress:
+        with tqdm(desc="Detecting Telemetry Duration") as progress:
             while True:
                 try:
                     _ = time_data.get_data()
@@ -103,21 +103,26 @@ def make_video(config_file, *, sync=False):
         ).set_position(('center', 'top'))
 
         first_lap_data = RaceData(configuration['source_telemetry'])
-        while not any(
-                [x.laps_complete > 0
-                 for x in first_lap_data.drivers_by_index]):
-            _ = first_lap_data.get_data()
+        with tqdm(desc="Detecting Video Start") as progress:
+            while not any(
+                    [x.laps_complete > 0
+                     for x in first_lap_data.drivers_by_index]):
+                _ = first_lap_data.get_data()
+                progress.update()
 
         start_time = first_lap_data.elapsed_time - 10
         end_time = None
 
-        while not all(
-                [x.laps_complete > 0
-                 for x in first_lap_data.drivers_by_index]):
-            try:
-                _ = first_lap_data.get_data()
-            except StopIteration:
-                end_time = start_time + 60
+        with tqdm(desc="Detecting Video End") as progress:
+            while not all(
+                    [x.laps_complete > 0
+                     for x in first_lap_data.drivers_by_index]):
+                try:
+                    _ = first_lap_data.get_data()
+                    progress.update()
+                except StopIteration:
+                    end_time = start_time + 60
+                    break
 
         if end_time is not None:
             end_time = first_lap_data.elapsed_time + 10
