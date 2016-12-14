@@ -109,13 +109,18 @@ def make_video(config_file, *, sync=False):
             _ = first_lap_data.get_data()
 
         start_time = first_lap_data.elapsed_time - 10
+        end_time = None
 
         while not all(
                 [x.laps_complete > 0
                  for x in first_lap_data.drivers_by_index]):
-            _ = first_lap_data.get_data()
+            try:
+                _ = first_lap_data.get_data()
+            except StopIteration:
+                end_time = start_time + 60
 
-        end_time = first_lap_data.elapsed_time + 10
+        if end_time is not None:
+            end_time = first_lap_data.elapsed_time + 10
 
         main_event = mpy.CompositeVideoClip(
             [source_video, standings_clip, timecode_clip]
