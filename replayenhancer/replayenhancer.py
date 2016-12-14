@@ -124,7 +124,7 @@ def make_video(config_file, *, sync=False):
                     end_time = start_time + 60
                     break
 
-        if end_time is not None:
+        if end_time is None:
             end_time = first_lap_data.elapsed_time + 10
 
         main_event = mpy.CompositeVideoClip(
