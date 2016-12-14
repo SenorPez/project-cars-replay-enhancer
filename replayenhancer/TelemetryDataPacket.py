@@ -303,10 +303,6 @@ class TelemetryDataPacket(Packet):
         return 0
 
     @property
-    def _packet_length(self):
-        return 1367
-
-    @property
     def _packet_string(self):
         packet_string = "HB"
         packet_string += "B"
@@ -331,7 +327,7 @@ class TelemetryDataPacket(Packet):
         return packet_string
 
     def __str__(self):
-        return "TelemetryData"
+        return "TelemetryDataPacket"
 
     @property
     def game_state(self):
