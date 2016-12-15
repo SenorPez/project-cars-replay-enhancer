@@ -8,8 +8,8 @@ reinvent the wheel.
 https://github.com/mrbelowski/CrewChiefV4/
 """
 
-from json import load
 import os
+from json import load
 
 
 class Track:

@@ -25,6 +25,7 @@ class RaceResults(StaticBase):
     """
     def __init__(self, data, size=None, **kwargs):
         super().__init__(data, size=size, **kwargs)
+        self.sort_data(lambda x: (-x.driver.laps_complete, x.driver.race_time))
 
         try:
             name_lookup = {

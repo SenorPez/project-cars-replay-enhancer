@@ -17,14 +17,19 @@ class TestRaceResults(unittest.TestCase):
     Unit tests for Race Results card.
     """
 
+    @patch('replayenhancer.RaceData.Driver', autospec=True)
     @patch('replayenhancer.RaceData.ClassificationEntry', autospec=True)
-    def test_init_no_config(self, mock_classification_entry):
-        instance = RaceResults(mock_classification_entry)
+    def test_init_no_config(self, mock_classification_entry, mock_driver):
+        mock_driver.laps_complete = 6
+        mock_driver.race_time = 42.00
+        mock_classification_entry.driver = mock_driver
+        instance = RaceResults([mock_classification_entry])
         expected_result = RaceResults
         self.assertIsInstance(instance, expected_result)
 
+    @patch('replayenhancer.RaceData.Driver', autospec=True)
     @patch('replayenhancer.RaceData.ClassificationEntry', autospec=True)
-    def test_init_config(self, mock_classification_entry):
+    def test_init_config(self, mock_classification_entry, mock_driver):
         configuration = {
             'participant_config': {
                 'Kobernulf Monnur': {
@@ -35,12 +40,17 @@ class TestRaceResults(unittest.TestCase):
             },
             'point_structure': [5, 15, 12, 10, 8, 6, 4, 2, 1]
         }
+        mock_driver.laps_complete = 6
+        mock_driver.race_time = 42.00
+        mock_classification_entry.driver = mock_driver
         instance = RaceResults([mock_classification_entry], **configuration)
         expected_result = RaceResults
         self.assertIsInstance(instance, expected_result)
 
+    @patch('replayenhancer.RaceData.Driver', autospec=True)
     @patch('replayenhancer.RaceData.ClassificationEntry', autospec=True)
-    def test_method_calc_points_best_lap(self, mock_classification_entry):
+    def test_method_calc_points_best_lap(self, mock_classification_entry,
+                                         mock_driver):
         driver_name = 'Kobernulf_Monnur'
         position = 1
         best_lap = 42.0
@@ -51,6 +61,10 @@ class TestRaceResults(unittest.TestCase):
         type(mock_classification_entry).best_lap = PropertyMock(
             return_value=best_lap)
 
+        mock_driver.laps_complete = 6
+        mock_driver.race_time = 42.00
+        mock_classification_entry.driver = mock_driver
+
         instance = RaceResults([mock_classification_entry], **configuration)
         expected_result = '20'
         self.assertEqual(
@@ -59,8 +73,10 @@ class TestRaceResults(unittest.TestCase):
                 **configuration),
             expected_result)
 
+    @patch('replayenhancer.RaceData.Driver', autospec=True)
     @patch('replayenhancer.RaceData.ClassificationEntry', autospec=True)
-    def test_method_calc_points_not_best_lap(self, mock_classification_entry):
+    def test_method_calc_points_not_best_lap(self, mock_classification_entry,
+                                             mock_driver):
         driver_name = 'Kobernulf Monnur'
         position = 1
         best_lap = 56.0
@@ -71,6 +87,10 @@ class TestRaceResults(unittest.TestCase):
         type(mock_classification_entry).best_lap = PropertyMock(
             return_value=42.0)
 
+        mock_driver.laps_complete = 6
+        mock_driver.race_time = 42.00
+        mock_classification_entry.driver = mock_driver
+
         instance = RaceResults([mock_classification_entry], **configuration)
         expected_result = '15'
         self.assertEqual(
@@ -79,12 +99,17 @@ class TestRaceResults(unittest.TestCase):
                 **configuration),
             expected_result)
 
+    @patch('replayenhancer.RaceData.Driver', autospec=True)
     @patch('replayenhancer.RaceData.ClassificationEntry', autospec=True)
-    def test_method_calc_points_no_point_structure(self, mock_classification_entry):
+    def test_method_calc_points_no_point_structure(
+            self, mock_classification_entry, mock_driver):
         driver_name = 'Kobernulf Monnur'
         position = 1
         best_lap = 42.0
 
+        mock_driver.laps_complete = 6
+        mock_driver.race_time = 42.00
+        mock_classification_entry.driver = mock_driver
         instance = RaceResults([mock_classification_entry])
         expected_result = '0'
         self.assertEqual(

@@ -4,12 +4,11 @@ Main execution script.
 import argparse
 import json
 import os
-import re
 import sys
 
 import moviepy.editor as mpy
-from moviepy.video.io.bindings import PIL_to_npimage
 from PIL import Image, ImageDraw
+from moviepy.video.io.bindings import PIL_to_npimage
 from tqdm import tqdm
 
 from replayenhancer.DefaultCards \
@@ -106,7 +105,7 @@ def make_video(config_file, *, sync=False):
         with tqdm(desc="Detecting Video Start") as progress:
             while not any(
                     [x.laps_complete > 0
-                     for x in first_lap_data.drivers_by_index]):
+                     for x in first_lap_data.drivers.values()]):
                 _ = first_lap_data.get_data()
                 progress.update()
 
@@ -116,7 +115,7 @@ def make_video(config_file, *, sync=False):
         with tqdm(desc="Detecting Video End") as progress:
             while not all(
                     [x.laps_complete > 0
-                     for x in first_lap_data.drivers_by_index]):
+                     for x in first_lap_data.drivers.values()]):
                 try:
                     _ = first_lap_data.get_data()
                     progress.update()
@@ -156,7 +155,7 @@ def make_video(config_file, *, sync=False):
     end_titles = list()
 
     pcre_results = RaceResultsWithChange(
-        sorted(result_data.classification, key=lambda x: x.position),
+        sorted(result_data.all_driver_classification, key=lambda x: x.position),
         result_data.starting_grid,
         size=source_video.size,
         **configuration)
@@ -171,7 +170,7 @@ def make_video(config_file, *, sync=False):
                 x['points'] for x
                 in configuration['participant_config'].values()]):
             pcre_series_standings = SeriesStandings(
-                result_data.classification,
+                result_data.all_driver_classification,
                 size=source_video.size,
                 **configuration)
 
@@ -183,7 +182,7 @@ def make_video(config_file, *, sync=False):
             end_titles.append(series_standings)
         else:
             pcre_series_standings = SeriesStandingsWithChange(
-                result_data.classification,
+                result_data.all_driver_classification,
                 size=source_video.size,
                 **configuration)
 
@@ -197,7 +196,7 @@ def make_video(config_file, *, sync=False):
         try:
             _ = configuration['point_structure']
             pcre_series_standings = SeriesStandings(
-                result_data.classification,
+                result_data.all_driver_classification,
                 size=source_video.size,
                 **configuration)
 
@@ -212,7 +211,7 @@ def make_video(config_file, *, sync=False):
 
     if champion:
         pcre_series_champion = SeriesChampion(
-            result_data.classification,
+            result_data.all_driver_classification,
             size=source_video.size,
             **configuration)
         Image.fromarray(pcre_series_champion.to_frame()).save(

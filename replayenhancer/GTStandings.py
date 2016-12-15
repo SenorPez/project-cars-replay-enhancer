@@ -3,9 +3,9 @@ Provides classes for the creation of a standings tree.
 """
 
 import abc
+import math
 from copy import copy
 
-import math
 from PIL import Image, ImageDraw, ImageFont
 from moviepy.video.io.bindings import PIL_to_npimage
 
@@ -73,7 +73,7 @@ class GTStandings:
             name_width = max(
                 [
                     self._font.getsize(driver)[0]
-                    for driver in race_data.current_drivers.keys()])
+                    for driver in race_data.drivers.keys()])
 
         # If set, use leader window size.
         try:
@@ -95,7 +95,7 @@ class GTStandings:
 
         block_height = self._font.getsize("A")[1]
         self._row_height = int(block_height * 2.5)
-        entries = len(self._race_data.current_drivers)
+        entries = len(self._race_data.drivers)
 
         self._flyout_width =\
             self._font.getsize("00:00.000")[0] \
@@ -213,10 +213,9 @@ class GTStandings:
             y_offset = 0
 
             try:
-                names = self._race_data.driver_names
                 entry = next(
                     entry for entry in classification
-                    if entry.driver_name in names[line.driver.name])
+                    if entry.driver_name in self._race_data.drivers)
             except StopIteration:
                 if line in self._dropping_lines and all([
                         animation.complete
@@ -337,6 +336,8 @@ class GTStandings:
                 + 1 * self._leader_window_size + self._margin
             leader_window = material.crop(
                 (0, 0, material_width, leader_window_bottom))
+        else:
+            leader_window_bottom = 0
 
         if self._field_window_size > 0:
             lines_below = self._field_window_size // 2
