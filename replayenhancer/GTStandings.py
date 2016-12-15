@@ -769,27 +769,11 @@ class Flyout:
     _ups = 30
 
     def __init__(self, size=None, margin=20, ups=30):
-        self._animations = list()
+        self.animations = list()
         self._margin = margin
         self._size = size
-        self._ups = ups
-        self._persist = False
-
-    @property
-    def animations(self):
-        return self._animations
-
-    @property
-    def persist(self):
-        return self._persist
-
-    @persist.setter
-    def persist(self, value):
-        self._persist = value
-
-    @property
-    def ups(self):
-        return self._ups
+        self.ups = ups
+        self.persist = False
 
     @abc.abstractmethod
     def _make_material(self):
@@ -802,7 +786,7 @@ class TimeFlyout(Flyout):
     """
     Abstract class representing a flyout that displays time values.
     """
-    _color = (0, 0, 0, 200)
+    color = (0, 0, 0, 200)
 
     _session_best_text_color = (255, 0, 255, 255)
     _personal_best_text_color = (0, 255, 0, 255)
@@ -814,20 +798,16 @@ class TimeFlyout(Flyout):
         self._driver = driver
         self._race_data = race_data
 
-        self._animations.append(
+        self.animations.append(
             Animation(
                 duration=int(self.ups/2),
                 position_from=(-self._size[0], 0)))
-        self._animations.append(
+        self.animations.append(
             Animation(
                 duration=int(self.ups/2),
                 position_from=(0, 0),
                 position_to=(-self._size[0], 0),
                 delay=self.ups*5))
-
-    @property
-    def color(self):
-        return self._color
 
     @property
     def text_color(self):
@@ -1011,18 +991,18 @@ class PitStopFlyout(TimeFlyout):
         self._add_time = 0.0
         self._last_time = None
 
-        self._persist = True
-        self._closing = False
+        self.persist = True
+        self.is_closing = False
 
-        _ = self._animations.pop()
+        _ = self.animations.pop()
 
     def close_flyout(self):
         """Adds an animation to close the flyout.
 
         """
-        self._persist = False
-        self._closing = True
-        self._animations.append(
+        self.persist = False
+        self.is_closing = True
+        self.animations.append(
             Animation(
                 duration=int(self.ups / 2),
                 position_from=(0, 0),
@@ -1039,7 +1019,7 @@ class PitStopFlyout(TimeFlyout):
         """
         self._locations.append(location)
 
-        if self.is_stopped:
+        if self._is_stopped:
             if time is None or time == -1.0:
                 self._base_time = 0.0
                 self._add_time = 0.0
@@ -1060,7 +1040,7 @@ class PitStopFlyout(TimeFlyout):
                 self._stop_time = (time - self._base_time) + self._add_time
 
     def _make_material(self):
-        material = Image.new('RGBA', self._size, self._color)
+        material = Image.new('RGBA', self._size, self.color)
 
         block_height = self._font.getsize("A")[1]
 
@@ -1082,14 +1062,7 @@ class PitStopFlyout(TimeFlyout):
         return material
 
     @property
-    def is_closing(self):
-        """bool : Is the flyout in the process of closing?
-
-        """
-        return self._closing
-
-    @property
-    def is_stopped(self):
+    def _is_stopped(self):
         """bool : Is the car stopped?
 
         Notes
