@@ -30,7 +30,6 @@ class RaceData:
     """
     def __init__(self, telemetry_directory, *,
                  descriptor_filename='descriptor.json'):
-        self._classification = list()
         self._starting_grid = list()
         self.drivers = dict()
         self._dropped_drivers = dict()

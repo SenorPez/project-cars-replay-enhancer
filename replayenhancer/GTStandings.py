@@ -142,10 +142,7 @@ class GTStandings:
             ups=ups)
 
         self._standings_lines = list()
-        self._classification = sorted(
-            self._race_data.classification,
-            key=lambda x: x.position)
-        for entry in self._classification:
+        for entry in sorted(self._race_data.classification, key=lambda x: x.position):
             try:
                 display_name = \
                     self._short_name_lookup[entry.driver_name]
@@ -215,7 +212,7 @@ class GTStandings:
             try:
                 entry = next(
                     entry for entry in classification
-                    if entry.driver_name in self._race_data.drivers)
+                    if entry.driver_name == line.driver.name)
             except StopIteration:
                 if line in self._dropping_lines and all([
                         animation.complete
