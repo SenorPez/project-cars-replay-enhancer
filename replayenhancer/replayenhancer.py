@@ -20,7 +20,7 @@ from replayenhancer.SeriesStandingsWithChange \
     import SeriesStandingsWithChange
 
 
-def make_video(config_file, *, framerate=30, sync=False):
+def make_video(config_file, *, framerate=None, sync=False):
     configuration = json.load(open(config_file))
     try:
         race_data = RaceData(configuration['source_telemetry'])
@@ -61,6 +61,8 @@ def make_video(config_file, *, framerate=30, sync=False):
         ).subclip(
             video_skipstart,
             video_skipend)
+        if framerate is None:
+            framerate = source_video.fps
     else:
         time_data = RaceData(configuration['source_telemetry'])
         with tqdm(desc="Detecting Telemetry Duration") as progress:
@@ -72,6 +74,9 @@ def make_video(config_file, *, framerate=30, sync=False):
                     break
         source_video = mpy.ColorClip((1280, 1024)).set_duration(
             time_data.elapsed_time)
+
+        if framerate is None:
+            framerate = 30
 
     pcre_standings = GTStandings(
         race_data,
@@ -234,7 +239,7 @@ def main():
         '-f',
         '--framerate',
         action='store',
-        default=30)
+        default=None)
 
     parser.add_argument(
         '-s',
