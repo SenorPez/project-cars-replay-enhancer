@@ -16,6 +16,7 @@ class RaceResults(StaticBase):
         - Team: Driver team (if applicable, blank else).
         - Car: Driver car.
         - Laps: Driver laps completed.
+        - Stops: Pit stops (if greater than 0)
         - Time: Driver total race time.
         - Best Lap: Driver best lap.
         - Best S1: Driver best sector 1.
@@ -79,6 +80,10 @@ class RaceResults(StaticBase):
             self.add_lookup('driver_name', car_lookup, '', 'Car')
 
         self.add_column('laps_complete', 'Laps', align='center')
+
+        if any([x.driver.stops for x in data]):
+            self.add_column('stops', 'Stops', align='center')
+
         self.add_column(
             'race_time',
             'Time',

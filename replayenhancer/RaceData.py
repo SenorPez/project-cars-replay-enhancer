@@ -35,6 +35,8 @@ class RaceData:
         self.drivers = dict()
         self._dropped_drivers = dict()
 
+        self._stopped_drivers = set()
+
         self.elapsed_time = 0.0
         self._add_time = 0.0
         self._last_packet = None
@@ -220,15 +222,21 @@ class RaceData:
                 for key in current_drivers.keys():
                     self.drivers[key].index = current_drivers[key].index
 
+
+            self.track = Track(self._next_packet.track_length)
             self._add_sector_times(self._next_packet)
 
             if at_time is None or self.elapsed_time >= at_time:
-                self.track = Track(self._next_packet.track_length)
                 return self._next_packet
 
     def _add_sector_times(self, packet):
         for index, participant_info in enumerate(
                 packet.participant_info[:packet.num_participants]):
+            driver_name = None
+            for name, driver in self.drivers.items():
+                if driver.index == index:
+                    driver_name = driver.name
+
             if participant_info.sector == 1:
                 sector = 3
             elif participant_info.sector == 2:
@@ -243,14 +251,21 @@ class RaceData:
                 """
                 return
 
+            if self.track.at_pit_entry(participant_info.world_position) \
+                    and driver_name not in self._stopped_drivers:
+                self.drivers[driver_name].stops += 1
+                self._stopped_drivers.add(driver_name)
+
+            if self.track.at_pit_exit(participant_info.world_position) \
+                    and driver_name in self._stopped_drivers:
+                self._stopped_drivers.remove(driver_name)
+
             sector_time = SectorTime(
                 participant_info.last_sector_time,
                 sector,
                 participant_info.invalid_lap)
 
-            for name, driver in self.drivers.items():
-                if driver.index == index:
-                    driver.add_sector_time(sector_time)
+            self.drivers[driver_name].add_sector_time(sector_time)
 
     def _best_sector(self, sector):
         try:
@@ -350,6 +365,10 @@ class ClassificationEntry:
     def race_time(self):
         return self.driver.race_time
 
+    @property
+    def stops(self):
+        return self.driver.stops
+
 
 class Driver:
     """
@@ -362,6 +381,7 @@ class Driver:
         self.name = name
 
         self.sector_times = list()
+        self.stops = 0
 
     @property
     def best_lap(self):

@@ -22,6 +22,7 @@ class TestRaceResults(unittest.TestCase):
     def test_init_no_config(self, mock_classification_entry, mock_driver):
         mock_driver.laps_complete = 6
         mock_driver.race_time = 42.00
+        mock_driver.stops = 0
         mock_classification_entry.driver = mock_driver
         instance = RaceResults([mock_classification_entry])
         expected_result = RaceResults
@@ -42,6 +43,7 @@ class TestRaceResults(unittest.TestCase):
         }
         mock_driver.laps_complete = 6
         mock_driver.race_time = 42.00
+        mock_driver.stops = 0
         mock_classification_entry.driver = mock_driver
         instance = RaceResults([mock_classification_entry], **configuration)
         expected_result = RaceResults
@@ -63,6 +65,7 @@ class TestRaceResults(unittest.TestCase):
 
         mock_driver.laps_complete = 6
         mock_driver.race_time = 42.00
+        mock_driver.stops = 0
         mock_classification_entry.driver = mock_driver
 
         instance = RaceResults([mock_classification_entry], **configuration)
@@ -89,6 +92,7 @@ class TestRaceResults(unittest.TestCase):
 
         mock_driver.laps_complete = 6
         mock_driver.race_time = 42.00
+        mock_driver.stops = 0
         mock_classification_entry.driver = mock_driver
 
         instance = RaceResults([mock_classification_entry], **configuration)
@@ -109,6 +113,7 @@ class TestRaceResults(unittest.TestCase):
 
         mock_driver.laps_complete = 6
         mock_driver.race_time = 42.00
+        mock_driver.stops = 0
         mock_classification_entry.driver = mock_driver
         instance = RaceResults([mock_classification_entry])
         expected_result = '0'
