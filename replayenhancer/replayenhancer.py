@@ -20,7 +20,7 @@ from replayenhancer.SeriesStandingsWithChange \
     import SeriesStandingsWithChange
 
 
-def make_video(config_file, *, sync=False):
+def make_video(config_file, *, framerate=30, sync=False):
     configuration = json.load(open(config_file))
     try:
         race_data = RaceData(configuration['source_telemetry'])
@@ -43,8 +43,6 @@ def make_video(config_file, *, sync=False):
             os.environ['HEADINGFONTOVERRIDE']
     if os.environ.get('DISPLAYFONTOVERRIDE') is not None:
         configuration['font'] = os.environ['DISPLAYFONTOVERRIDE']
-
-    framerate = 30
 
     try:
         video_skipstart = configuration['video_skipstart']
@@ -223,7 +221,7 @@ def make_video(config_file, *, sync=False):
 
     output = mpy.concatenate_videoclips([starting_grid.fadeout(1), main_event] + [clip.fadein(1).fadeout(1) for clip in end_titles[:-1]] + [end_titles[-1].fadein(1)], method="compose")
 
-    output.write_videofile(configuration['output_video'], fps=framerate)
+    output.write_videofile(configuration['output_video'], fps=float(framerate))
 
 
 def main():
@@ -231,6 +229,12 @@ def main():
         description="Project CARS Replay Enhancer")
 
     parser.add_argument('config')
+
+    parser.add_argument(
+        '-f',
+        '--framerate',
+        action='store',
+        default=30)
 
     parser.add_argument(
         '-s',
@@ -247,6 +251,7 @@ def main():
 
     make_video(
         args.config,
+        framerate=args.framerate,
         sync=args.sync)
 
 if __name__ == '__main__':
