@@ -387,11 +387,10 @@ class GTStandings:
                 'RGBA',
                 (material_width, leader_window.size[1] + field_window.size[1]),
                 (0, 0, 0, 0))
-            combined_material.paste(leader_window, (0, 0), leader_window)
+            combined_material.paste(leader_window, (0, 0))
             combined_material.paste(
                 field_window,
-                (0, leader_window.size[1]),
-                field_window)
+                (0, leader_window.size[1]))
             draw_bottom_line = True
         elif leader_window is not None and field_window is None:
             combined_material = leader_window
