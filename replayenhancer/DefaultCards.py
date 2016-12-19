@@ -146,7 +146,8 @@ class RaceResults(StaticBase):
         except (KeyError, TypeError):
             points += 0
 
-        if kwargs['points_adjust'] is not None \
+        if 'points_adjust' in kwargs \
+                and kwargs['points_adjust'] is not None \
                 and driver_name in kwargs['points_adjust']:
             adjust = kwargs['points_adjust'][driver_name]
             if adjust[0] == '+':
