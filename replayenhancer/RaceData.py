@@ -232,7 +232,7 @@ class RaceData:
         for index, participant_info in enumerate(
                 packet.participant_info[:packet.num_participants]):
             driver_name = None
-            for name, driver in self.drivers.items():
+            for driver in self.drivers.values():
                 if driver.index == index:
                     driver_name = driver.name
 
@@ -439,21 +439,27 @@ class Driver:
         elif len(self.sector_times) == 0:
             self.sector_times.append(sector_time)
         elif self.sector_times[-1].time != sector_time.time \
+                or self.sector_times[-1].invalid != sector_time.invalid \
                 or self.sector_times[-1].sector != sector_time.sector:
-            if self._invalidate_next_sector_count > 0:
-                self.sector_times.append(SectorTime(
-                    sector_time.time,
-                    sector_time.sector,
-                    True))
-                self._invalidate_next_sector_count -= 1
+            if self.sector_times[-1].invalid != sector_time.invalid \
+                    and self.sector_times[-1].time == sector_time.time \
+                    and self.sector_times[-1].sector == sector_time.sector:
+                self.sector_times[-1] = sector_time
             else:
-                self.sector_times.append(SectorTime(
-                    sector_time.time,
-                    sector_time.sector,
-                    False))
+                if self._invalidate_next_sector_count > 0:
+                    self.sector_times.append(SectorTime(
+                        sector_time.time,
+                        sector_time.sector,
+                        True))
+                    self._invalidate_next_sector_count -= 1
+                else:
+                    self.sector_times.append(SectorTime(
+                        sector_time.time,
+                        sector_time.sector,
+                        False))
 
-        if sector_time.invalid:
-            self._invalidate_lap(sector_time)
+            if sector_time.invalid:
+                self._invalidate_lap(sector_time)
 
     def _best_sector(self, sector):
         try:
@@ -470,7 +476,8 @@ class Driver:
             self._invalidate_next_sector_count = 3
         elif sector_time.sector == 1:
             self._invalidate_next_sector_count = 2
-            self.sector_times[-1].invalid = True
+            for sector in self.sector_times[-1:]:
+                sector.invalid = True
         elif sector_time.sector == 2:
             self._invalidate_next_sector_count = 1
             for sector in self.sector_times[-2:]:
