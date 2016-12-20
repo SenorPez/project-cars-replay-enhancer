@@ -169,32 +169,33 @@ def make_video(config_file, *, framerate=None, sync=False):
     end_titles.append(results)
 
     try:
-        if not any([
-                x['points'] for x
-                in configuration['participant_config'].values()]):
-            pcre_series_standings = SeriesStandings(
-                result_data.all_driver_classification,
-                size=source_video.size,
-                **configuration)
+        if any(configuration['point_structure']):
+            if not any([
+                    x['points'] for x
+                    in configuration['participant_config'].values()]):
+                pcre_series_standings = SeriesStandings(
+                    result_data.all_driver_classification,
+                    size=source_video.size,
+                    **configuration)
 
-            Image.fromarray(pcre_series_standings.to_frame()).save(
-                output_prefix + '_series_standings.png')
-            series_standings = mpy.ImageClip(
-                pcre_series_standings.to_frame()).set_duration(20)
+                Image.fromarray(pcre_series_standings.to_frame()).save(
+                    output_prefix + '_series_standings.png')
+                series_standings = mpy.ImageClip(
+                    pcre_series_standings.to_frame()).set_duration(20)
 
-            end_titles.append(series_standings)
-        else:
-            pcre_series_standings = SeriesStandingsWithChange(
-                result_data.all_driver_classification,
-                size=source_video.size,
-                **configuration)
+                end_titles.append(series_standings)
+            else:
+                pcre_series_standings = SeriesStandingsWithChange(
+                    result_data.all_driver_classification,
+                    size=source_video.size,
+                    **configuration)
 
-            Image.fromarray(pcre_series_standings.to_frame()).save(
-                output_prefix + '_series_standings.png')
-            series_standings = mpy.ImageClip(
-                pcre_series_standings.to_frame()).set_duration(20)
+                Image.fromarray(pcre_series_standings.to_frame()).save(
+                    output_prefix + '_series_standings.png')
+                series_standings = mpy.ImageClip(
+                    pcre_series_standings.to_frame()).set_duration(20)
 
-            end_titles.append(series_standings)
+                end_titles.append(series_standings)
     except KeyError:
         try:
             _ = configuration['point_structure']

@@ -59,6 +59,8 @@ class RaceResults(StaticBase):
             point_structure = {
                 k: v
                 for k, v in enumerate(kwargs['point_structure'])}
+            if len(point_structure) == 0 or not any(point_structure.values()):
+                point_structure = None
         except KeyError:
             point_structure = None
 
@@ -226,10 +228,24 @@ class StartingGrid(StaticBase):
             team_lookup = None
 
         try:
-            points_lookup = {
-                k: v['points']
-                for k, v in kwargs['participant_config'].items()}
+            point_structure = {
+                k: v
+                for k, v in enumerate(kwargs['point_structure'])}
+            if len(point_structure) == 0 or not any(point_structure.values()):
+                point_structure = None
         except KeyError:
+            point_structure = None
+
+        if point_structure is not None:
+            try:
+                points_lookup = {
+                    k: v['points']
+                    for k, v in kwargs['participant_config'].items()}
+                if not any(points_lookup.values()):
+                    points_lookup = None
+            except KeyError:
+                points_lookup = None
+        else:
             points_lookup = None
 
         self.add_column('position', 'Pos.')
@@ -249,7 +265,7 @@ class StartingGrid(StaticBase):
         if car_lookup is not None:
             self.add_lookup('driver_name', car_lookup, '', 'Car')
 
-        if points_lookup is not None or 'point_structure' in kwargs:
+        if points_lookup is not None or point_structure is not None:
             self.add_lookup(
                 'driver_name',
                 points_lookup,
