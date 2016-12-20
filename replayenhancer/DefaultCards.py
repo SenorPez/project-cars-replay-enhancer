@@ -93,7 +93,13 @@ class RaceResults(StaticBase):
 
         self.add_column('laps_complete', 'Laps', align='center')
 
-        if any([x.driver.stops for x in data]):
+        try:
+            result_lines = self._options['result_lines']
+            stops = [x.driver.stops for x in self._data[:result_lines]]
+        except KeyError:
+            stops = [x.driver.stops for x in self._data]
+
+        if any(stops):
             self.add_column('stops', 'Stops', align='center')
 
         self.add_column(

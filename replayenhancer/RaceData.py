@@ -221,7 +221,6 @@ class RaceData:
                 for key in current_drivers.keys():
                     self.drivers[key].index = current_drivers[key].index
 
-
             self.track = Track(self._next_packet.track_length)
             self._add_sector_times(self._next_packet)
 
@@ -239,6 +238,8 @@ class RaceData:
             if participant_info.sector == 1:
                 sector = 3
             elif participant_info.sector == 2:
+                if driver_name in self._stopped_drivers:
+                    self._stopped_drivers.remove(driver_name)
                 sector = 1
             elif participant_info.sector == 3:
                 sector = 2
@@ -251,12 +252,13 @@ class RaceData:
                 return
 
             if self.track.at_pit_entry(participant_info.world_position) \
-                    and driver_name not in self._stopped_drivers:
-                self.drivers[driver_name].stops += 1
+                    and driver_name not in self._stopped_drivers \
+                    and self.race_state == 2:
                 self._stopped_drivers.add(driver_name)
 
             if self.track.at_pit_exit(participant_info.world_position) \
                     and driver_name in self._stopped_drivers:
+                self.drivers[driver_name].stops += 1
                 self._stopped_drivers.remove(driver_name)
 
             sector_time = SectorTime(
