@@ -594,8 +594,14 @@ class SeriesChampion(SeriesStandings):
         #  If set, use a backdrop.
         try:
             backdrop = Image.open(self._options['backdrop'])
-            backdrop_size = backdrop.size
-        except (KeyError, IOError):
+
+            if self._size is not None:
+                backdrop = backdrop.resize(self._size)
+                backdrop_size = self._size
+            else:
+                backdrop_size = backdrop.size
+
+        except (AttributeError, KeyError, IOError):
             backdrop = None
             backdrop_size = None
 
@@ -605,7 +611,7 @@ class SeriesChampion(SeriesStandings):
             logo_size = (
                 self._options['logo_width'],
                 self._options['logo_height'])
-        except (KeyError, IOError):
+        except (AttributeError, KeyError, IOError):
             logo = None
             logo_size = None
 
