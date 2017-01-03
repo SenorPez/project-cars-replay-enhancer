@@ -575,8 +575,7 @@ class TelemetryData:
     def __next__(self):
         return next(self._telemetry_data)
 
-    def _build_descriptor(self, telemetry_directory,
-                          descriptor_filename):
+    def _build_descriptor(self, telemetry_directory, descriptor_filename):
         descriptor = {
             'race_end': None,
             'race_finish': None,
@@ -588,28 +587,30 @@ class TelemetryData:
             total=self.packet_count,
             unit='packets')
 
-        while True:
-            packet = next(telemetry_data)
-            progress.update()
-            if packet.packet_type == 0 and packet.race_state == 3:
-                break
+        try:
+            while True:
+                while True:
+                    packet = next(telemetry_data)
+                    progress.update()
+                    if packet.packet_type == 0 and packet.race_state == 3:
+                        break
 
-        # Exhaust packets until the race end.
-        # TODO: Support for other ways to finish a race?
-        while True:
-            try:
-                old_packet = packet
-                packet = next(telemetry_data)
-                progress.update()
-                if packet.packet_type == 0 and packet.race_state != 3:
-                    break
-            except StopIteration:
-                old_packet = packet
-                break
+                # Exhaust packets until the race end.
+                # TODO: Support for other ways to finish a race?
+                while True:
+                    try:
+                        old_packet = packet
+                        packet = next(telemetry_data)
+                        progress.update()
+                        if packet.packet_type == 0 and packet.race_state != 3:
+                            break
+                    except StopIteration:
+                        old_packet = packet
+                        break
 
-        progress.close()
-
-        descriptor['race_end'] = old_packet.data_hash
+        except StopIteration:
+            progress.close()
+            descriptor['race_end'] = old_packet.data_hash
 
         telemetry_data = self._get_telemetry_data(
             telemetry_directory,
