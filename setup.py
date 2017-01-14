@@ -13,8 +13,8 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='replayenhancer',
-    version='0.5.1rc1',
-    description='Replay Enhancer',
+    version='0.5.1rc2',
+    description='Replay Enhancer 0.5.1 Release Candidate 2',
     long_description=long_description,
     url='https://github.com/SenorPez/project-cars-replay-enhancer',
     author='Senor Pez',
