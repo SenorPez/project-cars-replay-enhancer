@@ -16,10 +16,6 @@ class Packet(metaclass=abc.ABCMeta):
         """Define the packet type number of the packet."""
 
     @abc.abstractproperty
-    def _packet_length(self):
-        """Define the packet length of the raw packet data."""
-
-    @abc.abstractproperty
     def _packet_string(self):
         """Define the binary unpacking string for the packet."""
 
@@ -31,8 +27,8 @@ class Packet(metaclass=abc.ABCMeta):
             packet_type = int(packet_type) & int('00000011', 2)
             if packet_type != self.packet_type:
                 raise ValueError(
-                    "Incorrect packet type detected." +
-                    "Packet type is {}".format(packet_type) +
+                    "Incorrect packet type detected. " +
+                    "Packet type is {}. ".format(packet_type) +
                     "Packet type should be {}".format(
                         self.packet_type))
         except ValueError:

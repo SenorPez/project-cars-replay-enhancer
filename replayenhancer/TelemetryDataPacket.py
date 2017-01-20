@@ -62,11 +62,11 @@ class ParticipantInfo:
         invalid_lap = self._laps_completed & int('10000000', 2)
 
         if invalid_lap and \
-                self.sector != 3 and \
-                self.last_sector_time != -123:
-            return invalid_lap
-        else:
+                self.sector == 3 and \
+                self.last_sector_time == -123:
             return 0
+        else:
+            return invalid_lap
 
     @property
     def laps_completed(self):
@@ -303,10 +303,6 @@ class TelemetryDataPacket(Packet):
         return 0
 
     @property
-    def _packet_length(self):
-        return 1367
-
-    @property
     def _packet_string(self):
         packet_string = "HB"
         packet_string += "B"
@@ -331,7 +327,7 @@ class TelemetryDataPacket(Packet):
         return packet_string
 
     def __str__(self):
-        return "TelemetryData"
+        return "TelemetryDataPacket"
 
     @property
     def game_state(self):

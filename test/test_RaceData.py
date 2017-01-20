@@ -51,7 +51,7 @@ class TestRaceData(unittest.TestCase):
             "Timon Putzkerd": mock_driver_3,
             "Timon Putzkernur": mock_driver_3
         }
-        self.instance._drivers = self.driver_data
+        self.instance.drivers = self.driver_data
 
     def tearDown(self):
         self.instance = None
@@ -80,20 +80,12 @@ class TestRaceData(unittest.TestCase):
         expected_result = sentinel.descriptor
         self.assertEqual(instance._descriptor_filename, expected_result)
 
-    def test_property_all_drivers(self):
-        expected_result = self.driver_data
-        self.assertDictEqual(self.instance.all_drivers, expected_result)
-
-    def test_property_all_drivers_empty(self):
-        self.instance._drivers = dict()
-        self.assertIsNone(self.instance.all_drivers)
-
     def test_property_best_lap(self):
         expected_result = 24.88
         self.assertEqual(self.instance.best_lap, expected_result)
 
     def test_property_best_lap_no_laps(self):
-        self.instance._drivers = dict()
+        self.instance.drivers = dict()
         self.assertIsNone(self.instance.best_lap)
 
     @unittest.skipIf(sys.version_info < (3, 5), "Not supported.")
@@ -113,7 +105,7 @@ class TestRaceData(unittest.TestCase):
         self.assertEqual(self.instance.best_sector_1, expected_result)
 
     def test_property_best_sector_1_no_laps(self):
-        self.instance._drivers = dict()
+        self.instance.drivers = dict()
         self.assertIsNone(self.instance.best_sector_1)
 
     @unittest.skipIf(sys.version_info < (3, 5), "Not supported.")
@@ -133,7 +125,7 @@ class TestRaceData(unittest.TestCase):
         self.assertEqual(self.instance.best_sector_2, expected_result)
 
     def test_property_best_sector_2_no_laps(self):
-        self.instance._drivers = dict()
+        self.instance.drivers = dict()
         self.assertIsNone(self.instance.best_sector_2)
 
     @unittest.skipIf(sys.version_info < (3, 5), "Not supported.")
@@ -153,7 +145,7 @@ class TestRaceData(unittest.TestCase):
         self.assertEqual(self.instance.best_sector_3, expected_result)
 
     def test_property_best_sector_3_no_laps(self):
-        self.instance._drivers = dict()
+        self.instance.drivers = dict()
         self.assertIsNone(self.instance.best_sector_3)
 
     @unittest.skipIf(sys.version_info < (3, 5), "Not supported.")
@@ -167,14 +159,6 @@ class TestRaceData(unittest.TestCase):
         with patch('builtins.min') as mock_min:
             mock_min.side_effect = ValueError
             self.assertIsNone(self.instance.best_sector_3)
-
-    def test_property_current_drivers(self):
-        expected_result = {k:v for k, v in self.driver_data.items() if v.index is not None}
-        self.assertDictEqual(self.instance.current_drivers, expected_result)
-
-    def test_property_current_drivers_empty(self):
-        self.instance._drivers = dict()
-        self.assertIsNone(self.instance.current_drivers)
 
     @unittest.skip("I'm not smart enough to do this.")
     @patch('replayenhancer.RaceData.TelemetryData', autospec=True)
@@ -222,15 +206,6 @@ class TestRaceData(unittest.TestCase):
 
         expected_value = 10
         self.assertEqual(self.instance.current_lap, expected_value)
-
-    def test_property_driver_names(self):
-        expected_result = {
-            "Kobernulf Monnur": {"Kobernulf Monnur"},
-            "Scott Winstead": {"Scott Winstead"},
-            "Timon Putzkerd": {"Timon Putzkerd", "Timon Putzkernur"},
-            "Timon Putzkernur": {"Timon Putzkernur", "Timon Putzkerd"}
-        }
-        self.assertDictEqual(self.instance.driver_names, expected_result)
 
     def test_property_elapsed_time(self):
         expected_result = 0.0
@@ -871,17 +846,6 @@ class TestDriver(unittest.TestCase):
         expected_result = 0.0
         self.assertEqual(instance.race_time, expected_result)
 
-    def test_property_real_name_default(self):
-        instance = Driver(sentinel.index, sentinel.name)
-        expected_result = sentinel.name
-        self.assertEqual(instance.real_name, expected_result)
-
-    def test_property_real_name_setter(self):
-        instance = Driver(sentinel.index, sentinel.name)
-        instance.real_name = sentinel.real_name
-        expected_result = sentinel.real_name
-        self.assertEqual(instance.real_name, expected_result)
-
     def test_property_sector_times(self):
         instance = Driver(sentinel.index, sentinel.name)
         expected_result = list
@@ -924,7 +888,7 @@ class TestDriver(unittest.TestCase):
 
         instance.add_sector_time(sector_time)
 
-        self.assertEqual(len(instance._sector_times), 0)
+        self.assertEqual(len(instance.sector_times), 0)
 
     @patch('replayenhancer.RaceData.SectorTime', autospec=True)
     def test_method_add_sector_time_first(self, sector_time):
@@ -935,7 +899,7 @@ class TestDriver(unittest.TestCase):
 
         instance.add_sector_time(sector_time)
 
-        self.assertEqual(len(instance._sector_times), 1)
+        self.assertEqual(len(instance.sector_times), 1)
 
     @patch('replayenhancer.RaceData.SectorTime', autospec=True)
     def test_method_add_sector_time_duplicate(self, sector_time):
@@ -947,7 +911,7 @@ class TestDriver(unittest.TestCase):
         instance.add_sector_time(sector_time)
         instance.add_sector_time(sector_time)
 
-        self.assertEqual(len(instance._sector_times), 1)
+        self.assertEqual(len(instance.sector_times), 1)
 
     def test_method_add_sector_time_invalidate_first_lap(self):
         instance = Driver(sentinel.index, sentinel.name)
@@ -969,8 +933,8 @@ class TestDriver(unittest.TestCase):
 
                 instance.add_sector_time(sector_time)
 
-        self.assertEqual(len(instance._sector_times), 3)
-        self.assertTrue(all([sector_time.invalid for sector_time in instance._sector_times]))
+        self.assertEqual(len(instance.sector_times), 3)
+        self.assertTrue(all([sector_time.invalid for sector_time in instance.sector_times]))
 
     def test_method_add_sector_time_invalidate_later_lap(self):
         instance = Driver(sentinel.index, sentinel.name)
@@ -997,13 +961,13 @@ class TestDriver(unittest.TestCase):
         # First lap should still be valid.
         result = [
             sector_time.invalid
-            for sector_time in instance._sector_times[:3]]
+            for sector_time in instance.sector_times[:3]]
         self.assertTrue(not any(result))
 
         # Second lap should be invalid.
         result = [
             sector_time.invalid
-            for sector_time in instance._sector_times[3:]]
+            for sector_time in instance.sector_times[3:]]
         self.assertTrue(all(result))
 
     def test_method_add_sector_time_invalidate_earlier_lap(self):
@@ -1031,19 +995,14 @@ class TestDriver(unittest.TestCase):
         # First lap should be invalid.
         result = [
             sector_time.invalid
-            for sector_time in instance._sector_times[:3]]
+            for sector_time in instance.sector_times[:3]]
         self.assertTrue(any(result))
 
         # Second lap should be invalid.
         result = [
             sector_time.invalid
-            for sector_time in instance._sector_times[3:]]
+            for sector_time in instance.sector_times[3:]]
         self.assertTrue(not all(result))
-
-    def test_method_clear_index(self):
-        instance = Driver(sentinel.index, sentinel.name)
-        instance.clear_index()
-        self.assertIsNone(instance.index)
 
 
 class TestSectorTime(unittest.TestCase):

@@ -53,10 +53,6 @@ class ParticipantPacket(Packet):
         return 1
 
     @property
-    def _packet_length(self):
-        return 1347
-
-    @property
     def _packet_string(self):
         packet_string = "HB64s64s64s64s"
         packet_string += "64s"*16
