@@ -251,7 +251,7 @@ def main():
         '-v',
         '--version',
         action='version',
-        version='Version 0.5 Release Candidate 2')
+        version='Version 0.5.1')
 
     args = parser.parse_args()
 
