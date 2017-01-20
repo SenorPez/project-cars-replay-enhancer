@@ -2,7 +2,7 @@
 
 Combines telemetry data with replay video to improve Project CARS replays.
 
-Current release: 0.5
+Current release: 0.5.2
 
 Current edge state: Getting There, Maybe
 
