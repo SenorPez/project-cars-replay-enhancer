@@ -136,30 +136,8 @@ def make_video(config_file, *, framerate=None, sync=False):
         ).subclip(start_time, end_time)
 
     else:
-        def timecode_frame(time):
-            timecode_image = Image.new('RGB', (100, 40))
-            draw = ImageDraw.Draw(timecode_image)
-            draw.text((10, 10), "%.02f"%(time))
-            return PIL_to_npimage(timecode_image)
-
-        def et_frame(time):
-            et_image = Image.new('RGB', (100, 40))
-            draw = ImageDraw.Draw(et_image)
-            draw.text((10, 10), "%.02f"%(race_data.elapsed_time))
-            return PIL_to_npimage(et_image)
-
-        def ct_frame(time):
-            ct_image = Image.new('RGB', (100, 40))
-            draw = ImageDraw.Draw(ct_image)
-            draw.text((10, 10), "%.02f"%(race_data._next_packet.current_time))
-            return PIL_to_npimage(ct_image)
-    
-        timecode_clip = mpy.VideoClip(timecode_frame, duration=source_video.duration).set_position(('center', 'top'))
-        et_clip = mpy.VideoClip(et_frame, duration=source_video.duration).set_position(('center', 'bottom'))
-        ct_clip = mpy.VideoClip(ct_frame, duration=source_video.duration).set_position(('right', 'center'))
-
         main_event = mpy.CompositeVideoClip(
-            [source_video, standings_clip, timecode_clip, et_clip, ct_clip]
+            [source_video, standings_clip]
         ).set_duration(source_video.duration)
 
     pcre_starting_grid = StartingGrid(
