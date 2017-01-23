@@ -37,7 +37,6 @@ class RaceData:
         self._stopped_drivers = set()
 
         self.elapsed_time = 0.0
-        self._add_time = 0.0
         self._last_packet = None
         self._next_packet = None
 
@@ -188,14 +187,6 @@ class RaceData:
                 self._next_packet = self._last_packet
                 raise
 
-            self.elapsed_time, \
-                self._add_time, \
-                self._last_packet = \
-                self._calc_elapsed_time(
-                    self._next_packet,
-                    self._add_time,
-                    self._last_packet)
-
             if (self._next_packet is not None
                     and self._last_packet is None) \
                     or self._next_packet.num_participants \
@@ -223,6 +214,7 @@ class RaceData:
 
             self.track = Track(self._next_packet.track_length)
             self._add_sector_times(self._next_packet)
+            self._calc_elapsed_time()
 
             if at_time is None or self.elapsed_time >= at_time:
                 return self._next_packet
@@ -284,20 +276,15 @@ class RaceData:
         except ValueError:
             return None
 
-    @staticmethod
-    def _calc_elapsed_time(next_packet, add_time, last_packet):
-        if next_packet.current_time == -1.0:
-            elapsed_time = 0.0
-            add_time = 0.0
-            last_packet = None
+    def _calc_elapsed_time(self):
+        if self._next_packet.current_time == -1.0:
+            self.elapsed_time = 0.0
+            self._last_packet = None
         else:
-            if last_packet is not None and last_packet.current_time \
-                    - next_packet.current_time > 0.5:
-                add_time += last_packet.current_time
-
-            elapsed_time = add_time + next_packet.current_time
-
-        return elapsed_time, add_time, last_packet
+            driver = next(
+                driver for driver in self.drivers.values()
+                if driver.index == self._next_packet.viewed_participant_index)
+            self.elapsed_time = sum(driver.lap_times) + self._next_packet.current_time
 
     @staticmethod
     def _get_drivers(telemetry_data, count):
