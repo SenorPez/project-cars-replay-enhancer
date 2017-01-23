@@ -4,12 +4,11 @@ Main execution script.
 import argparse
 import json
 import os
-import re
 import sys
 
 import moviepy.editor as mpy
-from moviepy.video.io.bindings import PIL_to_npimage
 from PIL import Image, ImageDraw
+from moviepy.video.io.bindings import PIL_to_npimage
 from tqdm import tqdm
 
 from replayenhancer.DefaultCards \
@@ -21,7 +20,7 @@ from replayenhancer.SeriesStandingsWithChange \
     import SeriesStandingsWithChange
 
 
-def make_video(config_file, *, sync=False):
+def make_video(config_file, *, framerate=None, sync=False):
     configuration = json.load(open(config_file))
     try:
         race_data = RaceData(configuration['source_telemetry'])
@@ -45,8 +44,6 @@ def make_video(config_file, *, sync=False):
     if os.environ.get('DISPLAYFONTOVERRIDE') is not None:
         configuration['font'] = os.environ['DISPLAYFONTOVERRIDE']
 
-    framerate = 30
-
     try:
         video_skipstart = configuration['video_skipstart']
     except KeyError:
@@ -64,9 +61,11 @@ def make_video(config_file, *, sync=False):
         ).subclip(
             video_skipstart,
             video_skipend)
+        if framerate is None:
+            framerate = source_video.fps
     else:
         time_data = RaceData(configuration['source_telemetry'])
-        with tqdm(desc="Processing telemetry") as progress:
+        with tqdm(desc="Detecting Telemetry Duration") as progress:
             while True:
                 try:
                     _ = time_data.get_data()
@@ -75,6 +74,9 @@ def make_video(config_file, *, sync=False):
                     break
         source_video = mpy.ColorClip((1280, 1024)).set_duration(
             time_data.elapsed_time)
+
+        if framerate is None:
+            framerate = 30
 
     pcre_standings = GTStandings(
         race_data,
@@ -103,19 +105,29 @@ def make_video(config_file, *, sync=False):
         ).set_position(('center', 'top'))
 
         first_lap_data = RaceData(configuration['source_telemetry'])
-        while not any(
-                [x.laps_complete > 0
-                 for x in first_lap_data.drivers_by_index]):
-            _ = first_lap_data.get_data()
+        with tqdm(desc="Detecting Video Start") as progress:
+            while not any(
+                    [x.laps_complete > 0
+                     for x in first_lap_data.drivers.values()]):
+                _ = first_lap_data.get_data()
+                progress.update()
 
         start_time = first_lap_data.elapsed_time - 10
+        end_time = None
 
-        while not all(
-                [x.laps_complete > 0
-                 for x in first_lap_data.drivers_by_index]):
-            _ = first_lap_data.get_data()
+        with tqdm(desc="Detecting Video End") as progress:
+            while not all(
+                    [x.laps_complete > 0
+                     for x in first_lap_data.drivers.values()]):
+                try:
+                    _ = first_lap_data.get_data()
+                    progress.update()
+                except StopIteration:
+                    end_time = start_time + 60
+                    break
 
-        end_time = first_lap_data.elapsed_time + 10
+        if end_time is None:
+            end_time = first_lap_data.elapsed_time + 10
 
         main_event = mpy.CompositeVideoClip(
             [source_video, standings_clip, timecode_clip]
@@ -146,7 +158,7 @@ def make_video(config_file, *, sync=False):
     end_titles = list()
 
     pcre_results = RaceResultsWithChange(
-        sorted(result_data.classification, key=lambda x: x.position),
+        sorted(result_data.all_driver_classification, key=lambda x: x.position),
         result_data.starting_grid,
         size=source_video.size,
         **configuration)
@@ -157,37 +169,38 @@ def make_video(config_file, *, sync=False):
     end_titles.append(results)
 
     try:
-        if not any([
-                x['points'] for x
-                in configuration['participant_config'].values()]):
-            pcre_series_standings = SeriesStandings(
-                result_data.classification,
-                size=source_video.size,
-                **configuration)
+        if any(configuration['point_structure']):
+            if not any([
+                    x['points'] for x
+                    in configuration['participant_config'].values()]):
+                pcre_series_standings = SeriesStandings(
+                    result_data.all_driver_classification,
+                    size=source_video.size,
+                    **configuration)
 
-            Image.fromarray(pcre_series_standings.to_frame()).save(
-                output_prefix + '_series_standings.png')
-            series_standings = mpy.ImageClip(
-                pcre_series_standings.to_frame()).set_duration(20)
+                Image.fromarray(pcre_series_standings.to_frame()).save(
+                    output_prefix + '_series_standings.png')
+                series_standings = mpy.ImageClip(
+                    pcre_series_standings.to_frame()).set_duration(20)
 
-            end_titles.append(series_standings)
-        else:
-            pcre_series_standings = SeriesStandingsWithChange(
-                result_data.classification,
-                size=source_video.size,
-                **configuration)
+                end_titles.append(series_standings)
+            else:
+                pcre_series_standings = SeriesStandingsWithChange(
+                    result_data.all_driver_classification,
+                    size=source_video.size,
+                    **configuration)
 
-            Image.fromarray(pcre_series_standings.to_frame()).save(
-                output_prefix + '_series_standings.png')
-            series_standings = mpy.ImageClip(
-                pcre_series_standings.to_frame()).set_duration(20)
+                Image.fromarray(pcre_series_standings.to_frame()).save(
+                    output_prefix + '_series_standings.png')
+                series_standings = mpy.ImageClip(
+                    pcre_series_standings.to_frame()).set_duration(20)
 
-            end_titles.append(series_standings)
+                end_titles.append(series_standings)
     except KeyError:
         try:
             _ = configuration['point_structure']
             pcre_series_standings = SeriesStandings(
-                result_data.classification,
+                result_data.all_driver_classification,
                 size=source_video.size,
                 **configuration)
 
@@ -202,7 +215,7 @@ def make_video(config_file, *, sync=False):
 
     if champion:
         pcre_series_champion = SeriesChampion(
-            result_data.classification,
+            result_data.all_driver_classification,
             size=source_video.size,
             **configuration)
         Image.fromarray(pcre_series_champion.to_frame()).save(
@@ -214,7 +227,7 @@ def make_video(config_file, *, sync=False):
 
     output = mpy.concatenate_videoclips([starting_grid.fadeout(1), main_event] + [clip.fadein(1).fadeout(1) for clip in end_titles[:-1]] + [end_titles[-1].fadein(1)], method="compose")
 
-    output.write_videofile(configuration['output_video'], fps=framerate)
+    output.write_videofile(configuration['output_video'], fps=float(framerate))
 
 
 def main():
@@ -222,6 +235,12 @@ def main():
         description="Project CARS Replay Enhancer")
 
     parser.add_argument('config')
+
+    parser.add_argument(
+        '-f',
+        '--framerate',
+        action='store',
+        default=None)
 
     parser.add_argument(
         '-s',
@@ -232,12 +251,13 @@ def main():
         '-v',
         '--version',
         action='version',
-        version='Version 0.5')
+        version='Version 0.5.2')
 
     args = parser.parse_args()
 
     make_video(
         args.config,
+        framerate=args.framerate,
         sync=args.sync)
 
 if __name__ == '__main__':

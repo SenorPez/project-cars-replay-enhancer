@@ -3,10 +3,11 @@ Provides classes for the creation of a standings tree.
 """
 
 import abc
+import math
 from copy import copy
 
-from moviepy.video.io.bindings import PIL_to_npimage
 from PIL import Image, ImageDraw, ImageFont
+from moviepy.video.io.bindings import PIL_to_npimage
 
 
 class GTStandings:
@@ -16,11 +17,12 @@ class GTStandings:
         - Position
         - Driver
 
-    Up to 10 drivers are displayed.
-        - Positions 1-5 are always displayed.
-        - Positions n-2 through n+2, where n is the viewed car are
-            displayed if there is no overlap with P1-5.
-        - Additional positions are added to display 10 in total.
+    There are two 'areas' of information:
+        The leader window shows the top x positions (default 16).
+        The field windows shows y positions, centered on the subject car
+            (default 0).
+        If the subject car is in the leader window, the top x + y positions
+            are shown.
     """
     _ups = 30
 
@@ -71,13 +73,14 @@ class GTStandings:
             name_width = max(
                 [
                     self._font.getsize(driver)[0]
-                    for driver in race_data.current_drivers.keys()])
+                    for driver in race_data.drivers.keys()])
 
         # If set, use leader window size.
         try:
-            self._leader_window_size = kwargs['leader_window_size'] if kwargs['leader_window_size'] >= 0 else 10
+            self._leader_window_size = kwargs['leader_window_size'] \
+                if kwargs['leader_window_size'] >= 0 else 16
         except KeyError:
-            self._leader_window_size = 10
+            self._leader_window_size = 16
 
         # Plus one to account for timer.
         # TODO: Add setting to make timer optional.
@@ -85,13 +88,14 @@ class GTStandings:
 
         # If set, use field window size.
         try:
-            self._field_window_size = kwargs['field_window_size'] if kwargs['field_window_size'] >= 0 else 0
+            self._field_window_size = kwargs['field_window_size'] \
+                if kwargs['field_window_size'] >= 0 else 0
         except KeyError:
             self._field_window_size = 0
 
         block_height = self._font.getsize("A")[1]
         self._row_height = int(block_height * 2.5)
-        entries = len(self._race_data.current_drivers)
+        entries = len(self._race_data.drivers)
 
         self._flyout_width =\
             self._font.getsize("00:00.000")[0] \
@@ -138,10 +142,7 @@ class GTStandings:
             ups=ups)
 
         self._standings_lines = list()
-        self._classification = sorted(
-            self._race_data.classification,
-            key=lambda x: x.position)
-        for entry in self._classification:
+        for entry in sorted(self._race_data.classification, key=lambda x: x.position):
             try:
                 display_name = \
                     self._short_name_lookup[entry.driver_name]
@@ -209,10 +210,9 @@ class GTStandings:
             y_offset = 0
 
             try:
-                names = self._race_data.driver_names
                 entry = next(
                     entry for entry in classification
-                    if entry.driver_name in names[line.driver.name])
+                    if entry.driver_name == line.driver.name)
             except StopIteration:
                 if line in self._dropping_lines and all([
                         animation.complete
@@ -252,12 +252,37 @@ class GTStandings:
                     line.position = entry.position
                     y_offset -= animation_offset
 
+                block_height = self._font.getsize("A")[1]
+                flyout_margin = int(
+                    (self._row_height - block_height) / 2)
+
+                if isinstance(line.flyout, PitStopFlyout):
+                    line.flyout.update(
+                        self._race_data.driver_world_position(
+                            entry.driver.index),
+                        self._race_data._next_packet.current_time)
+                    if self._race_data.track.at_pit_exit(
+                            self._race_data.driver_world_position(
+                                entry.driver.index)) \
+                            and not line.flyout.is_closing:
+                        line.flyout.close_flyout()
+
+                if self._race_data.track.at_pit_entry(
+                        self._race_data.driver_world_position(
+                            entry.driver.index)) \
+                        and not isinstance(line.flyout, PitStopFlyout):
+                    line.flyout = PitStopFlyout(
+                        self._race_data,
+                        entry.driver,
+                        self._font,
+                        (self._flyout_width, self._row_height),
+                        self._race_data.driver_world_position(
+                            entry.driver.index),
+                        margin=flyout_margin)
+
                 if entry.laps_complete != line.laps_complete \
                         and self._race_data.race_state == 2 \
                         and line.flyout is None:
-                    block_height = self._font.getsize("A")[1]
-                    flyout_margin = int(
-                        (self._row_height - block_height) / 2)
                     if entry.position == 1:
                         line.flyout = LapTimeFlyout(
                             self._race_data,
@@ -303,8 +328,13 @@ class GTStandings:
         field_window = None
 
         if self._leader_window_size > 0:
-            leader_window_bottom = self._row_height * self._leader_window_size + 1 * self._leader_window_size + self._margin
-            leader_window = material.crop((0, 0, material_width, leader_window_bottom))
+            leader_window_bottom = \
+                self._row_height * self._leader_window_size \
+                + 1 * self._leader_window_size + self._margin
+            leader_window = material.crop(
+                (0, 0, material_width, leader_window_bottom))
+        else:
+            leader_window_bottom = 0
 
         if self._field_window_size > 0:
             lines_below = self._field_window_size // 2
@@ -314,29 +344,53 @@ class GTStandings:
                 lines_above = (self._field_window_size - 1) // 2
 
             # Are we at the bottom?
-            if (material_height - (self._row_height * (lines_below + 1) + 1 * (lines_below + 1))) < viewed_y_position:
-                field_window_top = material_height - (self._row_height * self._field_window_size + 1 * self._field_window_size)
+            if material_height \
+                    - (self._row_height * (lines_below + 1)
+                           + 1 * (lines_below + 1)) < viewed_y_position:
+                field_window_top = \
+                    material_height \
+                    - (
+                        self._row_height * self._field_window_size
+                        + 1 * self._field_window_size)
                 field_window_bottom = material_height
                 draw_middle_line = True
 
             # Are we at the top?
-            elif self._row_height * (self._leader_window_size + lines_above) + 1 * (self._leader_window_size + lines_above) + self._margin > viewed_y_position:
+            elif self._row_height * (self._leader_window_size + lines_above) \
+                    + 1 * (self._leader_window_size + lines_above) \
+                    + self._margin > viewed_y_position:
                 field_window_top = leader_window_bottom
-                field_window_bottom = self._row_height * (self._leader_window_size + self._field_window_size) + 1 * (self._leader_window_size + self._field_window_size) + self._margin
+                field_window_bottom = \
+                    self._row_height * (
+                        self._leader_window_size + self._field_window_size) \
+                    + 1 * (self._leader_window_size + self._field_window_size) \
+                    + self._margin
                 draw_middle_line = False
 
             # Nope, Chuck Testa.
             else:
-                field_window_top = (viewed_y_position - self._row_height * lines_above - 1 * lines_above)
-                field_window_bottom = (viewed_y_position + self._row_height * (lines_below + 1) + 1 * (lines_below + 1))
+                field_window_top = \
+                    viewed_y_position \
+                    - self._row_height * lines_above \
+                    - 1 * lines_above
+                field_window_bottom = \
+                    viewed_y_position \
+                    + self._row_height * (lines_below + 1) \
+                    + 1 * (lines_below + 1)
                 draw_middle_line = True
 
-            field_window = material.crop((0, field_window_top, material_width, field_window_bottom))
+            field_window = material.crop(
+                (0, field_window_top, material_width, field_window_bottom))
 
         if leader_window is not None and field_window is not None:
-            combined_material = Image.new('RGBA', (material_width, leader_window.size[1] + field_window.size[1]), (0, 0, 0, 0))
-            combined_material.paste(leader_window, (0, 0), leader_window)
-            combined_material.paste(field_window, (0, leader_window.size[1]), field_window)
+            combined_material = Image.new(
+                'RGBA',
+                (material_width, leader_window.size[1] + field_window.size[1]),
+                (0, 0, 0, 0))
+            combined_material.paste(leader_window, (0, 0))
+            combined_material.paste(
+                field_window,
+                (0, leader_window.size[1]))
             draw_bottom_line = True
         elif leader_window is not None and field_window is None:
             combined_material = leader_window
@@ -599,12 +653,21 @@ class StandingLine:
             material.paste(
                 flyout,
                 (row_width, 0))
+            material = material.crop((
+                0,
+                0,
+                self._size[0] + flyout.size[0],
+                max(self._size[1], flyout.size[1])))
 
             if all(
                     [
                         animation.complete for animation
-                        in self.flyout.animations]):
+                        in self.flyout.animations
+                    ]) \
+                    and not self.flyout.persist:
                 self._flyout = None
+        else:
+            material = material.crop((0, 0, self._size[0], self._size[1]))
 
         return material
 
@@ -702,18 +765,11 @@ class Flyout:
     _ups = 30
 
     def __init__(self, size=None, margin=20, ups=30):
-        self._animations = list()
+        self.animations = list()
         self._margin = margin
         self._size = size
-        self._ups = ups
-
-    @property
-    def animations(self):
-        return self._animations
-
-    @property
-    def ups(self):
-        return self._ups
+        self.ups = ups
+        self.persist = False
 
     @abc.abstractmethod
     def _make_material(self):
@@ -726,7 +782,7 @@ class TimeFlyout(Flyout):
     """
     Abstract class representing a flyout that displays time values.
     """
-    _color = (0, 0, 0, 200)
+    color = (0, 0, 0, 200)
 
     _session_best_text_color = (255, 0, 255, 255)
     _personal_best_text_color = (0, 255, 0, 255)
@@ -738,20 +794,16 @@ class TimeFlyout(Flyout):
         self._driver = driver
         self._race_data = race_data
 
-        self._animations.append(
+        self.animations.append(
             Animation(
                 duration=int(self.ups/2),
                 position_from=(-self._size[0], 0)))
-        self._animations.append(
+        self.animations.append(
             Animation(
                 duration=int(self.ups/2),
                 position_from=(0, 0),
                 position_to=(-self._size[0], 0),
                 delay=self.ups*5))
-
-    @property
-    def color(self):
-        return self._color
 
     @property
     def text_color(self):
@@ -898,3 +950,137 @@ class GapTimeFlyout(TimeFlyout):
             font=self._font)
 
         return material
+
+
+class PitStopFlyout(TimeFlyout):
+    """Creates a flyout that appears when a car makes a pit stop.
+
+    Parameters
+    ----------
+    race_data : RaceData
+        RaceData object for the race.
+    driver : Driver
+        Driver object representing the driver of the line.
+    font : PIL.ImageFont
+        ImageFont object representing the font used to write text.
+    size : (int, int)
+        Tuple representing the size of the flyout.
+    location : tuple
+        The world position of the car. Used for stop detection.
+    margin : int, optional
+        Margin to use on the left and right of the flyout.
+    ups : int, optional
+        Updates per second for the flyout.
+    """
+    _pit_in_color = (255, 0, 0, 255)
+    _pit_color = (255, 255, 255, 255)
+
+    def __init__(self, race_data, driver, font, size, location,
+                 *, margin=20, ups=30):
+        super().__init__(race_data, driver, size=size, margin=margin, ups=ups)
+
+        self._locations = [location]
+        self._font = font
+
+        self._stop_time = 0.0
+        self._base_time = 0.0
+        self._add_time = 0.0
+        self._last_time = None
+
+        self.persist = True
+        self.is_closing = False
+
+        _ = self.animations.pop()
+
+    def close_flyout(self):
+        """Adds an animation to close the flyout.
+
+        """
+        self.persist = False
+        self.is_closing = True
+        self.animations.append(
+            Animation(
+                duration=int(self.ups / 2),
+                position_from=(0, 0),
+                position_to=(-self._size[0], 0)))
+
+    def to_frame(self):
+        return self._make_material()
+
+    def update(self, location, time=None):
+        """Updates flyout data with current position.
+
+        Updates the flyout with the current position (used to determine the pit
+        stop status) and time (used to determine the pit stop duration).
+        """
+        self._locations.append(location)
+
+        if self._is_stopped:
+            if time is None or time == -1.0:
+                self._base_time = 0.0
+                self._add_time = 0.0
+                self._last_time = None
+            else:
+                if self._last_time is None:
+                    self._base_time = time
+                    self._stop_time = 0.0
+                    self._add_time = 0.0
+                    self._last_time = time
+                elif self._last_time > time:
+                    self._add_time += (self._last_time - self._base_time)
+                    self._base_time = 0.0
+                    self._last_time = time
+                else:
+                    self._last_time = time
+
+                self._stop_time = (time - self._base_time) + self._add_time
+
+    def _make_material(self):
+        material = Image.new('RGBA', self._size, self.color)
+
+        block_height = self._font.getsize("A")[1]
+
+        display_text = "PIT" if self._stop_time <= 0.0 else self.format_time(
+            self._stop_time)
+        block_width = self._font.getsize(display_text)[0]
+
+        draw = ImageDraw.Draw(material)
+
+        x_position = self._size[0] - self._margin - block_width
+        y_position = int((self._size[1] - block_height) / 2)
+
+        draw.text(
+            (x_position, y_position),
+            display_text,
+            fill=self.text_color,
+            font=self._font)
+
+        return material
+
+    @property
+    def _is_stopped(self):
+        """bool : Is the car stopped?
+
+        Notes
+        -----
+        Determines if the car is stopped. Uses a quarter second of location
+        data to determine this, as the accuracy of the location may return
+        false positives.
+        """
+        window_size = math.ceil(self._ups * 0.25)
+        if len(self._locations) < window_size:
+            return False
+
+        try:
+            data = iter(self._locations[-window_size:])
+            first = next(data)
+            return all(first == rest for rest in data)
+        except StopIteration:
+            return True
+
+    @property
+    def text_color(self):
+        """(int, int, int, int) : Color to write text.
+
+        """
+        return self._pit_in_color if self._stop_time == 0.0 else self._pit_color

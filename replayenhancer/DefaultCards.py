@@ -16,6 +16,7 @@ class RaceResults(StaticBase):
         - Team: Driver team (if applicable, blank else).
         - Car: Driver car.
         - Laps: Driver laps completed.
+        - Stops: Pit stops (if greater than 0)
         - Time: Driver total race time.
         - Best Lap: Driver best lap.
         - Best S1: Driver best sector 1.
@@ -25,6 +26,7 @@ class RaceResults(StaticBase):
     """
     def __init__(self, data, size=None, **kwargs):
         super().__init__(data, size=size, **kwargs)
+        self.sort_data(lambda x: (-x.driver.laps_complete, x.driver.race_time))
 
         try:
             name_lookup = {
@@ -57,8 +59,20 @@ class RaceResults(StaticBase):
             point_structure = {
                 k: v
                 for k, v in enumerate(kwargs['point_structure'])}
+            if len(point_structure) == 0 or not any(point_structure.values()):
+                point_structure = None
         except KeyError:
             point_structure = None
+
+        try:
+            points_adjust = {
+                k: v['points_adjust']
+                for k, v in kwargs['participant_config'].items()
+                if v['points_adjust'] != ""}
+            if len(points_adjust) == 0:
+                points_adjust = None
+        except KeyError:
+            points_adjust = None
 
         self.add_column('position', 'Pos.')
 
@@ -78,6 +92,16 @@ class RaceResults(StaticBase):
             self.add_lookup('driver_name', car_lookup, '', 'Car')
 
         self.add_column('laps_complete', 'Laps', align='center')
+
+        try:
+            result_lines = self._options['result_lines']
+            stops = [x.driver.stops for x in self._data[:result_lines]]
+        except KeyError:
+            stops = [x.driver.stops for x in self._data]
+
+        if any(stops):
+            self.add_column('stops', 'Stops', align='center')
+
         self.add_column(
             'race_time',
             'Time',
@@ -105,7 +129,9 @@ class RaceResults(StaticBase):
             align='center')
 
         if point_structure is not None:
-            formatter_args = {'point_structure': point_structure}
+            formatter_args = {
+                'point_structure': point_structure,
+                'points_adjust': points_adjust}
             self.add_column(
                 'calc_points_data',
                 'Points',
@@ -114,6 +140,10 @@ class RaceResults(StaticBase):
                 align='center')
 
     def calc_points(self, value, **kwargs):
+        points = self.calc_points_float(value, **kwargs)
+        return str(int(points // 1))
+
+    def calc_points_float(self, value, **kwargs):
         driver_name, position, best_lap = value
         points = 0
         try:
@@ -123,7 +153,22 @@ class RaceResults(StaticBase):
             points += kwargs['point_structure'][position]
         except (KeyError, TypeError):
             points += 0
-        return str(points)
+
+        if 'points_adjust' in kwargs \
+                and kwargs['points_adjust'] is not None \
+                and driver_name in kwargs['points_adjust']:
+            adjust = kwargs['points_adjust'][driver_name]
+            if adjust[0] == '+':
+                points += float(adjust[1:])
+            elif adjust[0] == '-':
+                points -= float(adjust[1:])
+            else:
+                try:
+                    points = float(adjust)
+                except ValueError:
+                    pass
+
+        return points
 
     @staticmethod
     def format_time(seconds):
@@ -189,10 +234,24 @@ class StartingGrid(StaticBase):
             team_lookup = None
 
         try:
-            points_lookup = {
-                k: v['points']
-                for k, v in kwargs['participant_config'].items()}
+            point_structure = {
+                k: v
+                for k, v in enumerate(kwargs['point_structure'])}
+            if len(point_structure) == 0 or not any(point_structure.values()):
+                point_structure = None
         except KeyError:
+            point_structure = None
+
+        if point_structure is not None:
+            try:
+                points_lookup = {
+                    k: v['points']
+                    for k, v in kwargs['participant_config'].items()}
+                if not any(points_lookup.values()):
+                    points_lookup = None
+            except KeyError:
+                points_lookup = None
+        else:
             points_lookup = None
 
         self.add_column('position', 'Pos.')
@@ -212,7 +271,7 @@ class StartingGrid(StaticBase):
         if car_lookup is not None:
             self.add_lookup('driver_name', car_lookup, '', 'Car')
 
-        if points_lookup is not None or 'point_structure' in kwargs:
+        if points_lookup is not None or point_structure is not None:
             self.add_lookup(
                 'driver_name',
                 points_lookup,
@@ -292,12 +351,23 @@ class SeriesStandings(RaceResults):
         except KeyError:
             points_lookup = None
 
+        try:
+            points_adjust = {
+                k: v['points_adjust']
+                for k, v in kwargs['participant_config'].items()
+                if v['points_adjust'] != ""}
+            if len(points_adjust) == 0:
+                points_adjust = None
+        except KeyError:
+            points_adjust = None
+
         if 'additional_participant_config' in kwargs:
             for name in kwargs['additional_participant_config'].keys():
                 self._data.append(AdditionalClassificationEntry(name))
 
         formatter_args = {'point_structure': point_structure,
-                          'points_lookup': points_lookup}
+                          'points_lookup': points_lookup,
+                          'points_adjust': points_adjust}
         self.sort_data(
             lambda x: (
                 -int(self.calc_series_points(
@@ -344,7 +414,7 @@ class SeriesStandings(RaceResults):
         except (KeyError, TypeError):
             points = 0
 
-        points += int(self.calc_points(value, **kwargs))
+        points += int(self.calc_points_float(value, **kwargs))
 
         return str(points)
 
@@ -433,12 +503,23 @@ class SeriesChampion(SeriesStandings):
         except KeyError:
             points_lookup = None
 
+        try:
+            points_adjust = {
+                k: v['points_adjust']
+                for k, v in kwargs['participant_config'].items()
+                if v['points_adjust'] != ""}
+            if len(points_adjust) == 0:
+                points_adjust = None
+        except KeyError:
+            points_adjust = None
+
         if 'additional_participant_config' in kwargs:
             for name in kwargs['additional_participant_config'].keys():
                 self._data.append(AdditionalClassificationEntry(name))
 
         formatter_args = {'point_structure': point_structure,
-                          'points_lookup': points_lookup}
+                          'points_lookup': points_lookup,
+                          'points_adjust': points_adjust}
         self._formatter_args = formatter_args
 
         self.sort_data(
@@ -513,8 +594,14 @@ class SeriesChampion(SeriesStandings):
         #  If set, use a backdrop.
         try:
             backdrop = Image.open(self._options['backdrop'])
-            backdrop_size = backdrop.size
-        except (KeyError, IOError):
+
+            if self._size is not None:
+                backdrop = backdrop.resize(self._size)
+                backdrop_size = self._size
+            else:
+                backdrop_size = backdrop.size
+
+        except (AttributeError, KeyError, IOError):
             backdrop = None
             backdrop_size = None
 
@@ -524,7 +611,7 @@ class SeriesChampion(SeriesStandings):
             logo_size = (
                 self._options['logo_width'],
                 self._options['logo_height'])
-        except (KeyError, IOError):
+        except (AttributeError, KeyError, IOError):
             logo = None
             logo_size = None
 
