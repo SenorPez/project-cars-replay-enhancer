@@ -253,12 +253,29 @@ def main():
         action='version',
         version='Version 0.6 Release Candidate 1')
 
+    parser.add_argument(
+        '-p',
+        '--profile',
+        action='store_true',
+        help=argparse.SUPPRESS)
+
     args = parser.parse_args()
 
-    make_video(
-        args.config,
-        framerate=args.framerate,
-        sync=args.sync)
+    if args.profile:
+        import cProfile
+        from os.path import splitext, basename
+        filename = splitext(basename(args.config))[0] + '.profile'
+        
+        cProfile.runctx(
+            'make_video(args.config, framerate=args.framerate, sync=args.sync)',
+            globals(),
+            locals(),
+            filename)
+    else:
+        make_video(
+            args.config,
+            framerate=args.framerate,
+            sync=args.sync)
 
 if __name__ == '__main__':
     main()
