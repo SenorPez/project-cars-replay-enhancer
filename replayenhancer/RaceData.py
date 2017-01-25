@@ -189,8 +189,10 @@ class RaceData:
 
             if (self._next_packet is not None
                     and self._last_packet is None) \
-                    or self._next_packet.num_participants \
-                    != self._last_packet.num_participants:
+                    or (
+                        self._next_packet.num_participants \
+                        != self._last_packet.num_participants \
+                        and self._next_packet.num_participants != -1):
                 data, restore = tee(self.telemetry_data, 2)
 
                 current_drivers = self._get_drivers(

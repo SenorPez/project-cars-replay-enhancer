@@ -29,4 +29,4 @@ with tqdm(desc="Processing telemetry") as progress:
         except StopIteration:
             break
 
-print(race_data.elapsed_time)
+print(sum(race_data.drivers['Kobernulf Monnur'].lap_times))
