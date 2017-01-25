@@ -7,6 +7,7 @@ import os.path
 from glob import glob
 from hashlib import md5
 from itertools import tee
+from math import ceil
 
 from natsort import natsorted
 from tqdm import tqdm
@@ -49,6 +50,19 @@ class RaceData:
             descriptor_filename=descriptor_filename)
 
         self.get_data()
+
+        if self.total_laps == 0:
+            time_data = TelemetryData(
+                telemetry_directory,
+                descriptor_filename=descriptor_filename)
+            packet = next(time_data)
+            while (packet.packet_type == 0 and packet.race_state == 1) \
+                    or packet.packet_type != 0:
+                packet = next(time_data)
+
+            self.total_time = ceil(packet.event_time_remaining)
+        else:
+            self.total_time = None
 
     @property
     def all_driver_classification(self):
@@ -110,7 +124,8 @@ class RaceData:
             [
                 participant.current_lap for participant
                 in self._next_packet.participant_info])
-        return min(leader_lap, self.total_laps)
+        return leader_lap if self.total_laps == 0 \
+            else min(leader_lap, self.total_laps)
 
     @property
     def race_state(self):
@@ -163,6 +178,10 @@ class RaceData:
                 if entry is not None]
 
             return self._starting_grid
+
+    @property
+    def time_remaining(self):
+        return self._next_packet.event_time_remaining
 
     @property
     def total_laps(self):

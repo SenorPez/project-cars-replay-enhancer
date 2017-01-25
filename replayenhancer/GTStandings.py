@@ -467,15 +467,50 @@ class Header:
         x_position = int((row_height - block_height) / 2)
         y_position = int((row_height - block_height) / 2)
 
-        draw.text(
-            (x_position, y_position),
-            "Lap {current}/{total}".format(
-                current=self._race_data.current_lap,
-                total=self._race_data.total_laps),
-            fill=self.background_text_color,
-            font=self._font)
+        if self._race_data.total_laps:
+            draw.text(
+                (x_position, y_position),
+                "Lap {current}/{total}".format(
+                    current=self._race_data.current_lap,
+                    total=self._race_data.total_laps),
+                fill=self.background_text_color,
+                font=self._font)
+        else:
+            time = min(
+                max(0, self._race_data.time_remaining),
+                self._race_data.total_time)
+            lap = "Lap {}".format(self._race_data.current_lap)
+            draw.text(
+                (x_position, y_position),
+                self.format_time(time),
+                fill=self.background_text_color,
+                font=self._font)
+            lap_width, _ = self._font.getsize(lap)
+            draw.text(
+                (row_width - x_position - lap_width, y_position),
+                lap,
+                fill=self.background_text_color,
+                font=self._font)
 
         return material
+
+    @staticmethod
+    def format_time(seconds):
+        """
+        Converts seconds into seconds, minutes:seconds, or
+        hours:minutes:seconds as appropriate.
+        """
+        minutes, seconds = divmod(float(seconds), 60)
+        hours, minutes = divmod(minutes, 60)
+
+        return_value = (int(hours), int(minutes), int(seconds))
+
+        if hours:
+            return "{0:d}:{1:0>2d}:{2:0>2d}".format(*return_value)
+        elif minutes:
+            return "{1:d}:{2:0>2d}".format(*return_value)
+        else:
+            return "0:{2:0>2d}".format(*return_value)
 
 
 class StandingLine:
