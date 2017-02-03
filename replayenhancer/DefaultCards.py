@@ -42,8 +42,19 @@ class RaceResults(StaticBase):
                 if v['car'] != ""}
             if len(car_lookup) == 0:
                 car_lookup = None
+            elif len(kwargs['car_classes']):
+                car_class_lookup = {
+                    driver: (car_class_data['color'], car_class)
+                    for driver, car in car_lookup.items()
+                    for car_class, car_class_data
+                    in kwargs['car_classes'].items()
+                    if car in car_class_data['cars']
+                }
+            else:
+                car_class_lookup = None
         except KeyError:
             car_lookup = None
+            car_class_lookup = None
 
         try:
             team_lookup = {
@@ -74,6 +85,18 @@ class RaceResults(StaticBase):
         except KeyError:
             points_adjust = None
 
+        try:
+            try:
+                font = ImageFont.truetype(
+                    kwargs['font'],
+                    kwargs['font_size'])
+            except (AttributeError, OSError):
+                font = ImageFont.load_default()
+            font_color = tuple(kwargs['font_color'])
+        except KeyError:
+            font = ImageFont.load_default()
+            font_color = (0, 0, 0)
+
         self.add_column('position', 'Pos.')
 
         if name_lookup is None:
@@ -90,6 +113,18 @@ class RaceResults(StaticBase):
 
         if car_lookup is not None:
             self.add_lookup('driver_name', car_lookup, '', 'Car')
+
+            if car_class_lookup is not None:
+                self.add_lookup(
+                    'driver_name',
+                    {k: v for k, v in car_class_lookup.items()},
+                    '',
+                    'Car Class',
+                    formatter=self.car_class_formatter,
+                    formatter_args={
+                        'text_height': font.getsize("A")[1],
+                        'font': font,
+                        'font_color': font_color})
 
         self.add_column('laps_complete', 'Laps', align='center')
 
@@ -148,10 +183,12 @@ class RaceResults(StaticBase):
         points = 0
         try:
             if best_lap == min(
-                    [entry.best_lap for entry in self._data if entry.best_lap is not None]):
+                    [
+                        entry.best_lap for entry in self._data
+                        if entry.best_lap is not None]):
                 points += kwargs['point_structure'][0]
             points += kwargs['point_structure'][position]
-        except (KeyError, TypeError):
+        except (KeyError, TypeError, ValueError):
             points += 0
 
         if 'points_adjust' in kwargs \
@@ -220,8 +257,19 @@ class StartingGrid(StaticBase):
                 if v['car'] != ""}
             if len(car_lookup) == 0:
                 car_lookup = None
+            elif len(kwargs['car_classes']):
+                car_class_lookup = {
+                    driver: (car_class_data['color'], car_class)
+                    for driver, car in car_lookup.items()
+                    for car_class, car_class_data
+                    in kwargs['car_classes'].items()
+                    if car in car_class_data['cars']
+                }
+            else:
+                car_class_lookup = None
         except KeyError:
             car_lookup = None
+            car_class_lookup = None
 
         try:
             team_lookup = {
@@ -254,6 +302,18 @@ class StartingGrid(StaticBase):
         else:
             points_lookup = None
 
+        try:
+            try:
+                font = ImageFont.truetype(
+                    kwargs['font'],
+                    kwargs['font_size'])
+            except (AttributeError, OSError):
+                font = ImageFont.load_default()
+            font_color = tuple(kwargs['font_color'])
+        except KeyError:
+            font = ImageFont.load_default()
+            font_color = (0, 0, 0)
+
         self.add_column('position', 'Pos.')
 
         if name_lookup is None:
@@ -270,6 +330,18 @@ class StartingGrid(StaticBase):
 
         if car_lookup is not None:
             self.add_lookup('driver_name', car_lookup, '', 'Car')
+
+            if car_class_lookup is not None:
+                self.add_lookup(
+                    'driver_name',
+                    {k: v for k, v in car_class_lookup.items()},
+                    '',
+                    'Car Class',
+                    formatter=self.car_class_formatter,
+                    formatter_args={
+                        'text_height': font.getsize("A")[1],
+                        'font': font,
+                        'font_color': font_color})
 
         if points_lookup is not None or point_structure is not None:
             self.add_lookup(
@@ -312,13 +384,26 @@ class SeriesStandings(RaceResults):
                 for k, v in kwargs['participant_config'].items()
                 if v['car'] != ""}
             if 'additional_participant_config' in kwargs:
-                for name, values in kwargs['additional_participant_config'].items():
+                for name, values \
+                        in kwargs['additional_participant_config'].items():
                     if values['car'] != "":
                         car_lookup[name] = values['car']
             if len(car_lookup) == 0:
                 car_lookup = None
+            elif len(kwargs['car_classes']):
+                car_class_lookup = {
+                    driver: (car_class_data['color'], car_class)
+                    for driver, car in car_lookup.items()
+                    for car_class, car_class_data
+                    in kwargs['car_classes'].items()
+                    if car in car_class_data['cars']
+                }
+            else:
+                car_class_lookup = None
+
         except KeyError:
             car_lookup = None
+            car_class_lookup = None
 
         try:
             team_lookup = {
@@ -326,7 +411,8 @@ class SeriesStandings(RaceResults):
                 for k, v in kwargs['participant_config'].items()
                 if v['team'] != ""}
             if 'additional_participant_config' in kwargs:
-                for name, values in kwargs['additional_participant_config'].items():
+                for name, values \
+                        in kwargs['additional_participant_config'].items():
                     if values['team'] != "":
                         team_lookup[name] = values['team']
             if len(team_lookup) == 0:
@@ -346,7 +432,8 @@ class SeriesStandings(RaceResults):
                 k: v['points']
                 for k, v in kwargs['participant_config'].items()}
             if 'additional_participant_config' in kwargs:
-                for name, values in kwargs['additional_participant_config'].items():
+                for name, values \
+                        in kwargs['additional_participant_config'].items():
                     points_lookup[name] = values['points']
         except KeyError:
             points_lookup = None
@@ -379,6 +466,18 @@ class SeriesStandings(RaceResults):
             self._data = [x for x in self._data if int(self.calc_series_points(
                 x.calc_points_data, **formatter_args)) != 0]
 
+        try:
+            try:
+                font = ImageFont.truetype(
+                    kwargs['font'],
+                    kwargs['font_size'])
+            except (AttributeError, OSError):
+                font = ImageFont.load_default()
+            font_color = tuple(kwargs['font_color'])
+        except KeyError:
+            font = ImageFont.load_default()
+            font_color = (0, 0, 0)
+
         self.add_column(
             'calc_points_data',
             'Rank',
@@ -399,6 +498,18 @@ class SeriesStandings(RaceResults):
 
         if car_lookup is not None:
             self.add_lookup('driver_name', car_lookup, '', 'Car')
+
+            if car_class_lookup is not None:
+                self.add_lookup(
+                    'driver_name',
+                    {k: v for k, v in car_class_lookup.items()},
+                    '',
+                    'Car Class',
+                    formatter=self.car_class_formatter,
+                    formatter_args={
+                        'text_height': font.getsize("A")[1],
+                        'font': font,
+                        'font_color': font_color})
 
         self.add_column(
             'calc_points_data',
@@ -464,13 +575,25 @@ class SeriesChampion(SeriesStandings):
                 for k, v in kwargs['participant_config'].items()
                 if v['car'] != ""}
             if 'additional_participant_config' in kwargs:
-                for name, values in kwargs['additional_participant_config'].items():
+                for name, values \
+                        in kwargs['additional_participant_config'].items():
                     if values['car'] != "":
                         self._car_lookup[name] = values['car']
             if len(self._car_lookup) == 0:
                 self._car_lookup = None
+            elif len(kwargs['car_classes']):
+                self._car_class_lookup = {
+                    driver: (car_class_data['color'], car_class)
+                    for driver, car in self._car_class_lookup.items()
+                    for car_class, car_class_data
+                    in kwargs['car_classes'].items()
+                    if car in car_class_data['cars']
+                }
+            else:
+                self._car_class_lookup = None
         except KeyError:
             self._car_lookup = None
+            self._car_class_lookup = None
 
         try:
             self._team_lookup = {
@@ -478,7 +601,8 @@ class SeriesChampion(SeriesStandings):
                 for k, v in kwargs['participant_config'].items()
                 if v['team'] != ""}
             if 'additional_participant_config' in kwargs:
-                for name, values in kwargs['additional_participant_config'].items():
+                for name, values \
+                        in kwargs['additional_participant_config'].items():
                     if values['team'] != "":
                         self._team_lookup[name] = values['team']
             if len(self._team_lookup) == 0:
@@ -498,7 +622,8 @@ class SeriesChampion(SeriesStandings):
                 k: v['points']
                 for k, v in kwargs['participant_config'].items()}
             if 'additional_participant_config' in kwargs:
-                for name, values in kwargs['additional_participant_config'].items():
+                for name, values \
+                        in kwargs['additional_participant_config'].items():
                     points_lookup[name] = values['points']
         except KeyError:
             points_lookup = None
@@ -660,6 +785,14 @@ class SeriesChampion(SeriesStandings):
                     width + column_margin + 2 * margin])
                 text_height += height
 
+            if self._car_class_lookup is not None:
+                width, height = font.getsize(
+                    self._car_class_lookup[entry.driver_name])
+                text_width = max([
+                    text_width,
+                    width + column_margin + 2 * margin])
+                text_height += height
+
             text_height += margin
 
         #  TODO: Parametrize the "big logo" width.
@@ -760,6 +893,14 @@ class SeriesChampion(SeriesStandings):
                 draw.text(
                     (x_position, y_position),
                     self._car_lookup[entry.driver_name],
+                    fill=font_color,
+                    font=font)
+                y_position += font.getsize("A")[1]
+
+            if self._car_class_lookup is not None:
+                draw.text(
+                    (x_position, y_position),
+                    self._car_class_lookup[entry.driver_name],
                     fill=font_color,
                     font=font)
                 y_position += font.getsize("A")[1]

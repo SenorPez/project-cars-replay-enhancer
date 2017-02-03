@@ -56,6 +56,30 @@ class StaticBase:
             formatter=formatter,
             formatter_args=formatter_args))
 
+    @staticmethod
+    def car_class_formatter(value, **kwargs):
+        text_height = kwargs['text_height']
+        font = kwargs['font']
+        charm_width = text_height + font.getsize(value[1])[0] + 2
+        charm_height = text_height + 1
+
+        charm = Image.new('RGBA', (charm_width, charm_height), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(charm)
+        draw.polygon(
+            [
+                (0, text_height),
+                (text_height // 3, 0),
+                (text_height, 0),
+                (text_height - text_height // 3, text_height)],
+            fill=tuple(value[0]),
+            outline=(0, 0, 0, 255))
+        draw.text(
+            (text_height + 2, 0),
+            str(value[1]),
+            fill=kwargs['font_color'],
+            font=kwargs['font'])
+        return charm
+
     def to_frame(self):
         return PIL_to_npimage(self._make_material().convert('RGBA'))
 

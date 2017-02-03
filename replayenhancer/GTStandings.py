@@ -52,6 +52,25 @@ class GTStandings:
         except KeyError:
             self._font = ImageFont.load_default()
 
+        # If car and car class are set, use class.
+        try:
+            car_lookup = {
+                k: v['car']
+                for k, v in kwargs['participant_config'].items()
+                if v['car'] != ""}
+            if len(car_lookup) != 0 and len(kwargs['car_classes']):
+                self._car_class_lookup = {
+                    driver: car_class_data['color']
+                    for driver, car in car_lookup.items()
+                    for car_class, car_class_data
+                    in kwargs['car_classes'].items()
+                    if car in car_class_data['cars']
+                }
+            else:
+                self._car_class_lookup = None
+        except KeyError:
+            self._car_class_lookup = None
+
         #  If set, use external margins.
         try:
             self._margin = self._options['margin']
@@ -105,6 +124,8 @@ class GTStandings:
             name_width \
             + self._row_height \
             + int(self._row_height - block_height)
+        if self._car_class_lookup is not None:
+            self._row_width += block_height + 2
 
         material_height = \
             self._row_height * (entries + 1) \
@@ -149,13 +170,23 @@ class GTStandings:
             except (KeyError, TypeError):
                 display_name = None
             finally:
-                self._standings_lines.append(StandingLine(
-                    entry,
-                    (self._row_width, self._row_height),
-                    self._font,
-                    flyout_width=self._flyout_width,
-                    display_name=display_name,
-                    ups=ups))
+                if self._car_class_lookup is None:
+                    self._standings_lines.append(StandingLine(
+                        entry,
+                        (self._row_width, self._row_height),
+                        self._font,
+                        flyout_width=self._flyout_width,
+                        display_name=display_name,
+                        ups=ups))
+                else:
+                    self._standings_lines.append(StandingLine(
+                        entry,
+                        (self._row_width, self._row_height),
+                        self._font,
+                        flyout_width=self._flyout_width,
+                        display_name=display_name,
+                        class_color=self._car_class_lookup[entry.driver_name],
+                        ups=ups))
 
     def make_frame(self, time):
         while self._race_data.elapsed_time < time \
@@ -530,9 +561,10 @@ class StandingLine:
     _ups = 30
 
     def __init__(self, entry, size, font, *,
-                 flyout_width=0, display_name=None, ups=30):
+                 flyout_width=0, display_name=None, class_color=None, ups=30):
         self._ups = ups
         self._display_name = display_name
+        self._class_color = class_color
         self._driver = copy(entry.driver)
         self._laps_complete = entry.driver.laps_complete
         self._position = entry.position
@@ -661,6 +693,20 @@ class StandingLine:
         y_position = int((row_height - block_height) / 2)
 
         draw = ImageDraw.Draw(name_material)
+        if self._class_color is not None:
+
+            draw.polygon(
+                [
+                    (0 + x_position, block_height + y_position),
+                    (block_height // 3 + x_position, 0 + y_position),
+                    (block_height + x_position, 0 + y_position),
+                    (
+                        block_height - block_height // 3 + x_position,
+                        block_height + y_position)],
+                fill=tuple(self._class_color),
+                outline=(0, 0, 0, 255))
+            x_position += block_height + 2
+
         draw.text(
             (x_position, y_position),
             str(self.display_name),
