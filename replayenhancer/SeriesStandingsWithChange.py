@@ -67,8 +67,10 @@ class SeriesStandingsWithChange(SeriesStandings):
         driver_name, _, _ = value
         old_points = kwargs['points_lookup'][driver_name]
         old_more_points = len([
-            points for points in kwargs['points_lookup'].values()
-            if points > old_points])
+            points for driver_name, points in kwargs['points_lookup'].items()
+            if points > old_points
+            and driver_name in [
+                entry.driver_name for entry in self._data]])
 
         #  How many people have more points than us?
         new_points = int(self.calc_series_points(value, **kwargs))
