@@ -584,7 +584,7 @@ class SeriesChampion(SeriesStandings):
             elif len(kwargs['car_classes']):
                 self._car_class_lookup = {
                     driver: (car_class_data['color'], car_class)
-                    for driver, car in self._car_class_lookup.items()
+                    for driver, car in self._car_lookup.items()
                     for car_class, car_class_data
                     in kwargs['car_classes'].items()
                     if car in car_class_data['cars']
@@ -787,7 +787,7 @@ class SeriesChampion(SeriesStandings):
 
             if self._car_class_lookup is not None:
                 width, height = font.getsize(
-                    self._car_class_lookup[entry.driver_name])
+                    self._car_class_lookup[entry.driver_name][1])
                 text_width = max([
                     text_width,
                     width + column_margin + 2 * margin])
@@ -900,7 +900,7 @@ class SeriesChampion(SeriesStandings):
             if self._car_class_lookup is not None:
                 draw.text(
                     (x_position, y_position),
-                    self._car_class_lookup[entry.driver_name],
+                    self._car_class_lookup[entry.driver_name][1],
                     fill=font_color,
                     font=font)
                 y_position += font.getsize("A")[1]
