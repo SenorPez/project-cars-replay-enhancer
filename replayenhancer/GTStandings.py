@@ -434,7 +434,7 @@ class GTStandings:
 
         draw = ImageDraw.Draw(combined_material)
 
-        if draw_middle_line:
+        if draw_middle_line and field_window_top > leader_window_bottom:
             draw.line(
                 [
                     (0, leader_window.size[1] - 1),
