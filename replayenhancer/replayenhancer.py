@@ -158,7 +158,7 @@ def make_video(config_file, *, framerate=None, sync=False):
 
     end_titles = list()
 
-    if len(configuration['car_classes']):
+    if 'car_classes' in configuration and len(configuration['car_classes']):
         no_points_config = copy(configuration)
         try:
             del no_points_config['point_structure']
@@ -232,7 +232,7 @@ def make_video(config_file, *, framerate=None, sync=False):
             if not any([
                     x['points'] for x
                     in configuration['participant_config'].values()]):
-                if len(configuration['car_classes']):
+                if 'car_classes' in configuration and len(configuration['car_classes']):
                     for car_class_filter in [car_class for car_class in
                                              configuration['car_classes'] if
                                              car_class != ""]:
@@ -275,7 +275,7 @@ def make_video(config_file, *, framerate=None, sync=False):
                         pcre_series_standings.to_frame()).set_duration(20)
                     end_titles.append(series_standings)
             else:
-                if len(configuration['car_classes']):
+                if 'car_classes' in configuration and len(configuration['car_classes']):
                     for car_class_filter in [car_class for car_class in
                                              configuration['car_classes'] if
                                              car_class != ""]:
@@ -336,7 +336,7 @@ def make_video(config_file, *, framerate=None, sync=False):
             pass
 
     if champion:
-        if len(configuration['car_classes']):
+        if 'car_classes' in configuration and len(configuration['car_classes']):
             for car_class_filter in [car_class for car_class in
                                      configuration['car_classes'] if
                                      car_class != ""]:

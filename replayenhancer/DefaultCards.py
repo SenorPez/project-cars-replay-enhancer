@@ -40,17 +40,20 @@ class RaceResults(StaticBase):
                 k: v['car']
                 for k, v in kwargs['participant_config'].items()
                 if v['car'] != ""}
-            if len(car_lookup) == 0:
-                car_lookup = None
-            elif len(kwargs['car_classes']):
-                car_class_lookup = {
-                    driver: (car_class_data['color'], car_class)
-                    for driver, car in car_lookup.items()
-                    for car_class, car_class_data
-                    in kwargs['car_classes'].items()
-                    if car in car_class_data['cars']
-                }
+            if len(car_lookup):
+                try:
+                    if len(kwargs['car_classes']):
+                        car_class_lookup = {
+                            driver: (car_class_data['color'], car_class)
+                            for driver, car in car_lookup.items()
+                            for car_class, car_class_data
+                            in kwargs['car_classes'].items()
+                            if car in car_class_data['cars']
+                        }
+                except KeyError:
+                    car_class_lookup = None
             else:
+                car_lookup = None
                 car_class_lookup = None
         except KeyError:
             car_lookup = None
@@ -255,17 +258,20 @@ class StartingGrid(StaticBase):
                 k: v['car']
                 for k, v in kwargs['participant_config'].items()
                 if v['car'] != ""}
-            if len(car_lookup) == 0:
-                car_lookup = None
-            elif len(kwargs['car_classes']):
-                car_class_lookup = {
-                    driver: (car_class_data['color'], car_class)
-                    for driver, car in car_lookup.items()
-                    for car_class, car_class_data
-                    in kwargs['car_classes'].items()
-                    if car in car_class_data['cars']
-                }
+            if len(car_lookup):
+                try:
+                    if len(kwargs['car_classes']):
+                        car_class_lookup = {
+                            driver: (car_class_data['color'], car_class)
+                            for driver, car in car_lookup.items()
+                            for car_class, car_class_data
+                            in kwargs['car_classes'].items()
+                            if car in car_class_data['cars']
+                        }
+                except KeyError:
+                    car_class_lookup = None
             else:
+                car_lookup = None
                 car_class_lookup = None
         except KeyError:
             car_lookup = None
@@ -388,17 +394,20 @@ class SeriesStandings(RaceResults):
                         in kwargs['additional_participant_config'].items():
                     if values['car'] != "":
                         car_lookup[name] = values['car']
-            if len(car_lookup) == 0:
-                car_lookup = None
-            elif len(kwargs['car_classes']):
-                car_class_lookup = {
-                    driver: (car_class_data['color'], car_class)
-                    for driver, car in car_lookup.items()
-                    for car_class, car_class_data
-                    in kwargs['car_classes'].items()
-                    if car in car_class_data['cars']
-                }
+            if len(car_lookup):
+                try:
+                    if len(kwargs['car_classes']):
+                        car_class_lookup = {
+                            driver: (car_class_data['color'], car_class)
+                            for driver, car in car_lookup.items()
+                            for car_class, car_class_data
+                            in kwargs['car_classes'].items()
+                            if car in car_class_data['cars']
+                        }
+                except KeyError:
+                    car_class_lookup = None
             else:
+                car_lookup = None
                 car_class_lookup = None
 
         except KeyError:
@@ -579,17 +588,20 @@ class SeriesChampion(SeriesStandings):
                         in kwargs['additional_participant_config'].items():
                     if values['car'] != "":
                         self._car_lookup[name] = values['car']
-            if len(self._car_lookup) == 0:
-                self._car_lookup = None
-            elif len(kwargs['car_classes']):
-                self._car_class_lookup = {
-                    driver: (car_class_data['color'], car_class)
-                    for driver, car in self._car_lookup.items()
-                    for car_class, car_class_data
-                    in kwargs['car_classes'].items()
-                    if car in car_class_data['cars']
-                }
+            if len(self._car_lookup):
+                try:
+                    if len(kwargs['car_classes']):
+                        self._car_class_lookup = {
+                            driver: (car_class_data['color'], car_class)
+                            for driver, car in self._car_lookup.items()
+                            for car_class, car_class_data
+                            in kwargs['car_classes'].items()
+                            if car in car_class_data['cars']
+                        }
+                except KeyError:
+                    self._car_class_lookup = None
             else:
+                self._car_lookup = None
                 self._car_class_lookup = None
         except KeyError:
             self._car_lookup = None
