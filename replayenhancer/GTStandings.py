@@ -40,7 +40,7 @@ class GTStandings:
             self._subject_name = {
                 name for name, data
                 in self._options['participant_config'].items()
-                if 'viewed_driver' in data and data['viewed_driver']}
+                if 'viewed' in data and data['viewed']}
             if not len(self._subject_name):
                 self._subject_name = None
         except KeyError:
