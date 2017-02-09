@@ -712,6 +712,11 @@ class SeriesChampion(SeriesStandings):
         except KeyError:
             series_logo_height = 300
 
+        try:
+            champion_color = tuple(self._options['champion_color'])
+        except KeyError:
+            champion_color = (255, 255, 255)
+
         #  If provided, use a font.
         try:
             try:
@@ -856,7 +861,7 @@ class SeriesChampion(SeriesStandings):
         material = Image.new(
             'RGBA',
             (material_width, material_height),
-            (255, 255, 255, 255))
+            champion_color)
 
         #  Write heading, if applicable.
         if heading:
@@ -864,7 +869,6 @@ class SeriesChampion(SeriesStandings):
 
         if series_logo is not None:
             series_logo = series_logo.resize((series_logo_width, series_logo_height))
-            # series_logo.thumbnail((series_logo_width, series_logo_height))
             material.paste(series_logo, (0, heading_height))
 
         y_position = heading_height + int((material_height - text_height) / 2)
