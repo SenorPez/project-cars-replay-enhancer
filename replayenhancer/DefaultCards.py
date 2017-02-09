@@ -684,11 +684,6 @@ class SeriesChampion(SeriesStandings):
                 heading_font = ImageFont.load_default()
 
             try:
-                series_logo = Image.open(self._options['series_logo'])
-            except (KeyError, OSError):
-                series_logo = None
-
-            try:
                 heading_text = self._options['heading_text']
             except KeyError:
                 heading_text = None
@@ -699,10 +694,23 @@ class SeriesChampion(SeriesStandings):
             heading_font = ImageFont.load_default()
             heading_text = None
             heading = False
-            series_logo = None
-
         else:
             heading = True
+
+        try:
+            series_logo = Image.open(self._options['series_logo'])
+        except (KeyError, OSError):
+            series_logo = None
+
+        try:
+            series_logo_width = self._options['champion_width']
+        except KeyError:
+            series_logo_width = 300
+
+        try:
+            series_logo_height = self._options['champion_height']
+        except KeyError:
+            series_logo_height = 300
 
         #  If provided, use a font.
         try:
@@ -759,8 +767,8 @@ class SeriesChampion(SeriesStandings):
                 **self._formatter_args)) <= 3]
 
         #  Build main data material
-        text_width = 2 * margin
-        text_height = 2 * margin
+        text_width = 0
+        text_height = 0
         for rank, entry in enumerate(champion_data, 1):
             if rank == 1:
                 width, height = heading_font.getsize("Champion")
@@ -807,8 +815,10 @@ class SeriesChampion(SeriesStandings):
 
             text_height += margin
 
-        #  TODO: Parametrize the "big logo" width.
-        material_width = 300+text_width
+        #  Remove extra margin added by last loop iteration.
+        text_height -= margin
+
+        material_width = series_logo_width + text_width
 
         #  Build heading, if applicable.
         heading_height = 0
@@ -839,7 +849,7 @@ class SeriesChampion(SeriesStandings):
 
         material_height = sum([
             heading_height,
-            max([300, text_height])
+            max([series_logo_height, text_height + 2 * margin])
         ])
 
         #  TODO: Parametrize background color.
@@ -853,11 +863,12 @@ class SeriesChampion(SeriesStandings):
             material.paste(heading_material, (0, 0), heading_material)
 
         if series_logo is not None:
-            series_logo.thumbnail((300, 300))
+            series_logo = series_logo.resize((series_logo_width, series_logo_height))
+            # series_logo.thumbnail((series_logo_width, series_logo_height))
             material.paste(series_logo, (0, heading_height))
 
-        y_position = heading_height+int((material_height-text_height)/2)
-        x_position = 300+margin
+        y_position = heading_height + int((material_height - text_height) / 2)
+        x_position = series_logo_width + margin
 
         draw = ImageDraw.Draw(material)
 
