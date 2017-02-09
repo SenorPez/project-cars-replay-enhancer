@@ -35,6 +35,12 @@ class GTStandings:
 
         self._last_frame = None
 
+        #  Are we showing the timer?
+        try:
+            self._show_timer = self._options['show_timer']
+        except KeyError:
+            self._show_timer = True
+
         #  If set, get the telemetry synchronization value.
         try:
             self._sync_racestart = self._options['sync_racestart']
@@ -102,8 +108,8 @@ class GTStandings:
             self._leader_window_size = 16
 
         # Plus one to account for timer.
-        # TODO: Add setting to make timer optional.
-        self._leader_window_size += 1
+        if self._show_timer:
+            self._leader_window_size += 1
 
         # If set, use field window size.
         try:
@@ -127,10 +133,17 @@ class GTStandings:
         if self._car_class_lookup is not None:
             self._row_width += block_height + 2
 
-        material_height = \
-            self._row_height * (entries + 1) \
-            + (entries + 1) * 1 \
-            + self._margin
+        if self._show_timer:
+            material_height = \
+                self._row_height * (entries + 1) \
+                + (entries + 1) * 1 \
+                + self._margin
+        else:
+            material_height = \
+                self._row_height * entries \
+                + entries * 1 \
+                + self._margin \
+                + 1
 
         material_width = \
             self._margin \
@@ -147,20 +160,32 @@ class GTStandings:
             (0, 0, 0, 0))
 
         draw = ImageDraw.Draw(self._base_material)
-        draw.line(
-            [
-                (0, self._margin + self._row_height),
-                (
-                    self._margin + self._row_width - 1,
-                    self._margin + self._row_height)],
-            fill='white', width=1)
 
-        self._timer = Header(
-            self._race_data,
-            self._sync_racestart,
-            (self._row_width, self._row_height),
-            self._font,
-            ups=ups)
+        if self._show_timer:
+            draw.line(
+                [
+                    (0, self._margin + self._row_height),
+                    (
+                        self._margin + self._row_width - 1,
+                        self._margin + self._row_height)],
+                fill='white', width=1)
+
+            self._timer = Header(
+                self._race_data,
+                self._sync_racestart,
+                (self._row_width, self._row_height),
+                self._font,
+                ups=ups)
+        else:
+            draw.line(
+                [
+                    (0, self._margin),
+                    (
+                        self._margin + self._row_width - 1,
+                        self._margin)],
+                fill='white', width=1)
+
+            self._timer = None
 
         self._standings_lines = list()
         for entry in sorted(self._race_data.classification, key=lambda x: x.position):
@@ -216,9 +241,11 @@ class GTStandings:
 
     def _make_material(self):
         material = self._base_material.copy()
-        material.paste(
-            self._timer.to_frame(),
-            (self._margin, self._margin))
+
+        if self._timer is not None:
+            material.paste(
+                self._timer.to_frame(),
+                (self._margin, self._margin))
 
         standings_lines = list()
         classification = self._race_data.classification
@@ -232,10 +259,18 @@ class GTStandings:
                 key=lambda x: (x.position, x in self._dropping_lines),
                 reverse=True):
             x_position = self._margin
-            y_position = \
-                self._margin \
-                + self._row_height * line.position \
-                + line.position
+            if self._timer is not None:
+                y_position = \
+                    self._margin \
+                    + self._row_height * line.position \
+                    + line.position
+            else:
+                position = line.position - 1
+                y_position = \
+                    self._margin \
+                    + self._row_height * position \
+                    + position \
+                    + 1
 
             x_offset = 0
             y_offset = 0
@@ -362,6 +397,8 @@ class GTStandings:
             leader_window_bottom = \
                 self._row_height * self._leader_window_size \
                 + 1 * self._leader_window_size + self._margin
+            if self._timer is None:
+                leader_window_bottom += 1
             leader_window = material.crop(
                 (0, 0, material_width, leader_window_bottom))
         else:
@@ -377,7 +414,7 @@ class GTStandings:
             # Are we at the bottom?
             if material_height \
                     - (self._row_height * (lines_below + 1)
-                           + 1 * (lines_below + 1)) < viewed_y_position:
+                        + 1 * (lines_below + 1)) < viewed_y_position:
                 field_window_top = \
                     material_height \
                     - (
@@ -396,6 +433,8 @@ class GTStandings:
                         self._leader_window_size + self._field_window_size) \
                     + 1 * (self._leader_window_size + self._field_window_size) \
                     + self._margin
+                if self._timer is None:
+                    field_window_bottom += 1
                 draw_middle_line = False
 
             # Nope, Chuck Testa.
