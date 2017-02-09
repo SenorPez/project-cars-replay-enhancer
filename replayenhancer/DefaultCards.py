@@ -699,18 +699,20 @@ class SeriesChampion(SeriesStandings):
 
         try:
             series_logo = Image.open(self._options['series_logo'])
+            try:
+                series_logo_width = self._options['champion_width']
+            except KeyError:
+                series_logo_width = 300
+
+            try:
+                series_logo_height = self._options['champion_height']
+            except KeyError:
+                series_logo_height = 300
         except (KeyError, OSError):
             series_logo = None
+            series_logo_width = 0
+            series_logo_height = 0
 
-        try:
-            series_logo_width = self._options['champion_width']
-        except KeyError:
-            series_logo_width = 300
-
-        try:
-            series_logo_height = self._options['champion_height']
-        except KeyError:
-            series_logo_height = 300
 
         try:
             champion_color = tuple(self._options['champion_color'])
