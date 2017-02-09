@@ -347,7 +347,7 @@ class GTStandings:
                         margin=flyout_margin)
 
                 if entry.laps_complete != line.laps_complete \
-                        and ((self._race_data.total_laps and entry.laps_complete >= self._race_data.total_laps) or (self._race_data.time_remaining <= 0)) \
+                        and ((self._race_data.total_laps and entry.laps_complete >= self._race_data.total_laps) or (not self._race_data.total_laps and self._race_data.time_remaining <= 0)) \
                         and line.flyout is None:
                     line.flyout = FinishFlyout((self._flyout_width, self._row_height), margin=flyout_margin)
                 elif entry.laps_complete != line.laps_complete \
