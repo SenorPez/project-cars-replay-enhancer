@@ -35,6 +35,17 @@ class GTStandings:
 
         self._last_frame = None
 
+        #  Do we override the subject car?
+        try:
+            self._subject_name = {
+                name for name, data
+                in self._options['participant_config'].items()
+                if 'viewed_driver' in data and data['viewed_driver']}
+            if not len(self._subject_name):
+                self._subject_name = None
+        except KeyError:
+            self._subject_name = None
+
         #  Are we showing the timer?
         try:
             self._show_timer = self._options['show_timer']
@@ -188,7 +199,17 @@ class GTStandings:
             self._timer = None
 
         self._standings_lines = list()
-        for entry in sorted(self._race_data.classification, key=lambda x: x.position):
+        for entry in sorted(
+                self._race_data.classification,
+                key=lambda x: x.position):
+            try:
+                if entry.driver_name in self._subject_name:
+                    entry.viewed_driver = True
+                else:
+                    entry.viewed_driver = False
+            except TypeError:
+                pass
+
             try:
                 display_name = \
                     self._short_name_lookup[entry.driver_name]
@@ -349,7 +370,9 @@ class GTStandings:
                 if entry.laps_complete != line.laps_complete \
                         and ((self._race_data.total_laps and entry.laps_complete >= self._race_data.total_laps) or (not self._race_data.total_laps and self._race_data.time_remaining <= 0)) \
                         and line.flyout is None:
-                    line.flyout = FinishFlyout((self._flyout_width, self._row_height), margin=flyout_margin)
+                    line.flyout = FinishFlyout(
+                        (self._flyout_width, self._row_height),
+                        margin=flyout_margin)
                 elif entry.laps_complete != line.laps_complete \
                         and line.flyout is None:
                     if entry.position == 1:
@@ -927,10 +950,34 @@ class FinishFlyout(Flyout):
         y_position = 0
 
         while x_position > 0:
-            draw.rectangle((x_position, y_position, x_position + top_row_height, y_position + top_row_height), fill=(255, 255, 255, 200))
-            draw.rectangle((x_position, y_position + top_row_height, x_position + top_row_height, y_position + top_row_height + bottom_row_height), fill=(0, 0, 0, 200))
-            draw.rectangle((x_position - top_row_height, y_position, x_position, y_position + top_row_height), fill=(0, 0, 0, 200))
-            draw.rectangle((x_position - top_row_height, y_position + top_row_height, x_position, y_position + top_row_height + bottom_row_height), fill=(255, 255, 255, 200))
+            draw.rectangle(
+                (
+                    x_position,
+                    y_position,
+                    x_position + top_row_height,
+                    y_position + top_row_height),
+                fill=(255, 255, 255, 200))
+            draw.rectangle(
+                (
+                    x_position,
+                    y_position + top_row_height,
+                    x_position + top_row_height,
+                    y_position + top_row_height + bottom_row_height),
+                fill=(0, 0, 0, 200))
+            draw.rectangle(
+                (
+                    x_position - top_row_height,
+                    y_position,
+                    x_position,
+                    y_position + top_row_height),
+                fill=(0, 0, 0, 200))
+            draw.rectangle(
+                (
+                    x_position - top_row_height,
+                    y_position + top_row_height,
+                    x_position,
+                    y_position + top_row_height + bottom_row_height),
+                fill=(255, 255, 255, 200))
             x_position -= 2 * top_row_height
 
         return material
