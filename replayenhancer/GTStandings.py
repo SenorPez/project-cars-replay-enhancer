@@ -347,7 +347,10 @@ class GTStandings:
                         margin=flyout_margin)
 
                 if entry.laps_complete != line.laps_complete \
-                        and self._race_data.race_state == 2 \
+                        and ((self._race_data.total_laps and entry.laps_complete >= self._race_data.total_laps) or (self._race_data.time_remaining <= 0)) \
+                        and line.flyout is None:
+                    line.flyout = FinishFlyout((self._flyout_width, self._row_height), margin=flyout_margin)
+                elif entry.laps_complete != line.laps_complete \
                         and line.flyout is None:
                     if entry.position == 1:
                         line.flyout = LapTimeFlyout(
@@ -891,11 +894,46 @@ class Flyout:
         self.ups = ups
         self.persist = False
 
+    def to_frame(self):
+        return self._make_material()
+
     @abc.abstractmethod
     def _make_material(self):
         """
         Create flyout.
         """
+
+
+class FinishFlyout(Flyout):
+    """
+    Flyout that shows a checkered flag when a car finishes.
+    """
+
+    def __init__(self, size=None, margin=20, ups=30):
+        super().__init__(size=size, margin=margin, ups=ups)
+
+        self.persist = True
+        self.animations.append(Animation(duration=int(self.ups/2), position_from=(-self._size[0], 0)))
+
+    def _make_material(self):
+        material = Image.new('RGBA', self._size, (0, 0, 0, 0))
+
+        top_row_height = self._size[1] // 2
+        bottom_row_height = self._size[1] - top_row_height
+
+        draw = ImageDraw.Draw(material)
+
+        x_position = self._size[0] - top_row_height
+        y_position = 0
+
+        while x_position > 0:
+            draw.rectangle((x_position, y_position, x_position + top_row_height, y_position + top_row_height), fill=(255, 255, 255, 200))
+            draw.rectangle((x_position, y_position + top_row_height, x_position + top_row_height, y_position + top_row_height + bottom_row_height), fill=(0, 0, 0, 200))
+            draw.rectangle((x_position - top_row_height, y_position, x_position, y_position + top_row_height), fill=(0, 0, 0, 200))
+            draw.rectangle((x_position - top_row_height, y_position + top_row_height, x_position, y_position + top_row_height + bottom_row_height), fill=(255, 255, 255, 200))
+            x_position -= 2 * top_row_height
+
+        return material
 
 
 class TimeFlyout(Flyout):
@@ -981,9 +1019,6 @@ class LapTimeFlyout(TimeFlyout):
 
         self._font = font
 
-    def to_frame(self):
-        return self._make_material()
-
     def _make_material(self):
         material = Image.new('RGBA', self._size, self.color)
 
@@ -1049,9 +1084,6 @@ class GapTimeFlyout(TimeFlyout):
         else:
             self._gap = "+{} laps".format(lap_difference)
 
-    def to_frame(self):
-        return self._make_material()
-
     def _make_material(self):
         material = Image.new('RGBA', self._size, self.color)
 
@@ -1060,8 +1092,8 @@ class GapTimeFlyout(TimeFlyout):
 
         draw = ImageDraw.Draw(material)
 
-        x_position = self._size[0]-self._margin-block_width
-        y_position = int((self._size[1]-block_height)/2)
+        x_position = self._size[0] - self._margin-block_width
+        y_position = int((self._size[1] - block_height) / 2)
 
         draw.text(
             (x_position, y_position),
@@ -1123,9 +1155,6 @@ class PitStopFlyout(TimeFlyout):
                 duration=int(self.ups / 2),
                 position_from=(0, 0),
                 position_to=(-self._size[0], 0)))
-
-    def to_frame(self):
-        return self._make_material()
 
     def update(self, location, time=None):
         """Updates flyout data with current position.
