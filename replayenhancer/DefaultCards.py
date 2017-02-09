@@ -873,7 +873,16 @@ class SeriesChampion(SeriesStandings):
             series_logo = series_logo.resize((series_logo_width, series_logo_height))
             material.paste(series_logo, (0, heading_height))
 
-        y_position = heading_height + int((material_height - text_height) / 2)
+        """
+        thing_height = max([series_logo_height, text_height + 2 * margin])
+        top_margin = int((thing_height - text_height) / 2)
+        y_position = heading_height + top_margin
+        """
+
+        y_position = heading_height \
+            + int((max([
+                series_logo_height, 
+                text_height + 2 * margin]) - text_height) / 2)
         x_position = series_logo_width + margin
 
         draw = ImageDraw.Draw(material)
