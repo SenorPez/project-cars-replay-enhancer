@@ -179,37 +179,8 @@ class RaceResults(StaticBase):
                 align='center')
 
     def calc_points(self, value, **kwargs):
-        points = self.calc_points_float(value, **kwargs)
+        points = self._calc_points_float(value, **kwargs)
         return str(int(points // 1))
-
-    def calc_points_float(self, value, **kwargs):
-        driver_name, position, best_lap = value
-        points = 0
-        try:
-            if best_lap == min(
-                    [
-                        entry.best_lap for entry in self._data
-                        if entry.best_lap is not None]):
-                points += kwargs['point_structure'][0]
-            points += kwargs['point_structure'][position]
-        except (KeyError, TypeError, ValueError):
-            points += 0
-
-        if 'points_adjust' in kwargs \
-                and kwargs['points_adjust'] is not None \
-                and driver_name in kwargs['points_adjust']:
-            adjust = kwargs['points_adjust'][driver_name]
-            if adjust[0] == '+':
-                points += float(adjust[1:])
-            elif adjust[0] == '-':
-                points -= float(adjust[1:])
-            else:
-                try:
-                    points = float(adjust)
-                except ValueError:
-                    pass
-
-        return points
 
     @staticmethod
     def format_time(seconds):
@@ -231,6 +202,35 @@ class RaceResults(StaticBase):
                 return "{2:.3f}".format(*return_value)
         except (TypeError, ValueError):
             return ""
+
+    def _calc_points_float(self, value, **kwargs):
+        driver_name, position, best_lap = value
+        points = 0
+        try:
+            if best_lap == min(
+                    [
+                        entry.best_lap for entry in self._data
+                        if entry.best_lap is not None]):
+                points += kwargs['point_structure'][0]
+            points += kwargs['point_structure'][position]
+        except (KeyError, IndexError, TypeError, ValueError):
+            points += 0
+
+        if 'points_adjust' in kwargs \
+                and kwargs['points_adjust'] is not None \
+                and driver_name in kwargs['points_adjust']:
+            adjust = kwargs['points_adjust'][driver_name]
+            if adjust[0] == '+':
+                points += float(adjust[1:])
+            elif adjust[0] == '-':
+                points -= float(adjust[1:])
+            else:
+                try:
+                    points = float(adjust)
+                except ValueError:
+                    pass
+
+        return points
 
 
 class StartingGrid(StaticBase):
@@ -536,7 +536,7 @@ class SeriesStandings(RaceResults):
         except (KeyError, TypeError):
             points = 0
 
-        points += int(self.calc_points_float(value, **kwargs))
+        points += int(self._calc_points_float(value, **kwargs))
 
         return str(points)
 

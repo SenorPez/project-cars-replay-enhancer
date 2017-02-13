@@ -15,8 +15,6 @@ class RaceResultsWithChange(RaceResults):
 
         position_lookup = dict()
         for entry in data:
-            # starting_position = \
-            #     starting_grid[entry.driver.index].position
             starting_position = next(
                 grid.position for grid in starting_grid
                 if grid.driver_name == entry.driver_name)
@@ -52,16 +50,9 @@ class RaceResultsWithChange(RaceResults):
         self._columns.insert(1, self._columns.pop())
 
     @staticmethod
-    def _position_change(value, **kwargs):
-        return "{:+d}".format(kwargs['position_lookup'][value] - value)
-
-    @staticmethod
     def _make_charm(value, **kwargs):
         text_height = kwargs['text_height']
-        try:
-            change = kwargs['position_lookup'][value] - value
-        except KeyError:
-            change = 0
+        change = kwargs['position_lookup'][value] - value
 
         font = kwargs['font']
         charm_width = \

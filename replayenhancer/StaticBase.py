@@ -23,9 +23,6 @@ class StaticBase:
         self._columns = list()
         self._size = size
 
-    def sort_data(self, call):
-        self._data = sorted(self._data, key=call)
-
     @property
     def row_colors(self):
         return self._row_colors
@@ -79,6 +76,9 @@ class StaticBase:
             fill=kwargs['font_color'],
             font=kwargs['font'])
         return charm
+
+    def sort_data(self, call):
+        self._data = sorted(self._data, key=call)
 
     def to_frame(self):
         return PIL_to_npimage(self._make_material().convert('RGBA'))
