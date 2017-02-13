@@ -949,7 +949,7 @@ class FinishFlyout(Flyout):
         x_position = self._size[0] - top_row_height
         y_position = 0
 
-        while x_position > 0:
+        while x_position > -top_row_height:
             draw.rectangle(
                 (
                     x_position,
