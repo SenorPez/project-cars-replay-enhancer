@@ -6,7 +6,7 @@ import unittest
 from unittest.mock import MagicMock, PropertyMock, patch, sentinel
 
 from replayenhancer.RaceData import RaceData, Driver, \
-    ClassificationEntry, SectorTime
+    ClassificationEntry, SectorTime, StartingGridEntry
 
 
 class TestRaceData(unittest.TestCase):
@@ -1063,6 +1063,40 @@ class TestSectorTime(unittest.TestCase):
         self.instance.invalid = sentinel.new_invalid
         expected_result = sentinel.new_invalid
         self.assertEqual(self.instance.invalid, expected_result)
+
+
+class TestStartingGridEntry(unittest.TestCase):
+    """
+    Tests StartingGridEntry object.
+    """
+
+    def test_init(self):
+        instance = StartingGridEntry(sentinel.position,
+                                     sentinel.driver_index,
+                                     sentinel.driver_name)
+        expected_result = StartingGridEntry
+        self.assertIsInstance(instance, expected_result)
+
+    def test_property_driver_index(self):
+        instance = StartingGridEntry(sentinel.position,
+                                     sentinel.driver_index,
+                                     sentinel.driver_name)
+        expected_result = sentinel.driver_index
+        self.assertEqual(instance.driver_index, expected_result)
+
+    def test_property_driver_name(self):
+        instance = StartingGridEntry(sentinel.position,
+                                     sentinel.driver_index,
+                                     sentinel.driver_name)
+        expected_result = sentinel.driver_name
+        self.assertEqual(instance.driver_name, expected_result)
+
+    def test_property_position(self):
+        instance = StartingGridEntry(sentinel.position,
+                                     sentinel.driver_index,
+                                     sentinel.driver_name)
+        expected_result = sentinel.position
+        self.assertEqual(instance.position, expected_result)
 
 if __name__ == "__main__":
     unittest.main()

@@ -15,7 +15,6 @@ from tqdm import tqdm
 from replayenhancer.AdditionalParticipantPacket \
     import AdditionalParticipantPacket
 from replayenhancer.ParticipantPacket import ParticipantPacket
-from replayenhancer.StartingGridEntry import StartingGridEntry
 from replayenhancer.TelemetryDataPacket import TelemetryDataPacket
 from replayenhancer.Track import Track
 
@@ -546,6 +545,16 @@ class SectorTime:
         self.time = time
         self.sector = sector
         self.invalid = False if invalid == 0 else True
+
+
+class StartingGridEntry:
+    """
+    Represents an entry on the starting grid.
+    """
+    def __init__(self, position, driver_index, driver_name):
+        self.position = position
+        self.driver_index = driver_index
+        self.driver_name = driver_name
 
 
 class TelemetryData:

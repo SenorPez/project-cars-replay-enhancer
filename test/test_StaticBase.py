@@ -8,7 +8,7 @@ import numpy
 from PIL import Image, ImageFont
 
 from replayenhancer.StaticBase import StaticBase
-from replayenhancer.StartingGridEntry import StartingGridEntry
+from replayenhancer.RaceData import StartingGridEntry
 
 
 class TestStaticBase(unittest.TestCase):
