@@ -103,8 +103,10 @@ class StaticBase:
             except (AttributeError, KeyError, OSError):
                 series_logo = None
 
-            heading_text = self._options['heading_text'] if self._options['heading_text'] is not None else ""
-            subheading_text = self._options['subheading_text'] if self._options['subheading_text'] is not None else ""
+            heading_text = self._options['heading_text'] \
+                if self._options['heading_text'] is not None else ""
+            subheading_text = self._options['subheading_text'] \
+                if self._options['subheading_text'] is not None else ""
         except KeyError:
             heading_color = None
             heading_font_color = None

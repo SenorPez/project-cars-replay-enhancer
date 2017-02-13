@@ -347,7 +347,7 @@ class GTStandings:
                     line.flyout.update(
                         self._race_data.driver_world_position(
                             entry.driver.index),
-                        self._race_data._next_packet.current_time)
+                        self._race_data.current_time)
                     if self._race_data.track.at_pit_exit(
                             self._race_data.driver_world_position(
                                 entry.driver.index)) \
@@ -368,7 +368,15 @@ class GTStandings:
                         margin=flyout_margin)
 
                 if entry.laps_complete != line.laps_complete \
-                        and ((self._race_data.total_laps and entry.laps_complete >= self._race_data.total_laps) or (not self._race_data.total_laps and self._race_data.time_remaining <= 0)) \
+                        and (
+                            (
+                                self._race_data.laps_in_event
+                                and entry.laps_complete
+                                >= self._race_data.laps_in_event
+                            ) or (
+                                not self._race_data.laps_in_event
+                                and self._race_data.event_time_remaining
+                                <= 0)) \
                         and line.flyout is None:
                     line.flyout = FinishFlyout(
                         (self._flyout_width, self._row_height),
@@ -430,6 +438,8 @@ class GTStandings:
         else:
             leader_window_bottom = 0
 
+        field_window_top = None
+        field_window_bottom = None
         if self._field_window_size > 0:
             lines_below = self._field_window_size // 2
             if self._field_window_size % 2:
@@ -563,17 +573,17 @@ class Header:
         x_position = int((row_height - block_height) / 2)
         y_position = int((row_height - block_height) / 2)
 
-        if self._race_data.total_laps:
+        if self._race_data.laps_in_event:
             draw.text(
                 (x_position, y_position),
                 "Lap {current}/{total}".format(
                     current=self._race_data.current_lap,
-                    total=self._race_data.total_laps),
+                    total=self._race_data.laps_in_event),
                 fill=self.background_text_color,
                 font=self._font)
         else:
             time = min(
-                max(0, self._race_data.time_remaining),
+                max(0, self._race_data.event_time_remaining),
                 self._race_data.total_time)
             lap = "Lap {}".format(self._race_data.current_lap)
             draw.text(
@@ -936,7 +946,9 @@ class FinishFlyout(Flyout):
         super().__init__(size=size, margin=margin, ups=ups)
 
         self.persist = True
-        self.animations.append(Animation(duration=int(self.ups/2), position_from=(-self._size[0], 0)))
+        self.animations.append(Animation(
+            duration=int(self.ups/2),
+            position_from=(-self._size[0], 0)))
 
     def _make_material(self):
         material = Image.new('RGBA', self._size, (0, 0, 0, 0))

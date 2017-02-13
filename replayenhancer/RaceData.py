@@ -46,7 +46,7 @@ class RaceData:
 
         self.get_data()
 
-        if self.total_laps == 0:
+        if self.laps_in_event == 0:
             time_data = TelemetryData(
                 telemetry_directory,
                 descriptor_filename=descriptor_filename)
@@ -119,8 +119,20 @@ class RaceData:
             [
                 participant.current_lap for participant
                 in self._next_packet.participant_info])
-        return leader_lap if self.total_laps == 0 \
-            else min(leader_lap, self.total_laps)
+        return leader_lap if self.laps_in_event == 0 \
+            else min(leader_lap, self.laps_in_event)
+
+    @property
+    def current_time(self):
+        return self._next_packet.current_time
+
+    @property
+    def event_time_remaining(self):
+        return self._next_packet.event_time_remaining
+
+    @property
+    def laps_in_event(self):
+        return self._next_packet.laps_in_event
 
     @property
     def race_state(self):
@@ -173,14 +185,6 @@ class RaceData:
                 if entry is not None]
 
             return self._starting_grid
-
-    @property
-    def time_remaining(self):
-        return self._next_packet.event_time_remaining
-
-    @property
-    def total_laps(self):
-        return self._next_packet.laps_in_event
 
     def driver_world_position(self, index):
         return self._next_packet.participant_info[index].world_position
@@ -300,7 +304,8 @@ class RaceData:
             driver = next(
                 driver for driver in self.drivers.values()
                 if driver.index == self._next_packet.viewed_participant_index)
-            self.elapsed_time = sum(driver.lap_times) + self._next_packet.current_time
+            self.elapsed_time = \
+                sum(driver.lap_times) + self._next_packet.current_time
 
     @staticmethod
     def _get_drivers(telemetry_data, count):
@@ -590,6 +595,7 @@ class TelemetryData:
             total=self.packet_count,
             unit='packets')
 
+        old_packet = None
         try:
             while True:
                 while True:

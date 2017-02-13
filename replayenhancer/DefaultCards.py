@@ -36,6 +36,7 @@ class RaceResults(StaticBase):
             name_lookup = None
 
         try:
+            car_class_lookup = None
             car_lookup = {
                 k: v['car']
                 for k, v in kwargs['participant_config'].items()
@@ -385,6 +386,7 @@ class SeriesStandings(RaceResults):
             name_lookup = None
 
         try:
+            car_class_lookup = None
             car_lookup = {
                 k: v['car']
                 for k, v in kwargs['participant_config'].items()
@@ -713,7 +715,6 @@ class SeriesChampion(SeriesStandings):
             series_logo_width = 0
             series_logo_height = 0
 
-
         try:
             champion_color = tuple(self._options['champion_color'])
         except KeyError:
@@ -869,7 +870,8 @@ class SeriesChampion(SeriesStandings):
             material.paste(heading_material, (0, 0), heading_material)
 
         if series_logo is not None:
-            series_logo = series_logo.resize((series_logo_width, series_logo_height))
+            series_logo = series_logo.resize(
+                (series_logo_width, series_logo_height))
             material.paste(series_logo, (0, heading_height))
 
         y_position = heading_height \
@@ -979,7 +981,7 @@ class AdditionalClassificationEntry:
 
     @property
     def calc_points_data(self):
-        return (self._name, None, None)
+        return self._name, None, None
 
     @property
     def driver_name(self):

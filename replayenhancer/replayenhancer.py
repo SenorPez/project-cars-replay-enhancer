@@ -97,7 +97,7 @@ def make_video(config_file, *, framerate=None, sync=False):
             """
             timecode_image = Image.new('RGB', (100, 40))
             draw = ImageDraw.Draw(timecode_image)
-            draw.text((10, 10), "%.02f"%(time))
+            draw.text((10, 10), "%.02f" % time)
             return PIL_to_npimage(timecode_image)
 
         timecode_clip = mpy.VideoClip(
@@ -177,7 +177,9 @@ def make_video(config_file, *, framerate=None, sync=False):
 
         end_titles.append(results)
 
-        for car_class_filter in [car_class for car_class in configuration['car_classes'] if car_class != ""]:
+        for car_class_filter in [
+                car_class for car_class in configuration['car_classes']
+                if car_class != ""]:
             class_cars = [
                 car for car_class, car_class_data
                 in configuration['car_classes'].items()
@@ -232,7 +234,8 @@ def make_video(config_file, *, framerate=None, sync=False):
             if not any([
                     x['points'] for x
                     in configuration['participant_config'].values()]):
-                if 'car_classes' in configuration and len(configuration['car_classes']):
+                if 'car_classes' in configuration \
+                        and len(configuration['car_classes']):
                     for car_class_filter in [car_class for car_class in
                                              configuration['car_classes'] if
                                              car_class != ""]:
@@ -260,7 +263,10 @@ def make_video(config_file, *, framerate=None, sync=False):
                             size=source_video.size,
                             **configuration)
                         Image.fromarray(pcre_series_standings.to_frame()).save(
-                            output_prefix + '_' + car_class_filter + '_series_standings.png')
+                            output_prefix
+                            + '_'
+                            + car_class_filter
+                            + '_series_standings.png')
                         series_standings = mpy.ImageClip(
                             pcre_series_standings.to_frame()).set_duration(20)
                         end_titles.append(series_standings)
@@ -275,7 +281,8 @@ def make_video(config_file, *, framerate=None, sync=False):
                         pcre_series_standings.to_frame()).set_duration(20)
                     end_titles.append(series_standings)
             else:
-                if 'car_classes' in configuration and len(configuration['car_classes']):
+                if 'car_classes' in configuration \
+                        and len(configuration['car_classes']):
                     for car_class_filter in [car_class for car_class in
                                              configuration['car_classes'] if
                                              car_class != ""]:
@@ -303,7 +310,10 @@ def make_video(config_file, *, framerate=None, sync=False):
                             size=source_video.size,
                             **configuration)
                         Image.fromarray(pcre_series_standings.to_frame()).save(
-                            output_prefix + '_' + car_class_filter + '_series_standings.png')
+                            output_prefix
+                            + '_'
+                            + car_class_filter
+                            + '_series_standings.png')
                         series_standings = mpy.ImageClip(
                             pcre_series_standings.to_frame()).set_duration(20)
                         end_titles.append(series_standings)
@@ -332,7 +342,7 @@ def make_video(config_file, *, framerate=None, sync=False):
                 pcre_series_standings.to_frame()).set_duration(20)
 
             end_titles.append(series_standings)
-        except:
+        except KeyError:
             pass
 
     if champion:
@@ -364,7 +374,10 @@ def make_video(config_file, *, framerate=None, sync=False):
                     size=source_video.size,
                     **configuration)
                 Image.fromarray(pcre_series_standings.to_frame()).save(
-                    output_prefix + '_' + car_class_filter + '_series_champion.png')
+                    output_prefix
+                    + '_'
+                    + car_class_filter
+                    + '_series_champion.png')
                 series_standings = mpy.ImageClip(
                     pcre_series_standings.to_frame()).set_duration(20)
                 end_titles.append(series_standings)
@@ -379,7 +392,10 @@ def make_video(config_file, *, framerate=None, sync=False):
                 pcre_series_champion.to_frame()).set_duration(20)
             end_titles.append(series_champion)
 
-    output = mpy.concatenate_videoclips([starting_grid.fadeout(1), main_event] + [clip.fadein(1).fadeout(1) for clip in end_titles[:-1]] + [end_titles[-1].fadein(1)], method="compose")
+    output = mpy.concatenate_videoclips(
+        [starting_grid.fadeout(1), main_event]
+        + [clip.fadein(1).fadeout(1) for clip in end_titles[:-1]]
+        + [end_titles[-1].fadein(1)], method="compose")
 
     output.write_videofile(configuration['output_video'], fps=float(framerate))
 
