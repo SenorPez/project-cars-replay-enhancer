@@ -13,15 +13,10 @@ from natsort import natsorted
 from tqdm import tqdm
 
 from replayenhancer.AdditionalParticipantPacket \
-    import AdditionalParticipantPacket \
-    as AdditionalParticipantPacket
-from replayenhancer.REParticipantPacket \
-    import REParticipantPacket \
-    as ParticipantPacket
-from replayenhancer.RETelemetryDataPacket \
-    import RETelemetryDataPacket \
-    as TelemetryDataPacket
+    import AdditionalParticipantPacket
+from replayenhancer.ParticipantPacket import ParticipantPacket
 from replayenhancer.StartingGridEntry import StartingGridEntry
+from replayenhancer.TelemetryDataPacket import TelemetryDataPacket
 from replayenhancer.Track import Track
 
 

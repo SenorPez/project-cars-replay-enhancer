@@ -2,10 +2,10 @@
 Main execution script.
 """
 import argparse
-from copy import copy
 import json
 import os
 import sys
+from copy import copy
 
 import moviepy.editor as mpy
 from PIL import Image, ImageDraw

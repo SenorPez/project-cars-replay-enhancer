@@ -859,7 +859,6 @@ class SeriesChampion(SeriesStandings):
             max([series_logo_height, text_height + 2 * margin])
         ])
 
-        #  TODO: Parametrize background color.
         material = Image.new(
             'RGBA',
             (material_width, material_height),
@@ -872,12 +871,6 @@ class SeriesChampion(SeriesStandings):
         if series_logo is not None:
             series_logo = series_logo.resize((series_logo_width, series_logo_height))
             material.paste(series_logo, (0, heading_height))
-
-        """
-        thing_height = max([series_logo_height, text_height + 2 * margin])
-        top_margin = int((thing_height - text_height) / 2)
-        y_position = heading_height + top_margin
-        """
 
         y_position = heading_height \
             + int((max([
