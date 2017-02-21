@@ -255,6 +255,7 @@ class StartingGrid(StaticBase):
             name_lookup = None
 
         try:
+            car_class_lookup = None
             car_lookup = {
                 k: v['car']
                 for k, v in kwargs['participant_config'].items()
@@ -581,6 +582,7 @@ class SeriesChampion(SeriesStandings):
                 for entry in self._data}
 
         try:
+            self._car_class_lookup = None
             self._car_lookup = {
                 k: v['car']
                 for k, v in kwargs['participant_config'].items()
