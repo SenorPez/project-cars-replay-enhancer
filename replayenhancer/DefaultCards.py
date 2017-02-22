@@ -26,7 +26,7 @@ class RaceResults(StaticBase):
     """
     def __init__(self, data, size=None, **kwargs):
         super().__init__(data, size=size, **kwargs)
-        self.sort_data(lambda x: (-x.driver.laps_complete, x.driver.race_time))
+        self._sort_data(lambda x: (-x.driver.laps_complete, x.driver.race_time))
 
         try:
             name_lookup = {
@@ -101,36 +101,36 @@ class RaceResults(StaticBase):
             font = ImageFont.load_default()
             font_color = (0, 0, 0)
 
-        self.add_column('position', 'Pos.')
+        self._add_column('position', 'Pos.')
 
         if name_lookup is None:
-            self.add_column('driver_name', 'Driver')
+            self._add_column('driver_name', 'Driver')
         else:
-            self.add_lookup(
+            self._add_lookup(
                 'driver_name',
                 name_lookup,
                 'ERROR',
                 'Driver')
 
         if team_lookup is not None:
-            self.add_lookup('driver_name', team_lookup, '', 'Team')
+            self._add_lookup('driver_name', team_lookup, '', 'Team')
 
         if car_lookup is not None:
-            self.add_lookup('driver_name', car_lookup, '', 'Car')
+            self._add_lookup('driver_name', car_lookup, '', 'Car')
 
             if car_class_lookup is not None:
-                self.add_lookup(
+                self._add_lookup(
                     'driver_name',
                     {k: v for k, v in car_class_lookup.items()},
                     '',
                     'Car Class',
-                    formatter=self.car_class_formatter,
+                    formatter=self._car_class_formatter,
                     formatter_args={
                         'text_height': font.getsize("A")[1],
                         'font': font,
                         'font_color': font_color})
 
-        self.add_column('laps_complete', 'Laps', align='center')
+        self._add_column('laps_complete', 'Laps', align='center')
 
         try:
             result_lines = self._options['result_lines']
@@ -139,29 +139,29 @@ class RaceResults(StaticBase):
             stops = [x.driver.stops for x in self._data]
 
         if any(stops):
-            self.add_column('stops', 'Stops', align='center')
+            self._add_column('stops', 'Stops', align='center')
 
-        self.add_column(
+        self._add_column(
             'race_time',
             'Time',
             formatter=self.format_time,
             align='center')
-        self.add_column(
+        self._add_column(
             'best_lap',
             'Best Lap',
             formatter=self.format_time,
             align='center')
-        self.add_column(
+        self._add_column(
             'best_sector_1',
             'Best S1',
             formatter=self.format_time,
             align='center')
-        self.add_column(
+        self._add_column(
             'best_sector_2',
             'Best S2',
             formatter=self.format_time,
             align='center')
-        self.add_column(
+        self._add_column(
             'best_sector_3',
             'Best S3',
             formatter=self.format_time,
@@ -171,7 +171,7 @@ class RaceResults(StaticBase):
             formatter_args = {
                 'point_structure': point_structure,
                 'points_adjust': points_adjust}
-            self.add_column(
+            self._add_column(
                 'calc_points_data',
                 'Points',
                 formatter=self.calc_points,
@@ -322,37 +322,37 @@ class StartingGrid(StaticBase):
             font = ImageFont.load_default()
             font_color = (0, 0, 0)
 
-        self.add_column('position', 'Pos.')
+        self._add_column('position', 'Pos.')
 
         if name_lookup is None:
-            self.add_column('driver_name', 'Driver')
+            self._add_column('driver_name', 'Driver')
         else:
-            self.add_lookup(
+            self._add_lookup(
                 'driver_name',
                 name_lookup,
                 'ERROR',
                 'Driver')
 
         if team_lookup is not None:
-            self.add_lookup('driver_name', team_lookup, '', 'Team')
+            self._add_lookup('driver_name', team_lookup, '', 'Team')
 
         if car_lookup is not None:
-            self.add_lookup('driver_name', car_lookup, '', 'Car')
+            self._add_lookup('driver_name', car_lookup, '', 'Car')
 
             if car_class_lookup is not None:
-                self.add_lookup(
+                self._add_lookup(
                     'driver_name',
                     {k: v for k, v in car_class_lookup.items()},
                     '',
                     'Car Class',
-                    formatter=self.car_class_formatter,
+                    formatter=self._car_class_formatter,
                     formatter_args={
                         'text_height': font.getsize("A")[1],
                         'font': font,
                         'font_color': font_color})
 
         if points_lookup is not None or point_structure is not None:
-            self.add_lookup(
+            self._add_lookup(
                 'driver_name',
                 points_lookup,
                 0,
@@ -467,7 +467,7 @@ class SeriesStandings(RaceResults):
         formatter_args = {'point_structure': point_structure,
                           'points_lookup': points_lookup,
                           'points_adjust': points_adjust}
-        self.sort_data(
+        self._sort_data(
             lambda x: (
                 -int(self.calc_series_points(
                     x.calc_points_data, **formatter_args)),
@@ -490,40 +490,40 @@ class SeriesStandings(RaceResults):
             font = ImageFont.load_default()
             font_color = (0, 0, 0)
 
-        self.add_column(
+        self._add_column(
             'calc_points_data',
             'Rank',
             formatter=self.calc_series_rank,
             formatter_args=formatter_args)
 
         if name_lookup is None:
-            self.add_column('driver_name', 'Driver')
+            self._add_column('driver_name', 'Driver')
         else:
-            self.add_lookup(
+            self._add_lookup(
                 'driver_name',
                 name_lookup,
                 'ERROR',
                 'Driver')
 
         if team_lookup is not None:
-            self.add_lookup('driver_name', team_lookup, '', 'Team')
+            self._add_lookup('driver_name', team_lookup, '', 'Team')
 
         if car_lookup is not None:
-            self.add_lookup('driver_name', car_lookup, '', 'Car')
+            self._add_lookup('driver_name', car_lookup, '', 'Car')
 
             if car_class_lookup is not None:
-                self.add_lookup(
+                self._add_lookup(
                     'driver_name',
                     {k: v for k, v in car_class_lookup.items()},
                     '',
                     'Car Class',
-                    formatter=self.car_class_formatter,
+                    formatter=self._car_class_formatter,
                     formatter_args={
                         'text_height': font.getsize("A")[1],
                         'font': font,
                         'font_color': font_color})
 
-        self.add_column(
+        self._add_column(
             'calc_points_data',
             'Points',
             formatter=self.calc_series_points,
@@ -663,7 +663,7 @@ class SeriesChampion(SeriesStandings):
                           'points_adjust': points_adjust}
         self._formatter_args = formatter_args
 
-        self.sort_data(
+        self._sort_data(
             lambda x: (
                 -int(self.calc_series_points(
                     x.calc_points_data, **formatter_args)),

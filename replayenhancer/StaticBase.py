@@ -12,7 +12,7 @@ class StaticBase:
     Defines base class for static objects, including default object
     return methods.
     """
-    _row_colors = [
+    row_colors = [
         (192, 192, 192, 255),
         (255, 255, 255, 255),
     ]
@@ -23,17 +23,12 @@ class StaticBase:
         self._columns = list()
         self._size = size
 
-    @property
-    def row_colors(self):
-        return self._row_colors
+    def to_frame(self):
+        return PIL_to_npimage(self._make_material().convert('RGBA'))
 
-    @row_colors.setter
-    def row_colors(self, value):
-        self._row_colors = value
-
-    def add_column(self, attribute, heading=None, *,
-                   align='left', formatter=None, formatter_args=None,
-                   colspan=1):
+    def _add_column(self, attribute, heading=None, *,
+                    align='left', formatter=None, formatter_args=None,
+                    colspan=1):
         self._columns.append(DisplayColumn(
             attribute,
             heading,
@@ -42,8 +37,8 @@ class StaticBase:
             formatter_args=formatter_args,
             colspan=colspan))
 
-    def add_lookup(self, attribute, lookup, default, heading=None, *,
-                   align='left', formatter=None, formatter_args=None):
+    def _add_lookup(self, attribute, lookup, default, heading=None, *,
+                    align='left', formatter=None, formatter_args=None):
         self._columns.append(DisplayColumn(
             attribute,
             heading,
@@ -54,7 +49,7 @@ class StaticBase:
             formatter_args=formatter_args))
 
     @staticmethod
-    def car_class_formatter(value, **kwargs):
+    def _car_class_formatter(value, **kwargs):
         text_height = kwargs['text_height']
         font = kwargs['font']
         charm_width = text_height + font.getsize(value[1])[0] + 2
@@ -76,12 +71,6 @@ class StaticBase:
             fill=kwargs['font_color'],
             font=kwargs['font'])
         return charm
-
-    def sort_data(self, call):
-        self._data = sorted(self._data, key=call)
-
-    def to_frame(self):
-        return PIL_to_npimage(self._make_material().convert('RGBA'))
 
     def _make_material(self):
         DisplayLine.reset()
@@ -335,72 +324,29 @@ class StaticBase:
         return material
 
     def _row_color(self, index):
-        return self._row_colors[index % len(self._row_colors)]
+        return self.row_colors[index % len(self.row_colors)]
 
-    @staticmethod
-    def _row_width(widths, margin, internal_margin):
-        return sum(widths) \
-               + 2 * margin \
-               + (len(widths) - 1) * internal_margin
+    def _sort_data(self, call):
+        self._data = sorted(self._data, key=call)
 
 
 class DisplayColumn:
     """
     Defines a single column in the display.
     """
-    _point_structure = list()
+    point_structure = list()
 
     def __init__(self, attribute, heading=None, lookup=None,
                  default=None, *, align='left', formatter=None,
                  formatter_args=None, colspan=1):
-        self._heading = heading
-        self._attribute = attribute
-        self._lookup = lookup
-        self._default = default
-        self._align = align
-        self._formatter = formatter
-        self._formatter_args = formatter_args
-        self._colspan = colspan
-
-    @property
-    def align(self):
-        return self._align
-
-    @property
-    def attribute(self):
-        return self._attribute
-
-    @property
-    def colspan(self):
-        return self._colspan
-
-    @property
-    def default(self):
-        return self._default
-
-    @property
-    def formatter(self):
-        return self._formatter
-
-    @property
-    def formatter_args(self):
-        return self._formatter_args
-
-    @property
-    def heading(self):
-        return self._heading
-
-    @property
-    def lookup(self):
-        return self._lookup
-
-    @property
-    def point_structure(self):
-        return self._point_structure
-
-    @point_structure.setter
-    def point_structure(self, value):
-        self._point_structure = value
+        self.heading = heading
+        self.attribute = attribute
+        self.lookup = lookup
+        self.default = default
+        self.align = align
+        self.formatter = formatter
+        self.formatter_args = formatter_args
+        self.colspan = colspan
 
 
 class DisplayLine:
@@ -413,7 +359,7 @@ class DisplayLine:
         self._line_data = list()
         self._col_spans = list()
         self._align = list()
-        self._heading_line = make_headings
+        self.heading_line = make_headings
 
         for column in columns:
             self._align.append(column.align)
@@ -451,13 +397,9 @@ class DisplayLine:
                 next(align),
                 next(col_spans))
 
-    @property
-    def heading_line(self):
-        return self._heading_line
-
     def column_widths(self, font, column_widths):
         for index, data in enumerate(self._line_data):
-            if self._heading_line and self._col_spans[index] > 1:
+            if self.heading_line and self._col_spans[index] > 1:
                 self._column_widths.append(0)
             elif isinstance(data, str):
                 try:
@@ -476,6 +418,4 @@ class DisplayLine:
 
     @classmethod
     def reset(cls):
-        cls._lookups = list()
-        cls._defaults = list()
         cls._column_widths = list()

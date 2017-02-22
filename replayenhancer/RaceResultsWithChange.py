@@ -34,11 +34,11 @@ class RaceResultsWithChange(RaceResults):
             font = ImageFont.load_default()
             font_color = (0, 0, 0)
 
-        self.add_column('position', 'Pos.', colspan=2)
+        self._add_column('position', 'Pos.', colspan=2)
         self._columns.pop(0)
         self._columns.insert(0, self._columns.pop())
 
-        self.add_column(
+        self._add_column(
             'position',
             '',
             formatter=self._make_charm,

@@ -6,8 +6,7 @@ from unittest.mock import MagicMock, PropertyMock, sentinel, patch
 
 import numpy
 
-from replayenhancer.RaceData import Driver, ClassificationEntry
-
+from replayenhancer.RaceData import ClassificationEntry
 from replayenhancer.SeriesStandingsWithChange import SeriesStandingsWithChange
 
 

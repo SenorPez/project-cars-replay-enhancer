@@ -43,7 +43,7 @@ class SeriesStandingsWithChange(SeriesStandings):
                           'points_lookup': points_lookup}
 
         self._columns.pop()
-        self.add_column(
+        self._add_column(
             'calc_points_data',
             'Points',
             formatter=self.calc_series_points,
@@ -51,7 +51,7 @@ class SeriesStandingsWithChange(SeriesStandings):
             align='center',
             colspan=2)
 
-        self.add_column(
+        self._add_column(
             'calc_points_data',
             '',
             formatter=self._make_charm,
