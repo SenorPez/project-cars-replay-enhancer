@@ -120,21 +120,3 @@ class SeriesStandingsWithChange(SeriesStandings):
                 outline=(0, 0, 0, 255))
 
         return charm
-
-    @staticmethod
-    def calc_rank(value, **kwargs):
-        driver_name, _, _ = value
-        ranks = dict()
-        last_points = None
-        last_rank = 0
-
-        for entry in sorted(
-                kwargs['points_lookup'].items(),
-                key=lambda x: x[1],
-                reverse=True):
-            if last_points != entry[1]:
-                last_points = entry[1]
-                last_rank += 1
-            ranks[entry[0]] = last_rank
-
-        return str(ranks[driver_name])
