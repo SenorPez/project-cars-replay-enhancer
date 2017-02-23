@@ -29,7 +29,6 @@ class GTStandings:
     def __init__(self, race_data, *, ups, **kwargs):
         self._race_data = race_data
         self._options = kwargs
-        self._flyout = None
 
         self._dropping_lines = set()
 
