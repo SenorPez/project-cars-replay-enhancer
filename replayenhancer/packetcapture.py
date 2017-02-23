@@ -13,7 +13,11 @@ import os
 import socket
 
 
-def main():
+def main(*, runonce=False):
+    """
+    Captures telemetry packets. CTRL+C to exit.
+    runonce exists only for unit testing. Don't ever actually use.
+    """
     # Create a new UDP socket.
     udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -36,6 +40,10 @@ def main():
             file.write(data)
             file.close()
             i += 1
+
+            if runonce:
+                i = 0
+                raise KeyboardInterrupt
 
     except KeyboardInterrupt:
         print("Closing listener on port {}".format(server_address[1]))

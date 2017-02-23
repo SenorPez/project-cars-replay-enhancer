@@ -14,7 +14,6 @@ class TestSeriesStandingsWithChange(unittest.TestCase):
     """
     Tests against the SeriesStandingsWithChange object.
     """
-
     def test_init_no_config(self):
         mock_classification_entry = MagicMock(spec=ClassificationEntry)
         type(mock_classification_entry).calc_points_data = PropertyMock(
