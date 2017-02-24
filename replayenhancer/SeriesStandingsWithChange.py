@@ -43,7 +43,7 @@ class SeriesStandingsWithChange(SeriesStandings):
                           'points_lookup': points_lookup}
 
         self._columns.pop()
-        self.add_column(
+        self._add_column(
             'calc_points_data',
             'Points',
             formatter=self.calc_series_points,
@@ -51,7 +51,7 @@ class SeriesStandingsWithChange(SeriesStandings):
             align='center',
             colspan=2)
 
-        self.add_column(
+        self._add_column(
             'calc_points_data',
             '',
             formatter=self._make_charm,
@@ -67,8 +67,10 @@ class SeriesStandingsWithChange(SeriesStandings):
         driver_name, _, _ = value
         old_points = kwargs['points_lookup'][driver_name]
         old_more_points = len([
-            points for points in kwargs['points_lookup'].values()
-            if points > old_points])
+            points for driver_name, points in kwargs['points_lookup'].items()
+            if points > old_points
+            and driver_name in [
+                entry.driver_name for entry in self._data]])
 
         #  How many people have more points than us?
         new_points = int(self.calc_series_points(value, **kwargs))
@@ -118,21 +120,3 @@ class SeriesStandingsWithChange(SeriesStandings):
                 outline=(0, 0, 0, 255))
 
         return charm
-
-    @staticmethod
-    def calc_rank(value, **kwargs):
-        driver_name, _, _ = value
-        ranks = dict()
-        last_points = None
-        last_rank = 0
-
-        for entry in sorted(
-                kwargs['points_lookup'].items(),
-                key=lambda x: x[1],
-                reverse=True):
-            if last_points != entry[1]:
-                last_points = entry[1]
-                last_rank += 1
-            ranks[entry[0]] = last_rank
-
-        return str(ranks[driver_name])

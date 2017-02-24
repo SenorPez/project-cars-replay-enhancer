@@ -29,11 +29,27 @@ class GTStandings:
     def __init__(self, race_data, *, ups, **kwargs):
         self._race_data = race_data
         self._options = kwargs
-        self._flyout = None
 
         self._dropping_lines = set()
 
         self._last_frame = None
+
+        #  Do we override the subject car?
+        try:
+            self._subject_name = {
+                name for name, data
+                in self._options['participant_config'].items()
+                if 'viewed' in data and data['viewed']}
+            if not len(self._subject_name):
+                self._subject_name = None
+        except KeyError:
+            self._subject_name = None
+
+        #  Are we showing the timer?
+        try:
+            self._show_timer = self._options['show_timer']
+        except KeyError:
+            self._show_timer = True
 
         #  If set, get the telemetry synchronization value.
         try:
@@ -51,6 +67,25 @@ class GTStandings:
                 self._font = ImageFont.load_default()
         except KeyError:
             self._font = ImageFont.load_default()
+
+        # If car and car class are set, use class.
+        try:
+            car_lookup = {
+                k: v['car']
+                for k, v in kwargs['participant_config'].items()
+                if v['car'] != ""}
+            if len(car_lookup) != 0 and len(kwargs['car_classes']):
+                self._car_class_lookup = {
+                    driver: car_class_data['color']
+                    for driver, car in car_lookup.items()
+                    for car_class, car_class_data
+                    in kwargs['car_classes'].items()
+                    if car in car_class_data['cars']
+                }
+            else:
+                self._car_class_lookup = None
+        except KeyError:
+            self._car_class_lookup = None
 
         #  If set, use external margins.
         try:
@@ -83,8 +118,8 @@ class GTStandings:
             self._leader_window_size = 16
 
         # Plus one to account for timer.
-        # TODO: Add setting to make timer optional.
-        self._leader_window_size += 1
+        if self._show_timer:
+            self._leader_window_size += 1
 
         # If set, use field window size.
         try:
@@ -105,11 +140,20 @@ class GTStandings:
             name_width \
             + self._row_height \
             + int(self._row_height - block_height)
+        if self._car_class_lookup is not None:
+            self._row_width += block_height + 2
 
-        material_height = \
-            self._row_height * (entries + 1) \
-            + (entries + 1) * 1 \
-            + self._margin
+        if self._show_timer:
+            material_height = \
+                self._row_height * (entries + 1) \
+                + (entries + 1) * 1 \
+                + self._margin
+        else:
+            material_height = \
+                self._row_height * entries \
+                + entries * 1 \
+                + self._margin \
+                + 1
 
         material_width = \
             self._margin \
@@ -126,36 +170,68 @@ class GTStandings:
             (0, 0, 0, 0))
 
         draw = ImageDraw.Draw(self._base_material)
-        draw.line(
-            [
-                (0, self._margin + self._row_height),
-                (
-                    self._margin + self._row_width - 1,
-                    self._margin + self._row_height)],
-            fill='white', width=1)
 
-        self._timer = Header(
-            self._race_data,
-            self._sync_racestart,
-            (self._row_width, self._row_height),
-            self._font,
-            ups=ups)
+        if self._show_timer:
+            draw.line(
+                [
+                    (0, self._margin + self._row_height),
+                    (
+                        self._margin + self._row_width - 1,
+                        self._margin + self._row_height)],
+                fill='white', width=1)
+
+            self._timer = Header(
+                self._race_data,
+                self._sync_racestart,
+                (self._row_width, self._row_height),
+                self._font,
+                ups=ups)
+        else:
+            draw.line(
+                [
+                    (0, self._margin),
+                    (
+                        self._margin + self._row_width - 1,
+                        self._margin)],
+                fill='white', width=1)
+
+            self._timer = None
 
         self._standings_lines = list()
-        for entry in sorted(self._race_data.classification, key=lambda x: x.position):
+        for entry in sorted(
+                self._race_data.classification,
+                key=lambda x: x.position):
+            try:
+                if entry.driver_name in self._subject_name:
+                    entry.viewed_driver = True
+                else:
+                    entry.viewed_driver = False
+            except TypeError:
+                pass
+
             try:
                 display_name = \
                     self._short_name_lookup[entry.driver_name]
             except (KeyError, TypeError):
                 display_name = None
             finally:
-                self._standings_lines.append(StandingLine(
-                    entry,
-                    (self._row_width, self._row_height),
-                    self._font,
-                    flyout_width=self._flyout_width,
-                    display_name=display_name,
-                    ups=ups))
+                if self._car_class_lookup is None:
+                    self._standings_lines.append(StandingLine(
+                        entry,
+                        (self._row_width, self._row_height),
+                        self._font,
+                        flyout_width=self._flyout_width,
+                        display_name=display_name,
+                        ups=ups))
+                else:
+                    self._standings_lines.append(StandingLine(
+                        entry,
+                        (self._row_width, self._row_height),
+                        self._font,
+                        flyout_width=self._flyout_width,
+                        display_name=display_name,
+                        class_color=self._car_class_lookup[entry.driver_name],
+                        ups=ups))
 
     def make_frame(self, time):
         while self._race_data.elapsed_time < time \
@@ -185,9 +261,11 @@ class GTStandings:
 
     def _make_material(self):
         material = self._base_material.copy()
-        material.paste(
-            self._timer.to_frame(),
-            (self._margin, self._margin))
+
+        if self._timer is not None:
+            material.paste(
+                self._timer.to_frame(),
+                (self._margin, self._margin))
 
         standings_lines = list()
         classification = self._race_data.classification
@@ -201,10 +279,18 @@ class GTStandings:
                 key=lambda x: (x.position, x in self._dropping_lines),
                 reverse=True):
             x_position = self._margin
-            y_position = \
-                self._margin \
-                + self._row_height * line.position \
-                + line.position
+            if self._timer is not None:
+                y_position = \
+                    self._margin \
+                    + self._row_height * line.position \
+                    + line.position
+            else:
+                position = line.position - 1
+                y_position = \
+                    self._margin \
+                    + self._row_height * position \
+                    + position \
+                    + 1
 
             x_offset = 0
             y_offset = 0
@@ -260,7 +346,7 @@ class GTStandings:
                     line.flyout.update(
                         self._race_data.driver_world_position(
                             entry.driver.index),
-                        self._race_data._next_packet.current_time)
+                        self._race_data.current_time)
                     if self._race_data.track.at_pit_exit(
                             self._race_data.driver_world_position(
                                 entry.driver.index)) \
@@ -281,7 +367,20 @@ class GTStandings:
                         margin=flyout_margin)
 
                 if entry.laps_complete != line.laps_complete \
-                        and self._race_data.race_state == 2 \
+                        and (
+                            (
+                                self._race_data.laps_in_event
+                                and entry.laps_complete
+                                >= self._race_data.laps_in_event
+                            ) or (
+                                not self._race_data.laps_in_event
+                                and self._race_data.event_time_remaining
+                                <= 0)) \
+                        and line.flyout is None:
+                    line.flyout = FinishFlyout(
+                        (self._flyout_width, self._row_height),
+                        margin=flyout_margin)
+                elif entry.laps_complete != line.laps_complete \
                         and line.flyout is None:
                     if entry.position == 1:
                         line.flyout = LapTimeFlyout(
@@ -331,11 +430,15 @@ class GTStandings:
             leader_window_bottom = \
                 self._row_height * self._leader_window_size \
                 + 1 * self._leader_window_size + self._margin
+            if self._timer is None:
+                leader_window_bottom += 1
             leader_window = material.crop(
                 (0, 0, material_width, leader_window_bottom))
         else:
             leader_window_bottom = 0
 
+        field_window_top = None
+        field_window_bottom = None
         if self._field_window_size > 0:
             lines_below = self._field_window_size // 2
             if self._field_window_size % 2:
@@ -346,7 +449,7 @@ class GTStandings:
             # Are we at the bottom?
             if material_height \
                     - (self._row_height * (lines_below + 1)
-                           + 1 * (lines_below + 1)) < viewed_y_position:
+                        + 1 * (lines_below + 1)) < viewed_y_position:
                 field_window_top = \
                     material_height \
                     - (
@@ -365,6 +468,8 @@ class GTStandings:
                         self._leader_window_size + self._field_window_size) \
                     + 1 * (self._leader_window_size + self._field_window_size) \
                     + self._margin
+                if self._timer is None:
+                    field_window_bottom += 1
                 draw_middle_line = False
 
             # Nope, Chuck Testa.
@@ -403,7 +508,7 @@ class GTStandings:
 
         draw = ImageDraw.Draw(combined_material)
 
-        if draw_middle_line:
+        if draw_middle_line and field_window_top > leader_window_bottom:
             draw.line(
                 [
                     (0, leader_window.size[1] - 1),
@@ -467,15 +572,50 @@ class Header:
         x_position = int((row_height - block_height) / 2)
         y_position = int((row_height - block_height) / 2)
 
-        draw.text(
-            (x_position, y_position),
-            "Lap {current}/{total}".format(
-                current=self._race_data.current_lap,
-                total=self._race_data.total_laps),
-            fill=self.background_text_color,
-            font=self._font)
+        if self._race_data.laps_in_event:
+            draw.text(
+                (x_position, y_position),
+                "Lap {current}/{total}".format(
+                    current=self._race_data.current_lap,
+                    total=self._race_data.laps_in_event),
+                fill=self.background_text_color,
+                font=self._font)
+        else:
+            time = min(
+                max(0, self._race_data.event_time_remaining),
+                self._race_data.total_time)
+            lap = "Lap {}".format(self._race_data.current_lap)
+            draw.text(
+                (x_position, y_position),
+                self.format_time(time),
+                fill=self.background_text_color,
+                font=self._font)
+            lap_width, _ = self._font.getsize(lap)
+            draw.text(
+                (row_width - x_position - lap_width, y_position),
+                lap,
+                fill=self.background_text_color,
+                font=self._font)
 
         return material
+
+    @staticmethod
+    def format_time(seconds):
+        """
+        Converts seconds into seconds, minutes:seconds, or
+        hours:minutes:seconds as appropriate.
+        """
+        minutes, seconds = divmod(float(seconds), 60)
+        hours, minutes = divmod(minutes, 60)
+
+        return_value = (int(hours), int(minutes), int(seconds))
+
+        if hours:
+            return "{0:d}:{1:0>2d}:{2:0>2d}".format(*return_value)
+        elif minutes:
+            return "{1:d}:{2:0>2d}".format(*return_value)
+        else:
+            return "0:{2:0>2d}".format(*return_value)
 
 
 class StandingLine:
@@ -495,9 +635,10 @@ class StandingLine:
     _ups = 30
 
     def __init__(self, entry, size, font, *,
-                 flyout_width=0, display_name=None, ups=30):
+                 flyout_width=0, display_name=None, class_color=None, ups=30):
         self._ups = ups
         self._display_name = display_name
+        self._class_color = class_color
         self._driver = copy(entry.driver)
         self._laps_complete = entry.driver.laps_complete
         self._position = entry.position
@@ -626,6 +767,20 @@ class StandingLine:
         y_position = int((row_height - block_height) / 2)
 
         draw = ImageDraw.Draw(name_material)
+        if self._class_color is not None:
+
+            draw.polygon(
+                [
+                    (0 + x_position, block_height + y_position),
+                    (block_height // 3 + x_position, 0 + y_position),
+                    (block_height + x_position, 0 + y_position),
+                    (
+                        block_height - block_height // 3 + x_position,
+                        block_height + y_position)],
+                fill=tuple(self._class_color),
+                outline=(0, 0, 0, 255))
+            x_position += block_height + 2
+
         draw.text(
             (x_position, y_position),
             str(self.display_name),
@@ -771,11 +926,72 @@ class Flyout:
         self.ups = ups
         self.persist = False
 
+    def to_frame(self):
+        return self._make_material()
+
     @abc.abstractmethod
     def _make_material(self):
         """
         Create flyout.
         """
+
+
+class FinishFlyout(Flyout):
+    """
+    Flyout that shows a checkered flag when a car finishes.
+    """
+
+    def __init__(self, size=None, margin=20, ups=30):
+        super().__init__(size=size, margin=margin, ups=ups)
+
+        self.persist = True
+        self.animations.append(Animation(
+            duration=int(self.ups/2),
+            position_from=(-self._size[0], 0)))
+
+    def _make_material(self):
+        material = Image.new('RGBA', self._size, (0, 0, 0, 0))
+
+        top_row_height = self._size[1] // 2
+        bottom_row_height = self._size[1] - top_row_height
+
+        draw = ImageDraw.Draw(material)
+
+        x_position = self._size[0] - top_row_height
+        y_position = 0
+
+        while x_position > -top_row_height:
+            draw.rectangle(
+                (
+                    x_position,
+                    y_position,
+                    x_position + top_row_height,
+                    y_position + top_row_height),
+                fill=(255, 255, 255, 200))
+            draw.rectangle(
+                (
+                    x_position,
+                    y_position + top_row_height,
+                    x_position + top_row_height,
+                    y_position + top_row_height + bottom_row_height),
+                fill=(0, 0, 0, 200))
+            draw.rectangle(
+                (
+                    x_position - top_row_height,
+                    y_position,
+                    x_position,
+                    y_position + top_row_height),
+                fill=(0, 0, 0, 200))
+            draw.rectangle(
+                (
+                    x_position - top_row_height,
+                    y_position + top_row_height,
+                    x_position,
+                    y_position + top_row_height + bottom_row_height),
+                fill=(255, 255, 255, 200))
+            x_position -= 2 * top_row_height
+
+        return material
 
 
 class TimeFlyout(Flyout):
@@ -861,9 +1077,6 @@ class LapTimeFlyout(TimeFlyout):
 
         self._font = font
 
-    def to_frame(self):
-        return self._make_material()
-
     def _make_material(self):
         material = Image.new('RGBA', self._size, self.color)
 
@@ -929,9 +1142,6 @@ class GapTimeFlyout(TimeFlyout):
         else:
             self._gap = "+{} laps".format(lap_difference)
 
-    def to_frame(self):
-        return self._make_material()
-
     def _make_material(self):
         material = Image.new('RGBA', self._size, self.color)
 
@@ -940,8 +1150,8 @@ class GapTimeFlyout(TimeFlyout):
 
         draw = ImageDraw.Draw(material)
 
-        x_position = self._size[0]-self._margin-block_width
-        y_position = int((self._size[1]-block_height)/2)
+        x_position = self._size[0] - self._margin-block_width
+        y_position = int((self._size[1] - block_height) / 2)
 
         draw.text(
             (x_position, y_position),
@@ -1003,9 +1213,6 @@ class PitStopFlyout(TimeFlyout):
                 duration=int(self.ups / 2),
                 position_from=(0, 0),
                 position_to=(-self._size[0], 0)))
-
-    def to_frame(self):
-        return self._make_material()
 
     def update(self, location, time=None):
         """Updates flyout data with current position.

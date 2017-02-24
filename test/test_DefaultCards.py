@@ -210,7 +210,7 @@ class TestSeriesStandings(unittest.TestCase):
     Unit Tests for Series Standings card.
     """
 
-    @patch('replayenhancer.StaticBase.StaticBase.sort_data', autospec=True)
+    @patch('replayenhancer.StaticBase.StaticBase._sort_data', autospec=True)
     @patch('replayenhancer.RaceData.ClassificationEntry', autospec=True)
     def test_init_no_config(self, mock_classification_entry, mock_sort_data):
         mock_sort_data.return_value = ('Kobernulf Monnur', 1, 42.0)
@@ -219,7 +219,7 @@ class TestSeriesStandings(unittest.TestCase):
         expected_result = SeriesStandings
         self.assertIsInstance(instance, expected_result)
 
-    @patch('replayenhancer.StaticBase.StaticBase.sort_data', autospec=True)
+    @patch('replayenhancer.StaticBase.StaticBase._sort_data', autospec=True)
     @patch('replayenhancer.RaceData.ClassificationEntry', autospec=True)
     def test_init_config(self, mock_classification_entry, mock_sort_data):
         mock_sort_data.return_value = ('Kobernulf Monnur', 1, 42.0)
@@ -240,7 +240,7 @@ class TestSeriesStandings(unittest.TestCase):
         expected_result = SeriesStandings
         self.assertIsInstance(instance, expected_result)
 
-    @patch('replayenhancer.StaticBase.StaticBase.sort_data', autospec=True)
+    @patch('replayenhancer.StaticBase.StaticBase._sort_data', autospec=True)
     @patch('replayenhancer.RaceData.ClassificationEntry', autospec=True)
     def test_method_calc_series_points(self, mock_classification_entry, mock_sort_data):
         driver_name = 'Kobernulf Monnur'
@@ -266,7 +266,7 @@ class TestSeriesStandings(unittest.TestCase):
                 **configuration),
             expected_result)
 
-    @patch('replayenhancer.StaticBase.StaticBase.sort_data', autospec=True)
+    @patch('replayenhancer.StaticBase.StaticBase._sort_data', autospec=True)
     @patch('replayenhancer.RaceData.ClassificationEntry', autospec=True)
     def test_method_calc_series_points_no_entry(self, mock_classification_entry, mock_sort_data):
         driver_name = 'Kobernulf Monnur'
@@ -289,7 +289,7 @@ class TestSeriesStandings(unittest.TestCase):
                 **configuration),
             expected_result)
 
-    @patch('replayenhancer.StaticBase.StaticBase.sort_data', autospec=True)
+    @patch('replayenhancer.StaticBase.StaticBase._sort_data', autospec=True)
     @patch('replayenhancer.RaceData.ClassificationEntry', autospec=True)
     def test_method_calc_series_rank_first(self, mock_classification_entry, mock_sort_data):
         driver_name = 'Kobernulf Monnur'
@@ -319,7 +319,7 @@ class TestSeriesStandings(unittest.TestCase):
                 **configuration),
             expected_result)
 
-    @patch('replayenhancer.StaticBase.StaticBase.sort_data', autospec=True)
+    @patch('replayenhancer.StaticBase.StaticBase._sort_data', autospec=True)
     @patch('replayenhancer.RaceData.ClassificationEntry')
     def test_method_calc_series_rank_tie_second(self, mock_classification_entry, mock_sort_data):
         mock_sort_data.return_value = [
@@ -364,9 +364,9 @@ class TestSeriesStandings(unittest.TestCase):
             instance.calc_series_rank(
                 ('Third Place', 3, 42.0),
                 **configuration),
-            expected_result)\
+            expected_result)
 
-    @patch('replayenhancer.StaticBase.StaticBase.sort_data', autospec=True)
+    @patch('replayenhancer.StaticBase.StaticBase._sort_data', autospec=True)
     @patch('replayenhancer.RaceData.ClassificationEntry')
     def test_method_calc_series_rank_third(self, mock_classification_entry, mock_sort_data):
         mock_sort_data.return_value = [
@@ -419,7 +419,7 @@ class TestSeriesChampion(unittest.TestCase):
     Unit tests for Series Champion card.
     """
 
-    @patch('replayenhancer.StaticBase.StaticBase.sort_data', autospec=True)
+    @patch('replayenhancer.StaticBase.StaticBase._sort_data', autospec=True)
     @patch('replayenhancer.RaceData.ClassificationEntry', autospec=True)
     def test_init_no_config(self, mock_classification_entry, mock_sort_data):
         mock_sort_data.return_value = ('Kobernulf Monnur', 1, 42.0)
@@ -428,7 +428,7 @@ class TestSeriesChampion(unittest.TestCase):
         expected_result = SeriesChampion
         self.assertIsInstance(instance, expected_result)
 
-    @patch('replayenhancer.StaticBase.StaticBase.sort_data', autospec=True)
+    @patch('replayenhancer.StaticBase.StaticBase._sort_data', autospec=True)
     @patch('replayenhancer.RaceData.ClassificationEntry', autospec=True)
     def test_init_config(self, mock_classification_entry, mock_sort_data):
         mock_sort_data.return_value = ('Kobernulf Monnur', 1,  42.0)
@@ -449,7 +449,7 @@ class TestSeriesChampion(unittest.TestCase):
         expected_result = SeriesChampion
         self.assertIsInstance(instance, expected_result)
 
-    @patch('replayenhancer.StaticBase.StaticBase.sort_data', autospec=True)
+    @patch('replayenhancer.StaticBase.StaticBase._sort_data', autospec=True)
     @patch('replayenhancer.RaceData.ClassificationEntry', autospec=True)
     def test_method_to_frame_no_header(self, mock_classification_entry, mock_sort_data):
         first_place = mock_classification_entry
@@ -486,7 +486,7 @@ class TestSeriesChampion(unittest.TestCase):
         instance = SeriesChampion([first_place, second_place, third_place])
         self.assertIsInstance(instance.to_frame(), expected_value)
 
-    @patch('replayenhancer.StaticBase.StaticBase.sort_data', autospec=True)
+    @patch('replayenhancer.StaticBase.StaticBase._sort_data', autospec=True)
     @patch('replayenhancer.RaceData.ClassificationEntry', autospec=True)
     def test_method_to_frame_blank_header(self, mock_classification_entry, mock_sort_data):
         first_place = mock_classification_entry

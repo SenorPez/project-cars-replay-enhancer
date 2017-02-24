@@ -8,9 +8,199 @@ from unittest.mock import MagicMock, patch
 from replayenhancer.GTStandings import Animation, GTStandings, PitStopFlyout, StandingLine
 
 
-class TestPitStopFlyout(unittest.TestCase):
-    """Unit tests for PitStopFlyout object.
+class TestGTStandings(unittest.TestCase):
+    """
+    Unit tests for GTStandings object.
+    """
+    def test_init(self):
+        mock_driver = MagicMock(spec='replayenhancer.RaceData.Driver', autospec=True)
+        mock_driver.laps_complete = 10
 
+        mock_classification = MagicMock(spec='replayenhancer.RaceData.ClassificationEntry', autospec=True)
+        mock_classification.driver = mock_driver
+        mock_classification.position = 1
+        mock_classification.driver_name = 'Kobernulf Monnur'
+        mock_classification.viewed_driver = True
+
+        mock_data = MagicMock(spec='replayenhancer.RaceData.RaceData', autospec=True)
+        mock_data.classification = [mock_classification]
+        mock_data.drivers = {'Kobernulf Monnur': mock_driver}
+
+        instance = GTStandings(mock_data, ups=30)
+        expected_result = GTStandings
+        self.assertIsInstance(instance, expected_result)
+
+        # Test no configuration defaults.
+        self.assertIsNone(instance._subject_name)
+        self.assertTrue(instance._show_timer)
+        self.assertIsNone(instance._car_class_lookup)
+
+    def test_init_override_subject(self):
+        mock_driver = MagicMock(spec='replayenhancer.RaceData.Driver', autospec=True)
+        mock_driver.laps_complete = 10
+
+        mock_classification = MagicMock(spec='replayenhancer.RaceData.ClassificationEntry', autospec=True)
+        mock_classification.driver = mock_driver
+        mock_classification.driver_name = 'Kobernulf Monnur'
+        mock_classification.position = 1
+
+        mock_data = MagicMock(spec='replayenhancer.RaceData.RaceData', autospec=True)
+        mock_data.classification = [mock_classification]
+        mock_data.drivers = {'Kobernulf Monnur': mock_driver}
+        configuration = {
+            'participant_config': {
+                'Kobernulf Monnur': {
+                    'viewed': True
+                }
+            }
+        }
+
+        instance = GTStandings(mock_data, ups=30, **configuration)
+        expected_result = GTStandings
+        self.assertIsInstance(instance, expected_result)
+
+        expected_result = {'Kobernulf Monnur'}
+        self.assertSetEqual(instance._subject_name, expected_result)
+
+    def test_init_false_override_subject(self):
+        mock_driver = MagicMock(spec='replayenhancer.RaceData.Driver', autospec=True)
+        mock_driver.laps_complete = 10
+
+        mock_classification = MagicMock(spec='replayenhancer.RaceData.ClassificationEntry', autospec=True)
+        mock_classification.driver = mock_driver
+        mock_classification.driver_name = 'Kobernulf Monnur'
+        mock_classification.position = 1
+        mock_classification.viewed_driver = True
+
+        mock_data = MagicMock(spec='replayenhancer.RaceData.RaceData', autospec=True)
+        mock_data.classification = [mock_classification]
+        mock_data.drivers = {'Kobernulf Monnur': mock_driver}
+        configuration = {
+            'participant_config': {
+                'Kobernulf Monnur': {
+                    'viewed': False
+                }
+            }
+        }
+
+        instance = GTStandings(mock_data, ups=30, **configuration)
+        expected_result = GTStandings
+        self.assertIsInstance(instance, expected_result)
+
+        self.assertIsNone(instance._subject_name)
+
+    def test_init_true_show_timer(self):
+        mock_driver = MagicMock(spec='replayenhancer.RaceData.Driver', autospec=True)
+        mock_driver.laps_complete = 10
+
+        mock_classification = MagicMock(spec='replayenhancer.RaceData.ClassificationEntry', autospec=True)
+        mock_classification.driver = mock_driver
+        mock_classification.driver_name = 'Kobernulf Monnur'
+        mock_classification.position = 1
+        mock_classification.viewed_driver = True
+
+        mock_data = MagicMock(spec='replayenhancer.RaceData.RaceData', autospec=True)
+        mock_data.classification = [mock_classification]
+        mock_data.drivers = {'Kobernulf Monnur': mock_driver}
+        configuration = {
+            'show_timer': True
+        }
+
+        instance = GTStandings(mock_data, ups=30, **configuration)
+        expected_result = GTStandings
+        self.assertIsInstance(instance, expected_result)
+
+        self.assertTrue(instance._show_timer)
+
+    def test_init_false_show_timer(self):
+        mock_driver = MagicMock(spec='replayenhancer.RaceData.Driver', autospec=True)
+        mock_driver.laps_complete = 10
+
+        mock_classification = MagicMock(spec='replayenhancer.RaceData.ClassificationEntry', autospec=True)
+        mock_classification.driver = mock_driver
+        mock_classification.driver_name = 'Kobernulf Monnur'
+        mock_classification.position = 1
+        mock_classification.viewed_driver = True
+
+        mock_data = MagicMock(spec='replayenhancer.RaceData.RaceData', autospec=True)
+        mock_data.classification = [mock_classification]
+        mock_data.drivers = {'Kobernulf Monnur': mock_driver}
+        configuration = {
+            'show_timer': False
+        }
+
+        instance = GTStandings(mock_data, ups=30, **configuration)
+        expected_result = GTStandings
+        self.assertIsInstance(instance, expected_result)
+
+        self.assertFalse(instance._show_timer)
+
+    def test_init_no_car_classes(self):
+        mock_driver = MagicMock(spec='replayenhancer.RaceData.Driver', autospec=True)
+        mock_driver.laps_complete = 10
+
+        mock_classification = MagicMock(spec='replayenhancer.RaceData.ClassificationEntry', autospec=True)
+        mock_classification.driver = mock_driver
+        mock_classification.driver_name = 'Kobernulf Monnur'
+        mock_classification.position = 1
+        mock_classification.viewed_driver = True
+
+        mock_data = MagicMock(spec='replayenhancer.RaceData.RaceData', autospec=True)
+        mock_data.classification = [mock_classification]
+        mock_data.drivers = {'Kobernulf Monnur': mock_driver}
+        configuration = {
+            'car_classes': {},
+            'participant_config': {
+                'Kobernulf Monnur': {
+                    'car': '125cc Shifter Kart'
+                }
+            }
+        }
+
+        instance = GTStandings(mock_data, ups=30, **configuration)
+        expected_result = GTStandings
+        self.assertIsInstance(instance, expected_result)
+
+        self.assertIsNone(instance._car_class_lookup)
+
+    def test_init_car_classes(self):
+        mock_driver = MagicMock(spec='replayenhancer.RaceData.Driver', autospec=True)
+        mock_driver.laps_complete = 10
+
+        mock_classification = MagicMock(spec='replayenhancer.RaceData.ClassificationEntry', autospec=True)
+        mock_classification.driver = mock_driver
+        mock_classification.driver_name = 'Kobernulf Monnur'
+        mock_classification.position = 1
+        mock_classification.viewed_driver = True
+
+        mock_data = MagicMock(spec='replayenhancer.RaceData.RaceData', autospec=True)
+        mock_data.classification = [mock_classification]
+        mock_data.drivers = {'Kobernulf Monnur': mock_driver}
+        configuration = {
+            'car_classes': {
+                'Kart1': {
+                    'color': [255, 0, 0],
+                    'cars': ['125cc Shifter Kart']
+                }
+            },
+            'participant_config': {
+                'Kobernulf Monnur': {
+                    'car': '125cc Shifter Kart'
+                }
+            }
+        }
+
+        instance = GTStandings(mock_data, ups=30, **configuration)
+        expected_result = GTStandings
+        self.assertIsInstance(instance, expected_result)
+
+        expected_result = {'Kobernulf Monnur': [255, 0, 0]}
+        self.assertDictEqual(instance._car_class_lookup, expected_result)
+
+
+class TestPitStopFlyout(unittest.TestCase):
+    """
+    Unit tests for PitStopFlyout object.
     """
     def test_init(self):
         race_data = MagicMock(spec='replayenhancer.RaceData.RaceData', autospec=True)
@@ -209,51 +399,51 @@ class TestPitStopFlyout(unittest.TestCase):
         instance = PitStopFlyout(race_data, driver, font, size, location)
         instance.persist = False
         self.assertFalse(instance.persist)
-
-
-
-
-@unittest.skip("Need to rewrite based on new GTStandings module.")
-class TestGTStandings(unittest.TestCase):
-    """
-    Unit tests for a GT Standings object.
-    """
-
-    def test_init(self):
-        instance = GTStandings()
-        expected_value = GTStandings
-        self.assertIsInstance(instance, expected_value)
-
-    def test_property_default_clip_t(self):
-        instance = GTStandings()
-        expected_value = 0
-        self.assertEqual(instance.clip_t, expected_value)
-
-    def test_property_clip_t(self):
-        instance = GTStandings(11.0)
-        expected_value = 11.0
-        self.assertEqual(instance.clip_t, expected_value)
-
-    def test_property_default_ups(self):
-        instance = GTStandings()
-        expected_value = 30
-        self.assertEqual(instance.ups, expected_value)
-
-    def test_property_ups(self):
-        instance = GTStandings(ups=10)
-        expected_value = 10
-        self.assertEqual(instance.ups, expected_value)
-
-    # def test_method_to_frame(self):
-    #     instance = GTStandings()
-    #     expected_value = PIL_to_npimage(
-    #         Image.new('RGBA', (100, 100)).convert('RGB'))
-    #     assert_array_equal(instance.to_frame(), expected_value)
-
-    def test_method_update(self):
-        instance = GTStandings()
-        expected_value = None
-        self.assertEqual(instance.update(), expected_value)
+#
+#
+#
+#
+# @unittest.skip("Need to rewrite based on new GTStandings module.")
+# class TestGTStandings(unittest.TestCase):
+#     """
+#     Unit tests for a GT Standings object.
+#     """
+#
+#     def test_init(self):
+#         instance = GTStandings()
+#         expected_value = GTStandings
+#         self.assertIsInstance(instance, expected_value)
+#
+#     def test_property_default_clip_t(self):
+#         instance = GTStandings()
+#         expected_value = 0
+#         self.assertEqual(instance.clip_t, expected_value)
+#
+#     def test_property_clip_t(self):
+#         instance = GTStandings(11.0)
+#         expected_value = 11.0
+#         self.assertEqual(instance.clip_t, expected_value)
+#
+#     def test_property_default_ups(self):
+#         instance = GTStandings()
+#         expected_value = 30
+#         self.assertEqual(instance.ups, expected_value)
+#
+#     def test_property_ups(self):
+#         instance = GTStandings(ups=10)
+#         expected_value = 10
+#         self.assertEqual(instance.ups, expected_value)
+#
+#     # def test_method_to_frame(self):
+#     #     instance = GTStandings()
+#     #     expected_value = PIL_to_npimage(
+#     #         Image.new('RGBA', (100, 100)).convert('RGB'))
+#     #     assert_array_equal(instance.to_frame(), expected_value)
+#
+#     def test_method_update(self):
+#         instance = GTStandings()
+#         expected_value = None
+#         self.assertEqual(instance.update(), expected_value)
 
 @unittest.skip("Need to rewrite based on new GTStandings module.")
 class TestStandingLine(unittest.TestCase):

@@ -7,20 +7,15 @@ import os.path
 from glob import glob
 from hashlib import md5
 from itertools import tee
+from math import ceil
 
 from natsort import natsorted
 from tqdm import tqdm
 
 from replayenhancer.AdditionalParticipantPacket \
-    import AdditionalParticipantPacket \
-    as AdditionalParticipantPacket
-from replayenhancer.REParticipantPacket \
-    import REParticipantPacket \
-    as ParticipantPacket
-from replayenhancer.RETelemetryDataPacket \
-    import RETelemetryDataPacket \
-    as TelemetryDataPacket
-from replayenhancer.StartingGridEntry import StartingGridEntry
+    import AdditionalParticipantPacket
+from replayenhancer.ParticipantPacket import ParticipantPacket
+from replayenhancer.TelemetryDataPacket import TelemetryDataPacket
 from replayenhancer.Track import Track
 
 
@@ -49,6 +44,19 @@ class RaceData:
             descriptor_filename=descriptor_filename)
 
         self.get_data()
+
+        if self.laps_in_event == 0:
+            time_data = TelemetryData(
+                telemetry_directory,
+                descriptor_filename=descriptor_filename)
+            packet = next(time_data)
+            while (packet.packet_type == 0 and packet.race_state == 1) \
+                    or packet.packet_type != 0:
+                packet = next(time_data)
+
+            self.total_time = ceil(packet.event_time_remaining)
+        else:
+            self.total_time = None
 
     @property
     def all_driver_classification(self):
@@ -110,7 +118,20 @@ class RaceData:
             [
                 participant.current_lap for participant
                 in self._next_packet.participant_info])
-        return min(leader_lap, self.total_laps)
+        return leader_lap if self.laps_in_event == 0 \
+            else min(leader_lap, self.laps_in_event)
+
+    @property
+    def current_time(self):
+        return self._next_packet.current_time
+
+    @property
+    def event_time_remaining(self):
+        return self._next_packet.event_time_remaining
+
+    @property
+    def laps_in_event(self):
+        return self._next_packet.laps_in_event
 
     @property
     def race_state(self):
@@ -164,10 +185,6 @@ class RaceData:
 
             return self._starting_grid
 
-    @property
-    def total_laps(self):
-        return self._next_packet.laps_in_event
-
     def driver_world_position(self, index):
         return self._next_packet.participant_info[index].world_position
 
@@ -189,8 +206,10 @@ class RaceData:
 
             if (self._next_packet is not None
                     and self._last_packet is None) \
-                    or self._next_packet.num_participants \
-                    != self._last_packet.num_participants:
+                    or (
+                        self._next_packet.num_participants
+                        != self._last_packet.num_participants
+                        and self._next_packet.num_participants != -1):
                 data, restore = tee(self.telemetry_data, 2)
 
                 current_drivers = self._get_drivers(
@@ -284,7 +303,8 @@ class RaceData:
             driver = next(
                 driver for driver in self.drivers.values()
                 if driver.index == self._next_packet.viewed_participant_index)
-            self.elapsed_time = sum(driver.lap_times) + self._next_packet.current_time
+            self.elapsed_time = \
+                sum(driver.lap_times) + self._next_packet.current_time
 
     @staticmethod
     def _get_drivers(telemetry_data, count):
@@ -527,6 +547,16 @@ class SectorTime:
         self.invalid = False if invalid == 0 else True
 
 
+class StartingGridEntry:
+    """
+    Represents an entry on the starting grid.
+    """
+    def __init__(self, position, driver_index, driver_name):
+        self.position = position
+        self.driver_index = driver_index
+        self.driver_name = driver_name
+
+
 class TelemetryData:
     """
     Reads a directory of telemetry data and returns it as requested.
@@ -574,6 +604,7 @@ class TelemetryData:
             total=self.packet_count,
             unit='packets')
 
+        old_packet = None
         try:
             while True:
                 while True:

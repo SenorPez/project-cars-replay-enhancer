@@ -27,7 +27,7 @@ class Track:
     """
     def __init__(self, track_length):
         try:
-            with open (os.path.join(
+            with open(os.path.join(
                     os.path.dirname(__file__),
                     'lib/track_data.json')) as json_file:
                 json_data = load(json_file)

@@ -15,8 +15,9 @@ class RaceResultsWithChange(RaceResults):
 
         position_lookup = dict()
         for entry in data:
-            starting_position = \
-                starting_grid[entry.driver.index].position
+            starting_position = next(
+                grid.position for grid in starting_grid
+                if grid.driver_name == entry.driver_name)
             finish_position = entry.position
 
             position_lookup[finish_position] = starting_position
@@ -33,11 +34,11 @@ class RaceResultsWithChange(RaceResults):
             font = ImageFont.load_default()
             font_color = (0, 0, 0)
 
-        self.add_column('position', 'Pos.', colspan=2)
+        self._add_column('position', 'Pos.', colspan=2)
         self._columns.pop(0)
         self._columns.insert(0, self._columns.pop())
 
-        self.add_column(
+        self._add_column(
             'position',
             '',
             formatter=self._make_charm,
@@ -49,16 +50,9 @@ class RaceResultsWithChange(RaceResults):
         self._columns.insert(1, self._columns.pop())
 
     @staticmethod
-    def _position_change(value, **kwargs):
-        return "{:+d}".format(kwargs['position_lookup'][value] - value)
-
-    @staticmethod
     def _make_charm(value, **kwargs):
         text_height = kwargs['text_height']
-        try:
-            change = kwargs['position_lookup'][value] - value
-        except KeyError:
-            change = 0
+        change = kwargs['position_lookup'][value] - value
 
         font = kwargs['font']
         charm_width = \

@@ -5,6 +5,7 @@ import argparse
 import json
 import os
 import sys
+from copy import copy
 
 import moviepy.editor as mpy
 from PIL import Image, ImageDraw
@@ -96,7 +97,7 @@ def make_video(config_file, *, framerate=None, sync=False):
             """
             timecode_image = Image.new('RGB', (100, 40))
             draw = ImageDraw.Draw(timecode_image)
-            draw.text((10, 10), "%.02f"%(time))
+            draw.text((10, 10), "%.02f" % time)
             return PIL_to_npimage(timecode_image)
 
         timecode_clip = mpy.VideoClip(
@@ -157,45 +158,176 @@ def make_video(config_file, *, framerate=None, sync=False):
 
     end_titles = list()
 
-    pcre_results = RaceResultsWithChange(
-        sorted(result_data.all_driver_classification, key=lambda x: x.position),
-        result_data.starting_grid,
-        size=source_video.size,
-        **configuration)
-    Image.fromarray(pcre_results.to_frame()).save(
-        output_prefix + '_results.png')
-    results = mpy.ImageClip(pcre_results.to_frame()).set_duration(20)
+    if 'car_classes' in configuration and len(configuration['car_classes']):
+        no_points_config = copy(configuration)
+        try:
+            del no_points_config['point_structure']
+        except KeyError:
+            pass
 
-    end_titles.append(results)
+        pcre_results = RaceResultsWithChange(
+            sorted(result_data.all_driver_classification,
+                   key=lambda x: x.position),
+            result_data.starting_grid,
+            size=source_video.size,
+            **no_points_config)
+        Image.fromarray(pcre_results.to_frame()).save(
+            output_prefix + '_results.png')
+        results = mpy.ImageClip(pcre_results.to_frame()).set_duration(20)
+
+        end_titles.append(results)
+
+        for car_class_filter in [
+                car_class for car_class in configuration['car_classes']
+                if car_class != ""]:
+            class_cars = [
+                car for car_class, car_class_data
+                in configuration['car_classes'].items()
+                if car_class == car_class_filter
+                for car in car_class_data['cars']]
+            class_drivers = [
+                driver for driver, data
+                in configuration['participant_config'].items()
+                if data['car'] in class_cars]
+
+            class_classification = [
+                classification for classification
+                in result_data.all_driver_classification
+                if classification.driver_name in class_drivers]
+            for position, classification in enumerate(sorted(
+                    class_classification,
+                    key=lambda x: x.position), 1):
+                classification.position = position
+
+            class_starting_grid = [
+                grid for grid
+                in result_data.starting_grid
+                if grid.driver_name in class_drivers]
+            for position, grid in enumerate(sorted(
+                    class_starting_grid,
+                    key=lambda x: x.position), 1):
+                grid.position = position
+
+            pcre_results = RaceResultsWithChange(
+                sorted(class_classification, key=lambda x: x.position),
+                class_starting_grid,
+                size=source_video.size,
+                **configuration)
+            Image.fromarray(pcre_results.to_frame()).save(
+                output_prefix + '_' + car_class_filter + '_results.png')
+            results = mpy.ImageClip(pcre_results.to_frame()).set_duration(20)
+            end_titles.append(results)
+    else:
+        pcre_results = RaceResultsWithChange(
+            sorted(result_data.all_driver_classification,
+                   key=lambda x: x.position),
+            result_data.starting_grid,
+            size=source_video.size,
+            **configuration)
+        Image.fromarray(pcre_results.to_frame()).save(
+            output_prefix + '_results.png')
+        results = mpy.ImageClip(pcre_results.to_frame()).set_duration(20)
+        end_titles.append(results)
 
     try:
         if any(configuration['point_structure']):
             if not any([
                     x['points'] for x
                     in configuration['participant_config'].values()]):
-                pcre_series_standings = SeriesStandings(
-                    result_data.all_driver_classification,
-                    size=source_video.size,
-                    **configuration)
+                if 'car_classes' in configuration \
+                        and len(configuration['car_classes']):
+                    for car_class_filter in [car_class for car_class in
+                                             configuration['car_classes'] if
+                                             car_class != ""]:
+                        class_cars = [
+                            car for car_class, car_class_data
+                            in configuration['car_classes'].items()
+                            if car_class == car_class_filter
+                            for car in car_class_data['cars']]
+                        class_drivers = [
+                            driver for driver, data
+                            in configuration['participant_config'].items()
+                            if data['car'] in class_cars]
 
-                Image.fromarray(pcre_series_standings.to_frame()).save(
-                    output_prefix + '_series_standings.png')
-                series_standings = mpy.ImageClip(
-                    pcre_series_standings.to_frame()).set_duration(20)
+                        class_classification = [
+                            classification for classification
+                            in result_data.all_driver_classification
+                            if classification.driver_name in class_drivers]
+                        for position, classification in enumerate(sorted(
+                                class_classification,
+                                key=lambda x: x.position), 1):
+                            classification.position = position
 
-                end_titles.append(series_standings)
+                        pcre_series_standings = SeriesStandings(
+                            class_classification,
+                            size=source_video.size,
+                            **configuration)
+                        Image.fromarray(pcre_series_standings.to_frame()).save(
+                            output_prefix
+                            + '_'
+                            + car_class_filter
+                            + '_series_standings.png')
+                        series_standings = mpy.ImageClip(
+                            pcre_series_standings.to_frame()).set_duration(20)
+                        end_titles.append(series_standings)
+                else:
+                    pcre_series_standings = SeriesStandings(
+                        result_data.all_driver_classification,
+                        size=source_video.size,
+                        **configuration)
+                    Image.fromarray(pcre_series_standings.to_frame()).save(
+                        output_prefix + '_series_standings.png')
+                    series_standings = mpy.ImageClip(
+                        pcre_series_standings.to_frame()).set_duration(20)
+                    end_titles.append(series_standings)
             else:
-                pcre_series_standings = SeriesStandingsWithChange(
-                    result_data.all_driver_classification,
-                    size=source_video.size,
-                    **configuration)
+                if 'car_classes' in configuration \
+                        and len(configuration['car_classes']):
+                    for car_class_filter in [car_class for car_class in
+                                             configuration['car_classes'] if
+                                             car_class != ""]:
+                        class_cars = [
+                            car for car_class, car_class_data
+                            in configuration['car_classes'].items()
+                            if car_class == car_class_filter
+                            for car in car_class_data['cars']]
+                        class_drivers = [
+                            driver for driver, data
+                            in configuration['participant_config'].items()
+                            if data['car'] in class_cars]
 
-                Image.fromarray(pcre_series_standings.to_frame()).save(
-                    output_prefix + '_series_standings.png')
-                series_standings = mpy.ImageClip(
-                    pcre_series_standings.to_frame()).set_duration(20)
+                        class_classification = [
+                            classification for classification
+                            in result_data.all_driver_classification
+                            if classification.driver_name in class_drivers]
+                        for position, classification in enumerate(sorted(
+                                class_classification,
+                                key=lambda x: x.position), 1):
+                            classification.position = position
 
-                end_titles.append(series_standings)
+                        pcre_series_standings = SeriesStandingsWithChange(
+                            class_classification,
+                            size=source_video.size,
+                            **configuration)
+                        Image.fromarray(pcre_series_standings.to_frame()).save(
+                            output_prefix
+                            + '_'
+                            + car_class_filter
+                            + '_series_standings.png')
+                        series_standings = mpy.ImageClip(
+                            pcre_series_standings.to_frame()).set_duration(20)
+                        end_titles.append(series_standings)
+
+                else:
+                    pcre_series_standings = SeriesStandingsWithChange(
+                        result_data.all_driver_classification,
+                        size=source_video.size,
+                        **configuration)
+                    Image.fromarray(pcre_series_standings.to_frame()).save(
+                        output_prefix + '_series_standings.png')
+                    series_standings = mpy.ImageClip(
+                        pcre_series_standings.to_frame()).set_duration(20)
+                    end_titles.append(series_standings)
     except KeyError:
         try:
             _ = configuration['point_structure']
@@ -210,22 +342,60 @@ def make_video(config_file, *, framerate=None, sync=False):
                 pcre_series_standings.to_frame()).set_duration(20)
 
             end_titles.append(series_standings)
-        except:
+        except KeyError:
             pass
 
     if champion:
-        pcre_series_champion = SeriesChampion(
-            result_data.all_driver_classification,
-            size=source_video.size,
-            **configuration)
-        Image.fromarray(pcre_series_champion.to_frame()).save(
-            output_prefix + '_series_champion.png')
-        series_champion = mpy.ImageClip(
-            pcre_series_champion.to_frame()).set_duration(20)
+        if 'car_classes' in configuration and len(configuration['car_classes']):
+            for car_class_filter in [car_class for car_class in
+                                     configuration['car_classes'] if
+                                     car_class != ""]:
+                class_cars = [
+                    car for car_class, car_class_data
+                    in configuration['car_classes'].items()
+                    if car_class == car_class_filter
+                    for car in car_class_data['cars']]
+                class_drivers = [
+                    driver for driver, data
+                    in configuration['participant_config'].items()
+                    if data['car'] in class_cars]
 
-        end_titles.append(series_champion)
+                class_classification = [
+                    classification for classification
+                    in result_data.all_driver_classification
+                    if classification.driver_name in class_drivers]
+                for position, classification in enumerate(sorted(
+                        class_classification,
+                        key=lambda x: x.position), 1):
+                    classification.position = position
 
-    output = mpy.concatenate_videoclips([starting_grid.fadeout(1), main_event] + [clip.fadein(1).fadeout(1) for clip in end_titles[:-1]] + [end_titles[-1].fadein(1)], method="compose")
+                pcre_series_standings = SeriesChampion(
+                    class_classification,
+                    size=source_video.size,
+                    **configuration)
+                Image.fromarray(pcre_series_standings.to_frame()).save(
+                    output_prefix
+                    + '_'
+                    + car_class_filter
+                    + '_series_champion.png')
+                series_standings = mpy.ImageClip(
+                    pcre_series_standings.to_frame()).set_duration(20)
+                end_titles.append(series_standings)
+        else:
+            pcre_series_champion = SeriesChampion(
+                result_data.all_driver_classification,
+                size=source_video.size,
+                **configuration)
+            Image.fromarray(pcre_series_champion.to_frame()).save(
+                output_prefix + '_series_champion.png')
+            series_champion = mpy.ImageClip(
+                pcre_series_champion.to_frame()).set_duration(20)
+            end_titles.append(series_champion)
+
+    output = mpy.concatenate_videoclips(
+        [starting_grid.fadeout(1), main_event]
+        + [clip.fadein(1).fadeout(1) for clip in end_titles[:-1]]
+        + [end_titles[-1].fadein(1)], method="compose")
 
     output.write_videofile(configuration['output_video'], fps=float(framerate))
 
@@ -251,14 +421,31 @@ def main():
         '-v',
         '--version',
         action='version',
-        version='Version 0.5.2')
+        version='Version 0.6')
+
+    parser.add_argument(
+        '-p',
+        '--profile',
+        action='store_true',
+        help=argparse.SUPPRESS)
 
     args = parser.parse_args()
 
-    make_video(
-        args.config,
-        framerate=args.framerate,
-        sync=args.sync)
+    if args.profile:
+        import cProfile
+        from os.path import splitext, basename
+        filename = splitext(basename(args.config))[0] + '.profile'
+        
+        cProfile.runctx(
+            'make_video(args.config, framerate=args.framerate, sync=args.sync)',
+            globals(),
+            locals(),
+            filename)
+    else:
+        make_video(
+            args.config,
+            framerate=args.framerate,
+            sync=args.sync)
 
 if __name__ == '__main__':
     main()
