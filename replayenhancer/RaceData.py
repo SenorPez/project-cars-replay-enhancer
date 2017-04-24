@@ -606,24 +606,33 @@ class TelemetryData:
 
         old_packet = None
         try:
+            #Eventually, we'll get through all the packets.
             while True:
+                #Exhaust packets until we're racing.
                 while True:
                     packet = next(telemetry_data)
+                    print("1")
                     progress.update()
-                    if packet.packet_type == 0 and packet.race_state == 3:
+                    if packet.packet_type == 0 and packet.session_state == 5 and packet.race_state == 2:
                         break
 
-                # Exhaust packets until the race end.
-                # TODO: Support for other ways to finish a race?
+                #Exhaust packets until race end.
                 while True:
-                    try:
+                    packet = next(telemetry_data)
+                    print("2")
+                    progress.update()
+                    if packet.packet_type == 0 and packet.session_state == 5 and packet.race_state == 3:
                         old_packet = packet
-                        packet = next(telemetry_data)
-                        progress.update()
-                        if packet.packet_type == 0 and packet.race_state != 3:
-                            break
-                    except StopIteration:
+                        break
+
+                #Exhaust packets until no longer in race end, updating "last good" packet each time.
+                while True:
+                    packet = next(telemetry_data)
+                    print("3")
+                    progress.update()
+                    if packet.packet_type == 0 and packet.session_state == 5 and packet.race_state == 3:
                         old_packet = packet
+                    elif packet.packet_type == 0:
                         break
 
         except StopIteration:
@@ -649,7 +658,7 @@ class TelemetryData:
         while True:
             packet = next(telemetry_data)
             progress.update()
-            if packet.packet_type == 0 and packet.race_state == 2:
+            if packet.packet_type == 0 and packet.session_state == 5 and packet.race_state == 2:
                 break
 
         descriptor['race_finish'] = packet.data_hash

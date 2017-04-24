@@ -632,6 +632,19 @@
         "display_name": "Ruapuna Park Club",
         "length": 2261.983
     },
+    "Ruapuna Park:GP": {
+        "display_name": "Ruapuna Park GP",
+        "length": 3251.681,
+        "pit_entry": [
+            546.25,
+            112.50
+        ],
+        "pit_exit": [
+            219.25,
+            325.50
+        ],
+        "pit_radius": 2
+    },
     "Sonoma Raceway:Grand Prix": {
         "display_name": "Sonoma Raceway",
         "length": 4025.978,

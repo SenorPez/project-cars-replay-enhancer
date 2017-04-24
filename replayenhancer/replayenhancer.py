@@ -421,7 +421,7 @@ def main():
         '-v',
         '--version',
         action='version',
-        version='Version 0.6')
+        version='Version 0.6.1 Release Candidate 1')
 
     parser.add_argument(
         '-p',
