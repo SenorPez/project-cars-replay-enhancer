@@ -46,7 +46,7 @@ enum DPad {
         return lookup.get(stateValue);
     }
 
-    Boolean isSet(Short dPad) {
+    Boolean isSet(Integer dPad) {
         return (stateValue & dPad) != 0;
     }
 

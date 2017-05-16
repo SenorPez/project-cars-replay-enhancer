@@ -39,7 +39,7 @@ abstract class Packet {
     }
 
     static Short getCount(Short packetType) {
-        return packetType >>> 2;
+        return Integer.valueOf(packetType >>> 2).shortValue();
     }
 
     static Short ReadUnsignedByte(ByteBuffer data) {
