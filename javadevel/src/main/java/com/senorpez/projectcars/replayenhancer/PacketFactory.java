@@ -6,13 +6,25 @@ class PacketFactory {
     static Packet createPacket(ByteBuffer data) {
         switch(data.remaining()) {
             case 1367:
-                return new TelemetryDataPacket(data);
+                try {
+                    return new TelemetryDataPacket(data);
+                } catch (InvalidPacketException e) {
+                    e.printStackTrace();
+                }
 
             case 1347:
-                return new ParticipantPacket(data);
+                try {
+                    return new ParticipantPacket(data);
+                } catch (InvalidPacketException e) {
+                    e.printStackTrace();
+                }
 
             case 1028:
-                return new AdditionalParticipantPacket(data);
+                try {
+                    return new AdditionalParticipantPacket(data);
+                } catch (InvalidPacketException e) {
+                    e.printStackTrace();
+                }
 
             default:
                 System.out.printf("Error: %d\n", data.remaining());

@@ -192,8 +192,11 @@ class TelemetryDataPacket extends Packet {
     private final List<Short> wings;
     private final Short dPad;
 
-    TelemetryDataPacket(ByteBuffer data) {
+    TelemetryDataPacket(ByteBuffer data) throws InvalidPacketException {
         super(data);
+        if (!isCorrectPacketType(packetType)) {
+            throw new InvalidPacketException();
+        }
 
         this.gameSessionState = ReadUnsignedByte(data);
 
@@ -311,12 +314,7 @@ class TelemetryDataPacket extends Packet {
 
     @Override
     Short getPacketType() {
-        return getPacketType(packetType);
-    }
-
-    @Override
-    Short getCount() {
-        return getCount(packetType);
+        return packetType;
     }
 
     GameState getGameState() {
@@ -833,35 +831,35 @@ class TelemetryDataPacket extends Packet {
     }
 
     Boolean isDPadButton1() {
-        return DPad.BUTTON_1.isSet(dPad >>> 4);
+        return DPad.BUTTON_1.isSet((int) (dPad >>> 4));
     }
 
     Boolean isDPadButton2() {
-        return DPad.BUTTON_2.isSet(dPad >>> 4);
+        return DPad.BUTTON_2.isSet((int) (dPad >>> 4));
     }
 
     Boolean isDPadButton3() {
-        return DPad.BUTTON_3.isSet(dPad >>> 4);
+        return DPad.BUTTON_3.isSet((int) (dPad >>> 4));
     }
 
     Boolean isDPadButton4() {
-        return DPad.BUTTON_4.isSet(dPad >>> 4);
+        return DPad.BUTTON_4.isSet((int) (dPad >>> 4));
     }
 
     Boolean isDPadButton5() {
-        return DPad.BUTTON_5.isSet(crashState >>> 4);
+        return DPad.BUTTON_5.isSet((int) (crashState >>> 4));
     }
 
     Boolean isDPadButton6() {
-        return DPad.BUTTON_6.isSet(crashState >>> 4);
+        return DPad.BUTTON_6.isSet((int) (crashState >>> 4));
     }
 
     Boolean isDPadButton7() {
-        return DPad.BUTTON_7.isSet(crashState >>> 4);
+        return DPad.BUTTON_7.isSet((int) (crashState >>> 4));
     }
 
     Boolean isDPadButton8() {
-        return DPad.BUTTON_8.isSet(crashState >>> 4);
+        return DPad.BUTTON_8.isSet((int) (crashState >>> 4));
     }
 
     List<ParticipantInfo> getParticipantInfo() {

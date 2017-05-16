@@ -5,9 +5,11 @@ import java.nio.charset.StandardCharsets;
 
 abstract class Packet {
     private final Integer buildVersionNumber;
+    private final Short packetTypeCount;
 
     Packet(ByteBuffer data) {
         this.buildVersionNumber = ReadUnsignedShort(data);
+        this.packetTypeCount = ReadUnsignedByte(data);
     }
 
     private static byte[] ReadBytes(ByteBuffer data, int length) {
@@ -31,15 +33,13 @@ abstract class Packet {
 
     abstract Short getPacketType();
 
-    abstract Short getCount();
-
-    static Short getPacketType(Short packetType) {
+    Boolean isCorrectPacketType(Short packetType) {
         Integer mask = 3; /* 0000 0011 */
-        return Integer.valueOf(mask & packetType).shortValue();
+        return Integer.valueOf(mask & packetTypeCount).shortValue() == packetType;
     }
 
-    static Short getCount(Short packetType) {
-        return Integer.valueOf(packetType >>> 2).shortValue();
+    Short getCount() {
+        return Integer.valueOf(packetTypeCount >>> 2).shortValue();
     }
 
     static Short ReadUnsignedByte(ByteBuffer data) {

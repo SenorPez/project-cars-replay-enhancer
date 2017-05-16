@@ -14,8 +14,11 @@ class ParticipantPacket extends Packet {
     private final List<String> names;
     private final List<Float> fastestLapTimes;
 
-    ParticipantPacket(ByteBuffer data) {
+    ParticipantPacket(ByteBuffer data) throws InvalidPacketException {
         super(data);
+        if (!isCorrectPacketType(packetType)) {
+            throw new InvalidPacketException();
+        }
 
         this.carName = ReadString(data);
         this.carClass = ReadString(data);
@@ -28,12 +31,7 @@ class ParticipantPacket extends Packet {
 
     @Override
     Short getPacketType() {
-        return getPacketType(packetType);
-    }
-
-    @Override
-    Short getCount() {
-        return getCount(packetType);
+        return packetType;
     }
 
     String getCarName() {

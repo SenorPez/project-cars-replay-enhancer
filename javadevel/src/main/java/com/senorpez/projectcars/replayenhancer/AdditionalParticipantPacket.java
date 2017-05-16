@@ -10,8 +10,11 @@ class AdditionalParticipantPacket extends Packet {
     private final Short offset;
     private final List<String> names;
 
-    AdditionalParticipantPacket(ByteBuffer data) {
+    AdditionalParticipantPacket(ByteBuffer data) throws InvalidPacketException {
         super(data);
+        if (!isCorrectPacketType(packetType)) {
+            throw new InvalidPacketException();
+        }
 
         this.offset = ReadUnsignedByte(data);
         this.names = IntStream.range(0, 16).mapToObj(value -> ReadString(data)).collect(ImmutableListCollector.toImmutableList());
@@ -19,12 +22,7 @@ class AdditionalParticipantPacket extends Packet {
 
     @Override
     Short getPacketType() {
-        return getPacketType(packetType);
-    }
-
-    @Override
-    Short getCount() {
-        return getCount(packetType);
+        return packetType;
     }
 
     Short getOffset() {
