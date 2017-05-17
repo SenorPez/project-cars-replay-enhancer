@@ -6,6 +6,15 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 class TelemetryDataPacket extends Packet {
+    enum State {
+        PRE_RACE,
+        PRE_RACE_PAUSED,
+        RACING,
+        FINISHED,
+        LOADING,
+        UNDEFINED
+    }
+
     class ParticipantInfo {
         private final List<Short> worldPosition;
         private final Integer currentLapDistance;
@@ -864,5 +873,28 @@ class TelemetryDataPacket extends Packet {
 
     List<ParticipantInfo> getParticipantInfo() {
         return participantInfo;
+    }
+
+    State getState() {
+        if (getRaceState() == RaceState.RACE_NOT_STARTED) {
+            if (getGameState() == GameState.GAME_INGAME_PAUSED) {
+                return State.PRE_RACE_PAUSED;
+            } else if (getGameState() == GameState.GAME_INGAME_PLAYING) {
+                return State.PRE_RACE;
+            }
+        } else if (getRaceState() == RaceState.RACE_RACING) {
+            return State.RACING;
+        } else if (getRaceState() == RaceState.RACE_FINISHED) {
+            return State.FINISHED;
+        } else if (getGameState() == GameState.GAME_MAX
+                && getSessionState() == SessionState.SESSION_INVALID
+                && getRaceState() == RaceState.RACE_INVALID) {
+            return State.LOADING;
+        }
+        System.out.printf("%s %s %s\n",
+                getGameState(),
+                getSessionState(),
+                getRaceState());
+        return State.UNDEFINED;
     }
 }

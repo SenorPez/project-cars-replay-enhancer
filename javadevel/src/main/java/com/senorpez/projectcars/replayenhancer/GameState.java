@@ -4,29 +4,24 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 enum GameState {
-    GAME_EXITED(0),
-    GAME_FRONT_END(1),
-    GAME_INGAME_PLAYING(2),
-    GAME_INGAME_PAUSED(3),
-    GAME_MAX(4);
+    GAME_EXITED,
+    GAME_FRONT_END,
+    GAME_INGAME_PLAYING,
+    GAME_INGAME_PAUSED,
+    GAME_MAX;
 
-    private final Byte stateValue;
-
-    GameState(int stateValue) {
-        this.stateValue = (byte) stateValue;
-    }
-
-    private static final Map<Byte, GameState> lookup = new HashMap<>();
+    private static final Map<Integer, GameState> lookup = new HashMap<>();
 
     static {
         lookup.putAll(EnumSet.allOf(GameState.class)
                 .stream()
-                .collect(Collectors.toMap(gameState -> gameState.stateValue, gameState -> gameState)));
+                .collect(Collectors.toMap(Enum::ordinal, gameState -> gameState)));
     }
 
     static GameState valueOf(int stateValue) {
-        return lookup.get((byte) stateValue);
+        return lookup.get(stateValue);
     }
 }

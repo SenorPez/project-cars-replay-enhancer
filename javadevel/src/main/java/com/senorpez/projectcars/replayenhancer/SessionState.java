@@ -6,30 +6,24 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 enum SessionState {
-    SESSION_INVALID(0),
-    SESSION_PRACTICE(1),
-    SESSION_TEST(2),
-    SESSION_QUALIFY(3),
-    SESSION_FORMATION_LAP(4),
-    SESSION_RACE(5),
-    SESSION_TIME_ATTACK(6),
-    SESSION_MAX(7);
+    SESSION_INVALID,
+    SESSION_PRACTICE,
+    SESSION_TEST,
+    SESSION_QUALIFY,
+    SESSION_FORMATION_LAP,
+    SESSION_RACE,
+    SESSION_TIME_ATTACK,
+    SESSION_MAX;
 
-    private final Byte stateValue;
-
-    SessionState(int stateValue) {
-        this.stateValue = (byte) stateValue;
-    }
-
-    private static final Map<Byte, SessionState> lookup = new HashMap<>();
+    private static final Map<Integer, SessionState> lookup = new HashMap<>();
 
     static {
         lookup.putAll(EnumSet.allOf(SessionState.class)
                 .stream()
-                .collect(Collectors.toMap(sessionState -> sessionState.stateValue, sessionState -> sessionState)));
+                .collect(Collectors.toMap(Enum::ordinal, sessionState -> sessionState)));
     }
 
     static SessionState valueOf(int stateValue) {
-        return lookup.get((byte) stateValue);
+        return lookup.get(stateValue);
     }
 }
