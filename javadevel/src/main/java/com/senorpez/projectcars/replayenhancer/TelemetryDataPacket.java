@@ -7,12 +7,57 @@ import java.util.stream.Stream;
 
 class TelemetryDataPacket extends Packet {
     enum State {
-        PRE_RACE,
+        /*
+        State transition graph:
+        LOADING -> PRE_RACE_PAUSED
+        PRE_RACE_PAUSED -> PRE_RACE
+        PRE_RACE -> RACING
+        RACING -> LOADING
+               -> FINISHED
+         */
+        LOADING {  /* Not sure on this. Could be Restarting? */
+            @Override
+            public Boolean raceFinished(final State previousState) {
+                return previousState == State.RACING;
+            }
+        },
         PRE_RACE_PAUSED,
+        PRE_RACE {
+            @Override
+            public Boolean raceStarted() {
+                return true;
+            }
+        },
         RACING,
-        FINISHED,
-        LOADING,
-        UNDEFINED
+        FINISHED {
+            @Override
+            public Boolean raceFinished(final State previousState) {
+                return false;
+            }
+
+            @Override
+            public Boolean raceFinishedTelemetryExhausted() {
+                return true;
+            }
+        },
+        UNDEFINED {
+            @Override
+            public Boolean raceFinishedTelemetryExhausted() {
+                return true;
+            }
+        };
+
+        public Boolean raceStarted() {
+            return false;
+        }
+
+        public Boolean raceFinished(final State previousState) {
+            return previousState == State.FINISHED;
+        }
+
+        public Boolean raceFinishedTelemetryExhausted() {
+            return false;
+        }
     }
 
     class ParticipantInfo {

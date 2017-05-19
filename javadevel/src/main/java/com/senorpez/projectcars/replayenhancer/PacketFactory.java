@@ -1,34 +1,46 @@
 package com.senorpez.projectcars.replayenhancer;
 
-import java.nio.ByteBuffer;
+import java.io.DataInputStream;
+import java.io.IOException;
+import java.util.Iterator;
 
-class PacketFactory {
-    static Packet createPacket(ByteBuffer data) {
-        switch(data.remaining()) {
-            case 1367:
-                try {
-                    return new TelemetryDataPacket(data);
-                } catch (InvalidPacketException e) {
-                    e.printStackTrace();
-                }
+class PacketFactory implements Iterator<Packet> {
+    private final DataInputStream telemetryData;
 
-            case 1347:
-                try {
-                    return new ParticipantPacket(data);
-                } catch (InvalidPacketException e) {
-                    e.printStackTrace();
-                }
+    public PacketFactory(DataInputStream telemetryData) {
+        this.telemetryData = telemetryData;
+    }
 
-            case 1028:
-                try {
-                    return new AdditionalParticipantPacket(data);
-                } catch (InvalidPacketException e) {
-                    e.printStackTrace();
-                }
-
-            default:
-                System.out.printf("Error: %d\n", data.remaining());
-                return null;
+    @Override
+    public boolean hasNext() {
+        try {
+            return telemetryData.available() > 0;
+        } catch (IOException e) {
+            return false;
         }
+    }
+
+    @Override
+    public Packet next() {
+        PacketType packetType;
+        try {
+            packetType = PacketType.valueOf(telemetryData.readShort());
+            return packetType.getPacket(telemetryData);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    static Packet getPacket(DataInputStream telemetryData) {
+        try {
+            if (telemetryData.available() > 0) {
+                PacketType packetType = PacketType.valueOf(telemetryData.readShort());
+                return packetType.getPacket(telemetryData);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 }
