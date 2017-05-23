@@ -1,9 +1,6 @@
 package com.senorpez.projectcars.replayenhancer;
 
-import java.io.DataInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.ObjectInputStream;
+import java.io.*;
 import java.util.Iterator;
 
 class PacketFactory implements Iterator<Packet> {
@@ -15,6 +12,10 @@ class PacketFactory implements Iterator<Packet> {
 
     PacketFactory(ObjectInputStream telemetryData) {
         this.telemetryData = telemetryData;
+    }
+
+    PacketFactory(Race race) throws IOException {
+        this.telemetryData = new ObjectInputStream(new ByteArrayInputStream(race.getByteData()));
     }
 
     private Packet nextPacket = null;

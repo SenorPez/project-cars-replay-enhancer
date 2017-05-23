@@ -1,29 +1,33 @@
 package com.senorpez.projectcars.replayenhancer;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 class SectorTime {
+    @JsonProperty("time")
     private final Float time;
+    @JsonProperty("sector")
     private final CurrentSector sector;
     private Boolean invalid;
 
-    public SectorTime(Float time, CurrentSector sector, Boolean invalid) {
+    SectorTime(Float time, CurrentSector sector, Boolean invalid) {
         this.time = time;
         this.sector = sector;
         this.invalid = invalid;
     }
 
-    public Float getTime() {
+    Float getTime() {
         return time;
     }
 
-    public CurrentSector getSector() {
+    CurrentSector getSector() {
         return sector;
     }
 
-    public Boolean getInvalid() {
+    Boolean getInvalid() {
         return invalid;
     }
 
-    public void setInvalid(Boolean invalid) {
+    void setInvalid(Boolean invalid) {
         this.invalid = invalid;
     }
 }
