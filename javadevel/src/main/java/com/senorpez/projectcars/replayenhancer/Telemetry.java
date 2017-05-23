@@ -3,19 +3,14 @@ package com.senorpez.projectcars.replayenhancer;
 import com.senorpez.projectcars.replayenhancer.TelemetryDataPacket.State;
 
 import java.io.DataInputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 class Telemetry {
-    private final DataInputStream telemetryData;
-
-    private Telemetry(DataInputStream telemetryData) {
-        this.telemetryData = telemetryData;
-    }
-
-    private void showStateTransitions(PacketFactory packetFactory) {
+    private static void showStateTransitions(PacketFactory packetFactory) {
         State currentState = State.UNDEFINED;
         List<String> states = new ArrayList<>();
 
@@ -39,29 +34,33 @@ class Telemetry {
                 .forEach((statename, count) -> System.out.printf("%s: %d\n", statename, count));
     }
 
-    public static void main(String[] args) {
+    private static void getAllRaces(PacketFactory packetFactory) {
+        List<Race> races = new ArrayList<>();
+        Race race;
+
+        while (packetFactory.hasNext()) {
+            try {
+                race = new Race(packetFactory);
+            } catch (IOException e) {
+                race = null;
+            }
+            if (race != null) {
+                races.add(race);
+            }
+        }
+
+        races.forEach(race1 -> {
+            System.out.println("-----");
+            race1.getDrivers().stream().map(Driver::getName).sorted().forEach(System.out::println);
+        });
+        System.out.println("-----");
+    }
+
+    public static void main(String[] args) throws IOException {
         ClassLoader classLoader = Telemetry.class.getClassLoader();
-        Telemetry telemetry = new Telemetry(new DataInputStream(classLoader.getResourceAsStream("race1.replayenhancer")));
-        PacketFactory packetFactory = new PacketFactory(telemetry.telemetryData);
-//        telemetry.showStateTransitions(new PacketFactory(telemetry.telemetryData));
-        System.out.println("-----");
-        Race race = new Race(packetFactory);
-        race.getDrivers().stream().map(Driver::getName).sorted().forEach(System.out::println);
-        System.out.println("-----");
-        race = new Race(packetFactory);
-        race.getDrivers().stream().map(Driver::getName).sorted().forEach(System.out::println);
-        System.out.println("-----");
-        race = new Race(packetFactory);
-        race.getDrivers().stream().map(Driver::getName).sorted().forEach(System.out::println);
-        System.out.println("-----");
-        race = new Race(packetFactory);
-        race.getDrivers().stream().map(Driver::getName).sorted().forEach(System.out::println);
-        System.out.println("-----");
-        race = new Race(packetFactory);
-        race.getDrivers().stream().map(Driver::getName).sorted().forEach(System.out::println);
-        System.out.println("-----");
-        race = new Race(packetFactory);
-        race.getDrivers().stream().map(Driver::getName).sorted().forEach(System.out::println);
-        System.out.println("-----");
+        DataInputStream telemetryData = new DataInputStream(classLoader.getResourceAsStream("race1.replayenhancer"));
+
+        PacketFactory packetFactory = new PacketFactory(telemetryData);
+        getAllRaces(packetFactory);
     }
 }

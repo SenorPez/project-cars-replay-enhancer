@@ -14,7 +14,7 @@ public class PacketCapture {
 
     public static void main(String[] args) throws IOException {
         try (DatagramSocket socket = new DatagramSocket(5606, InetAddress.getByName("0.0.0.0"));
-             DataOutputStream outputStream = new DataOutputStream(new FileOutputStream("race1.replayenhancer"))) {
+            DataOutputStream outputStream = new DataOutputStream(new FileOutputStream("race1.replayenhancer"))) {
             while (true) {
                 byte[] buf = new byte[2048];
                 DatagramPacket packet = new DatagramPacket(buf, buf.length);

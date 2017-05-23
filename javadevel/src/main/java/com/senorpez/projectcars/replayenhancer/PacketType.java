@@ -1,9 +1,7 @@
 package com.senorpez.projectcars.replayenhancer;
 
-import java.io.DataInputStream;
-import java.io.IOException;
+import java.io.*;
 import java.lang.reflect.InvocationTargetException;
-import java.nio.ByteBuffer;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
@@ -34,16 +32,33 @@ enum PacketType {
         return lookup.get(packetLength);
     }
 
+    static PacketType valueOf(Integer packetTypeNumeric) {
+        return PacketType.values()[packetTypeNumeric];
+    }
+
     Packet getPacket(DataInputStream telemetryData) {
         try {
             if (telemetryData.available() > 0) {
-                byte[] packetData = new byte[packetLength];
-                telemetryData.read(packetData);
-                return clazz.getDeclaredConstructor(ByteBuffer.class).newInstance(ByteBuffer.wrap(packetData));
+                return clazz.getDeclaredConstructor(DataInputStream.class).newInstance(telemetryData);
             }
         } catch (IOException | NoSuchMethodException | InvocationTargetException | IllegalAccessException | InstantiationException e) {
             e.printStackTrace();
         }
         return null;
+    }
+
+    static Packet getPacket(ObjectInputStream telemetryData) {
+        try {
+            if (telemetryData.available() > 0) {
+                return (Packet) telemetryData.readObject();
+            }
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public Short getPacketLength() {
+        return packetLength;
     }
 }

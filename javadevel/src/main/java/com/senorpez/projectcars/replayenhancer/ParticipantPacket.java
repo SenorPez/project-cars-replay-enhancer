@@ -1,11 +1,13 @@
 package com.senorpez.projectcars.replayenhancer;
 
-import java.nio.ByteBuffer;
+import java.io.DataInputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.stream.IntStream;
 
 class ParticipantPacket extends Packet {
-    private final static Short packetType = 1;
+    private final static PacketType packetType = PacketType.PARTICIPANT;
 
     private final String carName;
     private final String carClass;
@@ -14,23 +16,36 @@ class ParticipantPacket extends Packet {
     private final List<String> names;
     private final List<Float> fastestLapTimes;
 
-    ParticipantPacket(ByteBuffer data) throws InvalidPacketException {
+    ParticipantPacket(DataInputStream data) throws InvalidPacketException, IOException {
         super(data);
         if (!isCorrectPacketType(packetType)) {
             throw new InvalidPacketException();
         }
 
-        this.carName = ReadString(data);
-        this.carClass = ReadString(data);
-        this.trackLocation = ReadString(data);
-        this.trackVariation = ReadString(data);
+        byte[] nameBuffer = new byte[64];
 
-        this.names = IntStream.range(0, 16).mapToObj(value -> ReadString(data)).collect(ImmutableListCollector.toImmutableList());
-        this.fastestLapTimes = IntStream.range(0, 16).mapToObj(value -> ReadFloat(data)).collect(ImmutableListCollector.toImmutableList());
+        data.read(nameBuffer);
+        this.carName = new String(nameBuffer, StandardCharsets.UTF_8).split("\u0000", 2)[0];
+        data.read(nameBuffer);
+        this.carClass = new String(nameBuffer, StandardCharsets.UTF_8).split("\u0000", 2)[0];
+        data.read(nameBuffer);
+        this.trackLocation = new String(nameBuffer, StandardCharsets.UTF_8).split("\u0000", 2)[0];
+        data.read(nameBuffer);
+        this.trackVariation = new String(nameBuffer, StandardCharsets.UTF_8).split("\u0000", 2)[0];
+
+        this.names = IntStream.range(0, 16).mapToObj(value -> {
+            try {
+                data.read(nameBuffer);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return new String(nameBuffer, StandardCharsets.UTF_8).split("\u0000", 2)[0];
+        }).collect(ImmutableListCollector.toImmutableList());
+        this.fastestLapTimes = IntStream.range(0, 16).mapToObj((IntFunctionThrows<Float>) value -> data.readFloat()).collect(ImmutableListCollector.toImmutableList());
     }
 
     @Override
-    Short getPacketType() {
+    PacketType getPacketType() {
         return packetType;
     }
 

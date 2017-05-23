@@ -1,15 +1,18 @@
 package com.senorpez.projectcars.replayenhancer;
 
+import java.io.DataInputStream;
+import java.io.IOException;
+import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
-abstract class Packet {
+abstract class Packet implements Serializable {
     private final Integer buildVersionNumber;
     private final Short packetTypeCount;
 
-    Packet(ByteBuffer data) {
-        this.buildVersionNumber = ReadUnsignedShort(data);
-        this.packetTypeCount = ReadUnsignedByte(data);
+    Packet(DataInputStream data) throws IOException {
+        this.buildVersionNumber = data.readUnsignedShort();
+        this.packetTypeCount = (short) data.readUnsignedByte();
     }
 
     private static byte[] ReadBytes(ByteBuffer data, int length) {
@@ -31,11 +34,11 @@ abstract class Packet {
         return buildVersionNumber;
     }
 
-    abstract Short getPacketType();
+    abstract PacketType getPacketType();
 
-    Boolean isCorrectPacketType(Short packetType) {
+    Boolean isCorrectPacketType(PacketType packetType) {
         Integer mask = 3; /* 0000 0011 */
-        return Integer.valueOf(mask & packetTypeCount).shortValue() == packetType;
+        return PacketType.valueOf(mask & packetTypeCount) == packetType;
     }
 
     Short getCount() {

@@ -2,28 +2,30 @@ package com.senorpez.projectcars.replayenhancer;
 
 import com.senorpez.projectcars.replayenhancer.TelemetryDataPacket.State;
 
+import java.io.*;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 class Race {
-    private final List<Packet> racePackets;
-    private Byte numParticipants;
+    private final Set<Driver> drivers = new TreeSet<>(Comparator.comparing(Driver::getName));
 
-    Race(PacketFactory packetFactory) {
+    private final ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+    private Integer packetCount = 0;
+
+    Race(PacketFactory packetFactory) throws IOException {
         Boolean raceStarted = false;
         Boolean raceFinished = false;
+
         State currentState = State.UNDEFINED;
         State previousState = State.UNDEFINED;
-        racePackets = new ArrayList<>();
-        numParticipants = null;
+
+        ObjectOutputStream raceData = new ObjectOutputStream(byteStream);
 
         while (packetFactory.hasNext() && !raceFinished) {
             Packet packet = packetFactory.next();
             if (packet instanceof TelemetryDataPacket) {
-                numParticipants = ((TelemetryDataPacket) packet).getNumParticipants();
-
                 previousState = currentState;
                 currentState = ((TelemetryDataPacket) packet).getState();
 
@@ -34,30 +36,44 @@ class Race {
             }
 
             if (raceStarted && !raceFinished) {
-                racePackets.add(packet);
+                raceData.writeObject(packet);
+                packetCount++;
             }
         }
+        raceData.close();
+
+        ObjectInputStream inputStream = new ObjectInputStream(new ByteArrayInputStream(byteStream.toByteArray()));
+        PacketFactory newPacketFactory = new PacketFactory(inputStream);
+
+        drivers.addAll(Collections.unmodifiableSet(addDrivers(newPacketFactory)));
     }
 
     Set<Driver> getDrivers() {
-        Iterator<Packet> packetIterator = racePackets.iterator();
-        Set<Driver> drivers = new HashSet<>();
-        Byte packetParticipants;
+        return drivers;
+    }
 
-        if (numParticipants == null) {
-            while (numParticipants == null && packetIterator.hasNext()) {
-                Packet packet = packetIterator.next();
-                if (packet instanceof TelemetryDataPacket) {
-                    numParticipants = ((TelemetryDataPacket) packet).getNumParticipants();
-                }
+    public Integer getPacketCount() {
+        return packetCount;
+    }
+
+    static private Set<Driver> addDrivers(PacketFactory packetFactory) {
+        Byte numParticipants = null;
+        Set<Driver> drivers = new TreeSet<>(Comparator.comparing(Driver::getName));
+
+        while (numParticipants == null && packetFactory.hasNext()) {
+            Packet packet = packetFactory.next();
+            if (packet instanceof TelemetryDataPacket) {
+                numParticipants = ((TelemetryDataPacket) packet).getNumParticipants();
             }
         }
-        packetParticipants = numParticipants;
 
-        while (packetIterator.hasNext()
-                && packetParticipants.equals(numParticipants)
-                && drivers.size() < numParticipants) {
-            Packet packet = packetIterator.next();
+        if (numParticipants == null) return drivers;
+        Byte packetParticipants = numParticipants;
+
+        while (packetParticipants.equals(numParticipants)
+                && drivers.size() < numParticipants
+                && packetFactory.hasNext()) {
+            Packet packet = packetFactory.next();
             if (packet instanceof TelemetryDataPacket) {
                 packetParticipants = ((TelemetryDataPacket) packet).getNumParticipants();
             } else if (packet instanceof ParticipantPacket) {
