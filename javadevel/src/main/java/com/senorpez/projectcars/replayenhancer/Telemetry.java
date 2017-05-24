@@ -4,13 +4,8 @@ import com.senorpez.projectcars.replayenhancer.TelemetryDataPacket.State;
 
 import java.io.DataInputStream;
 import java.io.IOException;
-import java.text.DecimalFormat;
-import java.text.NumberFormat;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -70,24 +65,7 @@ class Telemetry {
         while (packetFactory.hasNext()) {
             Packet packet = packetFactory.next();
             if (packet instanceof TelemetryDataPacket) {
-                List<TelemetryDataPacket.ParticipantInfo> participantInfos = ((TelemetryDataPacket) packet).getParticipantInfo().stream()
-                        .filter(TelemetryDataPacket.ParticipantInfo::isActive)
-                        .collect(Collectors.toList());
-                AtomicInteger atomicIndex = new AtomicInteger(0);
-                participantInfos
-                        .forEach(participantInfo -> {
-                            race.getDrivers().stream()
-                                    .filter(driver1 -> driver1.getIndex().equals(atomicIndex.byteValue()))
-                                    .findFirst()
-                                    .orElse(null)
-                                    .addSectorTime(
-                                            new SectorTime(
-                                                    participantInfo.getLastSectorTime(),
-                                                    participantInfo.getCurrentSector(),
-                                                    participantInfo.isLapInvalidated())
-                                    );
-                            atomicIndex.getAndIncrement();
-                        });
+                race.getDrivers().forEach(driver -> driver.addSectorTime((TelemetryDataPacket) packet));
             }
         }
         race.getDrivers()

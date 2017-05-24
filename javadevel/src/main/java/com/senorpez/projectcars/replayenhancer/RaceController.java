@@ -54,7 +54,11 @@ class RaceController {
                     value = "ID of race to return",
                     required = true)
             @PathVariable Integer raceId) {
-        return Application.RACES.get(raceId);
+        if (raceId < Application.RACES.size()) {
+            return Application.RACES.get(raceId);
+        } else {
+            throw new RaceNotFoundAPIException(raceId);
+        }
     }
 
     private static Race addLink(int index, Race race) {

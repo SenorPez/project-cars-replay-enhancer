@@ -1,6 +1,8 @@
 package com.senorpez.projectcars.replayenhancer;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.senorpez.projectcars.replayenhancer.TelemetryDataPacket.State;
 import org.springframework.hateoas.ResourceSupport;
 
@@ -10,17 +12,25 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.WRAPPER_OBJECT)
+@JsonTypeName("race")
 class Race extends ResourceSupport {
     @JsonProperty("drivers")
     private final Set<Driver> drivers = new TreeSet<>(Comparator.comparing(Driver::getName));
 
     private final ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
 
-    @JsonProperty("packets")
+    @JsonProperty("packetCount")
     private Integer packetCount = 0;
 
     @JsonProperty("completeRace")
     private final Boolean completeRace;
+
+    @JsonProperty("laps")
+    private Short laps = 0;
+
+    @JsonProperty("time")
+    private Float time = 0f;
 
     Race(PacketFactory packetFactory) throws IOException {
         Boolean raceStarted = false;
@@ -63,25 +73,9 @@ class Race extends ResourceSupport {
         while (packetFactory.hasNext()) {
             Packet packet = packetFactory.next();
             if (packet instanceof TelemetryDataPacket) {
-                List<TelemetryDataPacket.ParticipantInfo> participantInfos = ((TelemetryDataPacket) packet).getParticipantInfo().stream()
-                        .filter(TelemetryDataPacket.ParticipantInfo::isActive)
-                        .collect(Collectors.toList());
-                AtomicInteger atomicIndex = new AtomicInteger(0);
-                participantInfos
-                        .forEach(participantInfo -> {
-                            getDrivers().stream()
-                                    .filter(driver -> driver.getIndex().equals(atomicIndex.byteValue()))
-                                    .findFirst()
-                                    .orElse(null)
-                                    .addSectorTime(
-                                            new SectorTime(
-                                                    participantInfo.getLastSectorTime(),
-                                                    participantInfo.getCurrentSector(),
-                                                    participantInfo.isLapInvalidated()
-                                            )
-                                    );
-                            atomicIndex.getAndIncrement();
-                        });
+                getDrivers().forEach(driver -> driver.addSectorTime((TelemetryDataPacket) packet));
+                laps = ((TelemetryDataPacket) packet).getLapsInEvent();
+                time = Math.max(time, ((TelemetryDataPacket) packet).getEventTimeRemaining());
             }
         }
     }

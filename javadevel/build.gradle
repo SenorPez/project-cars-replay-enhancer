@@ -19,8 +19,8 @@ version '0.1-SNAPSHOT'
 
 sourceCompatibility = 1.8
 
-//mainClassName = "com.senorpez.projectcars.replayenhancer.PacketCapture"
-//applicationName = "packetCapture"
+mainClassName = "com.senorpez.projectcars.replayenhancer.Application"
+applicationName = "replayenhancer"
 
 repositories {
     mavenCentral()
@@ -37,15 +37,15 @@ dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.12'
 }
 
-//task createExtraRunApp(type: CreateStartScripts) {
-//    mainClassName = "com.senorpez.projectcars.replayenhancer.PacketReader"
-//    classpath = startScripts.classpath
-//    outputDir = startScripts.outputDir
-//    applicationName = "packetReader"
-//}
-//
-//applicationDistribution.into("bin") {
-//    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-//    from(createExtraRunApp)
-//    fileMode = 0755
-//}
+task createPacketCapture (type: CreateStartScripts) {
+    mainClassName = "com.senorpez.projectcars.replayenhancer.PacketCapture"
+    classpath = startScripts.classpath
+    outputDir = startScripts.outputDir
+    applicationName = "packetCapture"
+}
+
+applicationDistribution.into("bin") {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from(createPacketCapture)
+    fileMode = 0755
+}

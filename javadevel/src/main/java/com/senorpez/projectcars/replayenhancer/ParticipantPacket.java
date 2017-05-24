@@ -24,18 +24,18 @@ class ParticipantPacket extends Packet {
 
         byte[] nameBuffer = new byte[64];
 
-        data.read(nameBuffer);
+        data.readFully(nameBuffer);
         this.carName = new String(nameBuffer, StandardCharsets.UTF_8).split("\u0000", 2)[0];
-        data.read(nameBuffer);
+        data.readFully(nameBuffer);
         this.carClass = new String(nameBuffer, StandardCharsets.UTF_8).split("\u0000", 2)[0];
-        data.read(nameBuffer);
+        data.readFully(nameBuffer);
         this.trackLocation = new String(nameBuffer, StandardCharsets.UTF_8).split("\u0000", 2)[0];
-        data.read(nameBuffer);
+        data.readFully(nameBuffer);
         this.trackVariation = new String(nameBuffer, StandardCharsets.UTF_8).split("\u0000", 2)[0];
 
         this.names = IntStream.range(0, 16).mapToObj(value -> {
             try {
-                data.read(nameBuffer);
+                data.readFully(nameBuffer);
             } catch (IOException e) {
                 e.printStackTrace();
             }

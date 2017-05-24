@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.util.function.IntFunction;
 
 @FunctionalInterface
-public interface IntFunctionThrows<R> extends IntFunction<R> {
+interface IntFunctionThrows<R> extends IntFunction<R> {
 
     @Override
     default R apply(int value) {
