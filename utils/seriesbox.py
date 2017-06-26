@@ -4,7 +4,8 @@ from tqdm import tqdm
 
 from replayenhancer.RaceData import RaceData
 
-point_structure = [0, 25, 18, 15, 12 ,10, 8, 6, 4, 2, 1]
+#point_structure = [0, 25, 18, 15, 12 ,10, 8, 6, 4, 2, 1]
+point_structure = [ 2, 34, 28, 25, 22, 20, 18, 16, 14, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1 ]
 drivers = dict()
 
 for telemetry in sys.argv[1:]:

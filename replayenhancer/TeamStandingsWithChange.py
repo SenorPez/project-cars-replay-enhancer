@@ -41,7 +41,7 @@ class TeamStandingsWithChange(TeamStandings):
             align='center',
             colspan=2)
         self._add_column(
-            'points',
+            'name_and_points',
             '',
             formatter=self._make_charm,
             formatter_args={
@@ -50,13 +50,14 @@ class TeamStandingsWithChange(TeamStandings):
                 'text_height': font.getsize("A")[1],
                 'point_structure': point_structure})
 
-    def _make_charm(self, points, **kwargs):
+    def _make_charm(self, name_and_points, **kwargs):
+        team_name, points = name_and_points
         old_more_points = len([
-            old_points for team_name, old_points in self._old_data.items()
-            if points > old_points])
+            old_points for name, old_points in self._old_data.items()
+            if old_points > self._old_data[team_name]])
         new_more_points = len([
             data.points for data in self._data
-            if data.points > points])
+            if points < data.points])
         change = old_more_points - new_more_points
 
         text_height = kwargs['text_height']

@@ -1053,7 +1053,7 @@ class TeamStandings(RaceResults):
                     old_team_points[team_name] = points_lookup[classification.driver_name]
 
         team_point_data = list()
-        for team_name, points in sorted(team_points.items(), lambda x: -x[1]):
+        for team_name, points in sorted(team_points.items(), key=lambda x: -x[1]):
             team_point_data.append(TeamClassificationEntry(team_name, points))
         self._data = team_point_data
         self._old_data = old_team_points
@@ -1071,12 +1071,12 @@ class TeamStandings(RaceResults):
             font_color = (0, 0, 0)
 
         self._add_column(
-            'calc_points_data',
+            'team_name',
             'Rank',
             formatter=self.calc_series_rank,
             formatter_args=formatter_args)
 
-        self._add_column('name', 'Team')
+        self._add_column('team_name', 'Team')
         self._add_column('points', 'Points')
 
     def calc_series_points(self, value, **kwargs):
@@ -1090,24 +1090,16 @@ class TeamStandings(RaceResults):
 
         return str(points)
 
-    def calc_series_rank(self, value, **kwargs):
-        driver_name, position, best_lap = value
+    def calc_series_rank(self, name, **kwargs):
         ranks = dict()
         last_points = None
         last_rank = 0
         for entry in self._data:
-            if last_points != int(
-                    self.calc_series_points(
-                        entry.calc_points_data,
-                        **kwargs)):
-                last_points = int(
-                    self.calc_series_points(
-                        entry.calc_points_data,
-                        **kwargs))
+            if last_points != int(entry.points):
+                last_points = int(entry.points)
                 last_rank = len(ranks) + 1
-            ranks[entry.driver_name] = last_rank
-
-        return str(ranks[driver_name])
+            ranks[entry.team_name] = last_rank
+        return str(ranks[name])
 
 
 class AdditionalClassificationEntry:
@@ -1131,6 +1123,10 @@ class TeamClassificationEntry:
     def __init__(self, name, points):
         self._name = name
         self._points = points
+
+    @property
+    def name_and_points(self):
+        return (self._name, self._points)
 
     @property
     def team_name(self):
