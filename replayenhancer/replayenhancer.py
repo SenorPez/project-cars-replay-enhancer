@@ -19,6 +19,8 @@ from replayenhancer.RaceData import RaceData
 from replayenhancer.RaceResultsWithChange import RaceResultsWithChange
 from replayenhancer.SeriesStandingsWithChange \
     import SeriesStandingsWithChange
+from replayenhancer.TeamStandingsWithChange import \
+    TeamStandingsWithChange
 
 
 def make_video(config_file, *, framerate=None, sync=False):
@@ -346,15 +348,29 @@ def make_video(config_file, *, framerate=None, sync=False):
             pass
 
     if 'team_standings' in configuration and configuration['team_standings']:
-        pcre_team_standings = TeamStandings(
-            result_data.all_driver_classification,
-            size=source_video.size,
-            **configuration)
-        Image.fromarray(pcre_team_standings.to_frame()).save(
-            output_prefix + '_team_standings.png')
-        team_standings = mpy.ImageClip(
-            pcre_team_standings.to_frame()).set_duration(20)
-        end_titles.append(team_standings)
+        if not any([
+                       x['points'] for x
+                       in
+                       configuration['participant_config'].values()]):
+            pcre_team_standings = TeamStandings(
+                result_data.all_driver_classification,
+                size=source_video.size,
+                **configuration)
+            Image.fromarray(pcre_team_standings.to_frame()).save(
+                output_prefix + '_team_standings.png')
+            team_standings = mpy.ImageClip(
+                pcre_team_standings.to_frame()).set_duration(20)
+            end_titles.append(team_standings)
+        else:
+            pcre_team_standings = TeamStandingsWithChange(
+                result_data.all_driver_classification,
+                size=source_video.size,
+                **configuration)
+            Image.fromarray(pcre_team_standings.to_frame()).save(
+                output_prefix + '_team_standings.png')
+            team_standings = mpy.ImageClip(
+                pcre_team_standings.to_frame()).set_duration(20)
+            end_titles.append(team_standings)
 
     if champion:
         if 'car_classes' in configuration and len(configuration['car_classes']):

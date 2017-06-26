@@ -1038,6 +1038,7 @@ class TeamStandings(RaceResults):
         formatter_args = {'point_structure': point_structure,
                           'points_lookup': points_lookup,
                           'points_adjust': points_adjust}
+        old_team_points = dict()
         team_points = dict()
         for classification in self._data:
             if classification.driver_name in team_lookup:
@@ -1045,14 +1046,17 @@ class TeamStandings(RaceResults):
                 if team_name in team_points:
                     team_points[team_name] += int(self.calc_series_points(
                         classification.calc_points_data, **formatter_args))
+                    old_team_points[team_name] += points_lookup[classification.driver_name]
                 else:
                     team_points[team_name] = int(self.calc_series_points(
                         classification.calc_points_data, **formatter_args))
+                    old_team_points[team_name] = points_lookup[classification.driver_name]
 
         team_point_data = list()
         for team_name, points in sorted(team_points.items(), lambda x: -x[1]):
             team_point_data.append(TeamClassificationEntry(team_name, points))
         self._data = team_point_data
+        self._old_data = old_team_points
 
         try:
             try:
