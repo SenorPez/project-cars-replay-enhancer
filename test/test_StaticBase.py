@@ -18,6 +18,8 @@ class TestStaticBase(unittest.TestCase):
         self.assertIsInstance(instance, expected_result)
 
 
+
+
 class TestDisplayColumn(unittest.TestCase):
     """
     Tests against DisplayColumn object.

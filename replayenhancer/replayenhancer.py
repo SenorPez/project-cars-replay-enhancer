@@ -13,7 +13,7 @@ from moviepy.video.io.bindings import PIL_to_npimage
 from tqdm import tqdm
 
 from replayenhancer.DefaultCards \
-    import SeriesChampion, SeriesStandings, StartingGrid
+    import SeriesChampion, SeriesStandings, StartingGrid, TeamStandings
 from replayenhancer.GTStandings import GTStandings
 from replayenhancer.RaceData import RaceData
 from replayenhancer.RaceResultsWithChange import RaceResultsWithChange
@@ -344,6 +344,17 @@ def make_video(config_file, *, framerate=None, sync=False):
             end_titles.append(series_standings)
         except KeyError:
             pass
+
+    if 'team_standings' in configuration and configuration['team_standings']:
+        pcre_team_standings = TeamStandings(
+            result_data.all_driver_classification,
+            size=source_video.size,
+            **configuration)
+        Image.fromarray(pcre_team_standings.to_frame()).save(
+            output_prefix + '_team_standings.png')
+        team_standings = mpy.ImageClip(
+            pcre_team_standings.to_frame()).set_duration(20)
+        end_titles.append(team_standings)
 
     if champion:
         if 'car_classes' in configuration and len(configuration['car_classes']):

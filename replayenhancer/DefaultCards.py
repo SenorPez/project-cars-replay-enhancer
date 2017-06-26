@@ -973,6 +973,139 @@ class SeriesChampion(SeriesStandings):
         return material
 
 
+class TeamStandings(RaceResults):
+    """
+    Defines a class for a default Team Standings title card.
+
+    This card, by default, has the following columns:
+        - Rank: Series rank.
+        - Team: Driver team.
+        - Points: Team series points.
+    """
+
+    def __init__(self, data, size=None, **kwargs):
+        super(RaceResults, self).__init__(data, size=size, **kwargs)
+
+        try:
+            team_lookup = {
+                k: v['team']
+                for k, v in kwargs['participant_config'].items()
+                if v['team'] != ""}
+            if 'additional_participant_config' in kwargs:
+                for name, values \
+                        in kwargs['additional_participant_config'].items():
+                    if values['team'] != "":
+                        team_lookup[name] = values['team']
+            if len(team_lookup) == 0:
+                team_lookup = None
+        except KeyError:
+            team_lookup = None
+
+        try:
+            point_structure = {
+                k: v
+                for k, v in enumerate(kwargs['point_structure'])}
+        except KeyError:
+            point_structure = None
+
+        try:
+            points_lookup = {
+                k: v['points']
+                for k, v in kwargs['participant_config'].items()}
+            if 'additional_participant_config' in kwargs:
+                for name, values \
+                        in kwargs['additional_participant_config'].items():
+                    points_lookup[name] = values['points']
+            if len(points_lookup) == 0:
+                points_lookup = None
+        except KeyError:
+            points_lookup = None
+
+        try:
+            points_adjust = {
+                k: v['points_adjust']
+                for k, v in kwargs['participant_config'].items()
+                if v['points_adjust'] != ""}
+            if len(points_adjust) == 0:
+                points_adjust = None
+        except KeyError:
+            points_adjust = None
+
+        if 'additional_participant_config' in kwargs:
+            for name in kwargs['additional_participant_config'].keys():
+                self._data.append(AdditionalClassificationEntry(name))
+
+        formatter_args = {'point_structure': point_structure,
+                          'points_lookup': points_lookup,
+                          'points_adjust': points_adjust}
+        team_points = dict()
+        for classification in self._data:
+            if classification.driver_name in team_lookup:
+                team_name = team_lookup[classification.driver_name]
+                if team_name in team_points:
+                    team_points[team_name] += int(self.calc_series_points(
+                        classification.calc_points_data, **formatter_args))
+                else:
+                    team_points[team_name] = int(self.calc_series_points(
+                        classification.calc_points_data, **formatter_args))
+
+        team_point_data = list()
+        for team_name, points in sorted(team_points.items(), lambda x: -x[1]):
+            team_point_data.append(TeamClassificationEntry(team_name, points))
+        self._data = team_point_data
+
+        try:
+            try:
+                font = ImageFont.truetype(
+                    kwargs['font'],
+                    kwargs['font_size'])
+            except (AttributeError, OSError):
+                font = ImageFont.load_default()
+            font_color = tuple(kwargs['font_color'])
+        except KeyError:
+            font = ImageFont.load_default()
+            font_color = (0, 0, 0)
+
+        self._add_column(
+            'calc_points_data',
+            'Rank',
+            formatter=self.calc_series_rank,
+            formatter_args=formatter_args)
+
+        self._add_column('name', 'Team')
+        self._add_column('points', 'Points')
+
+    def calc_series_points(self, value, **kwargs):
+        driver_name, position, best_lap = value
+        try:
+            points = kwargs['points_lookup'][driver_name]
+        except (KeyError, TypeError):
+            points = 0
+
+        points += int(self._calc_points_float(value, **kwargs))
+
+        return str(points)
+
+    def calc_series_rank(self, value, **kwargs):
+        driver_name, position, best_lap = value
+        ranks = dict()
+        last_points = None
+        last_rank = 0
+        for entry in self._data:
+            if last_points != int(
+                    self.calc_series_points(
+                        entry.calc_points_data,
+                        **kwargs)):
+                last_points = int(
+                    self.calc_series_points(
+                        entry.calc_points_data,
+                        **kwargs))
+                last_rank = len(ranks) + 1
+            ranks[entry.driver_name] = last_rank
+
+        return str(ranks[driver_name])
+
+
 class AdditionalClassificationEntry:
     def __init__(self, name):
         self._name = name
@@ -988,3 +1121,17 @@ class AdditionalClassificationEntry:
     @property
     def driver_name(self):
         return self._name
+
+
+class TeamClassificationEntry:
+    def __init__(self, name, points):
+        self._name = name
+        self._points = points
+
+    @property
+    def team_name(self):
+        return self._name
+
+    @property
+    def points(self):
+        return self._points
