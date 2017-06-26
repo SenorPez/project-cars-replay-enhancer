@@ -177,9 +177,9 @@ def make_video(config_file, *, framerate=None, sync=False):
 
         end_titles.append(results)
 
-        for car_class_filter in [
+        for car_class_filter in sorted([
                 car_class for car_class in configuration['car_classes']
-                if car_class != ""]:
+                if car_class != ""], key=lambda x: x.lower()):
             class_cars = [
                 car for car_class, car_class_data
                 in configuration['car_classes'].items()
@@ -236,9 +236,9 @@ def make_video(config_file, *, framerate=None, sync=False):
                     in configuration['participant_config'].values()]):
                 if 'car_classes' in configuration \
                         and len(configuration['car_classes']):
-                    for car_class_filter in [car_class for car_class in
+                    for car_class_filter in sorted([car_class for car_class in
                                              configuration['car_classes'] if
-                                             car_class != ""]:
+                                             car_class != ""], key=lambda x: x.lower()):
                         class_cars = [
                             car for car_class, car_class_data
                             in configuration['car_classes'].items()
@@ -283,9 +283,9 @@ def make_video(config_file, *, framerate=None, sync=False):
             else:
                 if 'car_classes' in configuration \
                         and len(configuration['car_classes']):
-                    for car_class_filter in [car_class for car_class in
+                    for car_class_filter in sorted([car_class for car_class in
                                              configuration['car_classes'] if
-                                             car_class != ""]:
+                                             car_class != ""], key=lambda x: x.lower()):
                         class_cars = [
                             car for car_class, car_class_data
                             in configuration['car_classes'].items()
@@ -347,9 +347,9 @@ def make_video(config_file, *, framerate=None, sync=False):
 
     if champion:
         if 'car_classes' in configuration and len(configuration['car_classes']):
-            for car_class_filter in [car_class for car_class in
+            for car_class_filter in sorted([car_class for car_class in
                                      configuration['car_classes'] if
-                                     car_class != ""]:
+                                     car_class != ""], key=lambda x: x.lower()):
                 class_cars = [
                     car for car_class, car_class_data
                     in configuration['car_classes'].items()

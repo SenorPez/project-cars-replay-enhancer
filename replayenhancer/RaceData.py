@@ -605,13 +605,22 @@ class TelemetryData:
             unit='packets')
 
         old_packet = None
+        state_list = [(0, 0, 0, 0)]
         try:
             #Eventually, we'll get through all the packets.
             while True:
                 #Exhaust packets until we're racing.
                 while True:
                     packet = next(telemetry_data)
-                    print("1")
+
+                    if packet.packet_type == 0:
+                        gsr = (packet.game_state, packet.session_state, packet.race_state, 1)
+                        if state_list[-1][:3] == gsr[:3]:
+                            state_count = state_list[-1][3] + 1
+                            state_list[-1] = (packet.game_state, packet.session_state, packet.race_state, state_count)
+                        else:
+                            state_list.append(gsr)
+
                     progress.update()
                     if packet.packet_type == 0 and packet.session_state == 5 and packet.race_state == 2:
                         break
@@ -619,7 +628,15 @@ class TelemetryData:
                 #Exhaust packets until race end.
                 while True:
                     packet = next(telemetry_data)
-                    print("2")
+
+                    if packet.packet_type == 0:
+                        gsr = (packet.game_state, packet.session_state, packet.race_state, 1)
+                        if state_list[-1][:3] == gsr[:3]:
+                            state_count = state_list[-1][3] + 1
+                            state_list[-1] = (packet.game_state, packet.session_state, packet.race_state, state_count)
+                        else:
+                            state_list.append(gsr)
+
                     progress.update()
                     if packet.packet_type == 0 and packet.session_state == 5 and packet.race_state == 3:
                         old_packet = packet
@@ -628,7 +645,15 @@ class TelemetryData:
                 #Exhaust packets until no longer in race end, updating "last good" packet each time.
                 while True:
                     packet = next(telemetry_data)
-                    print("3")
+
+                    if packet.packet_type == 0:
+                        gsr = (packet.game_state, packet.session_state, packet.race_state, 1)
+                        if state_list[-1][:3] == gsr[:3]:
+                            state_count = state_list[-1][3] + 1
+                            state_list[-1] = (packet.game_state, packet.session_state, packet.race_state, state_count)
+                        else:
+                            state_list.append(gsr)
+
                     progress.update()
                     if packet.packet_type == 0 and packet.session_state == 5 and packet.race_state == 3:
                         old_packet = packet

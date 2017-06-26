@@ -34,9 +34,15 @@ for telemetry in sys.argv[1:]:
 
     output = sorted(
         [(driver, points) for driver, points in drivers.items()],
-        key=lambda x: -x[1])
+        key=lambda x: (-x[1], x[0]))
 
     longest_name = max([len(driver) for driver, _ in output])
 
-    for line in output:
-        print('{:{width}} {:4d}'.format(*line, width=longest_name))
+    position = 0
+    last_points = None;
+    for (number, line) in enumerate(output, 1):
+        if last_points is None or last_points != line[1]:
+            position = number
+        last_points = line[1]
+
+        print('{:2d} {:2d} {:{width}} {:4d}'.format(number, position, *line, width=longest_name))
