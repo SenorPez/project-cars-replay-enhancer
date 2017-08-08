@@ -478,6 +478,14 @@ class SeriesStandings(RaceResults):
             self._data = [x for x in self._data if int(self.calc_series_points(
                 x.calc_points_data, **formatter_args)) != 0]
 
+        # Change number of displayed lines so that ties for the last displayed
+        # place are still shown, regardless of displayed lines size.
+        if 'result_lines' in kwargs:
+            result_ranks = [self.calc_series_rank(x.calc_points_data, **formatter_args)
+                for x in self._data]
+            result_ranks = [x for x in result_ranks if int(x) <= int(result_ranks[:kwargs['result_lines']][-1])]
+            self._options['result_lines'] = max(self._options['result_lines'], len(result_ranks))
+
         try:
             try:
                 font = ImageFont.truetype(
