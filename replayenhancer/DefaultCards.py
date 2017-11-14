@@ -5,7 +5,6 @@ from PIL import Image, ImageDraw, ImageFont
 
 from replayenhancer.StaticBase import StaticBase
 
-
 class RaceResults(StaticBase):
     """
     Defines a class for a default Race Results title card.
@@ -130,42 +129,71 @@ class RaceResults(StaticBase):
                         'font': font,
                         'font_color': font_color})
 
-        self._add_column('laps_complete', 'Laps', align='center')
+        multiple_laps = any([x.driver.laps_complete > 1 for x in self._data])
 
-        try:
-            result_lines = self._options['result_lines']
-            stops = [x.driver.stops for x in self._data[:result_lines]]
-        except KeyError:
-            stops = [x.driver.stops for x in self._data]
+        if multiple_laps:
+            self._add_column('laps_complete', 'Laps', align='center')
 
-        if any(stops):
-            self._add_column('stops', 'Stops', align='center')
+            try:
+                result_lines = self._options['result_lines']
+                stops = [x.driver.stops for x in self._data[:result_lines]]
+            except KeyError:
+                stops = [x.driver.stops for x in self._data]
+
+            if any(stops):
+                self._add_column('stops', 'Stops', align='center')
 
         self._add_column(
             'race_time',
             'Time',
             formatter=self.format_time,
             align='center')
-        self._add_column(
-            'best_lap',
-            'Best Lap',
-            formatter=self.format_time,
-            align='center')
-        self._add_column(
-            'best_sector_1',
-            'Best S1',
-            formatter=self.format_time,
-            align='center')
-        self._add_column(
-            'best_sector_2',
-            'Best S2',
-            formatter=self.format_time,
-            align='center')
-        self._add_column(
-            'best_sector_3',
-            'Best S3',
-            formatter=self.format_time,
-            align='center')
+
+        if multiple_laps:
+            self._add_column(
+                'best_lap',
+                'Best Lap',
+                formatter=self.format_time,
+                align='center')
+
+        if multiple_laps:
+            self._add_column(
+                'best_sector_1',
+                'Best S1',
+                formatter=self.format_time,
+                align='center')
+        else:
+            self._add_column(
+                'best_sector_1',
+                'Sector 1',
+                formatter=self.format_time,
+                align='center')
+
+        if multiple_laps:
+            self._add_column(
+                'best_sector_2',
+                'Best S2',
+                formatter=self.format_time,
+                align='center')
+        else:
+            self._add_column(
+                'best_sector_2',
+                'Sector 2',
+                formatter=self.format_time,
+                align='center')
+
+        if multiple_laps:
+            self._add_column(
+                'best_sector_3',
+                'Best S3',
+                formatter=self.format_time,
+                align='center')
+        else:
+            self._add_column(
+                'best_sector_3',
+                'Sector 3',
+                formatter=self.format_time,
+                align='center')
 
         if point_structure is not None:
             formatter_args = {
@@ -1061,7 +1089,7 @@ class TeamStandings(RaceResults):
                     old_team_points[team_name] = points_lookup[classification.driver_name]
 
         team_point_data = list()
-        for team_name, points in sorted(team_points.items(), key=lambda x: -x[1]):
+        for team_name, points in sorted(team_points.items(), key=lambda x: (-x[1], x[0])):
             team_point_data.append(TeamClassificationEntry(team_name, points))
         self._data = team_point_data
         self._old_data = old_team_points
@@ -1110,6 +1138,341 @@ class TeamStandings(RaceResults):
         return str(ranks[name])
 
 
+class TeamChampion(TeamStandings):
+    """
+    Defines a class for a default Series Champion title card.
+    """
+    def __init__(self, data, size=None, **kwargs):
+        super(RaceResults, self).__init__(data, size=size, **kwargs)
+
+        try:
+            self._team_lookup = {
+                k: v['team']
+                for k, v in kwargs['participant_config'].items()
+                if v['team'] != ""}
+            if 'additional_participant_config' in kwargs:
+                for name, values \
+                        in kwargs['additional_participant_config'].items():
+                    if values['team'] != "":
+                        self._team_lookup[name] = values['team']
+            if len(self._team_lookup) == 0:
+                self._team_lookup = None
+        except KeyError:
+            self._team_lookup = None
+
+        try:
+            point_structure = {
+                k: v
+                for k, v in enumerate(kwargs['point_structure'])}
+        except KeyError:
+            point_structure = None
+
+        try:
+            points_lookup = {
+                k: v['points']
+                for k, v in kwargs['participant_config'].items()}
+            if 'additional_participant_config' in kwargs:
+                for name, values \
+                        in kwargs['additional_participant_config'].items():
+                    points_lookup[name] = values['points']
+        except KeyError:
+            points_lookup = None
+
+        try:
+            points_adjust = {
+                k: v['points_adjust']
+                for k, v in kwargs['participant_config'].items()
+                if v['points_adjust'] != ""}
+            if len(points_adjust) == 0:
+                points_adjust = None
+        except KeyError:
+            points_adjust = None
+
+        if 'additional_participant_config' in kwargs:
+            for name in kwargs['additional_participant_config'].keys():
+                self._data.append(AdditionalClassificationEntry(name))
+
+        formatter_args = {'point_structure': point_structure,
+                          'points_lookup': points_lookup,
+                          'points_adjust': points_adjust}
+        self._formatter_args = formatter_args
+
+        old_team_points = dict()
+        team_points = dict()
+        for classification in self._data:
+            if classification.driver_name in self._team_lookup:
+                team_name = self._team_lookup[classification.driver_name]
+                if team_name in team_points:
+                    team_points[team_name] += int(self.calc_series_points(
+                        classification.calc_points_data, **formatter_args))
+                    old_team_points[team_name] += points_lookup[classification.driver_name]
+
+                else:
+                    team_points[team_name] = int(self.calc_series_points(
+                        classification.calc_points_data, **formatter_args))
+                    old_team_points[team_name] = points_lookup[classification.driver_name]
+
+        team_point_data = list()
+        for team_name, points in sorted(team_points.items(), key=lambda x: (-x[1], x[0])):
+            team_point_data.append(TeamClassificationEntry(team_name, points))
+        self._data = team_point_data
+        self._old_data = old_team_points
+
+    def _make_material(self):
+        #  If data exists, create a heading.
+        try:
+            heading_color = tuple(self._options['heading_color'])
+
+            try:
+                heading_font_color = tuple(
+                    self._options['heading_font_color'])
+            except KeyError:
+                heading_font_color = (0, 0, 0)
+
+            try:
+                heading_font = ImageFont.truetype(
+                    self._options['heading_font'],
+                    self._options['heading_font_size'])
+            except (KeyError, OSError):
+                heading_font = ImageFont.load_default()
+
+            try:
+                heading_text = self._options['heading_text']
+            except KeyError:
+                heading_text = None
+
+        except KeyError:
+            heading_color = None
+            heading_font_color = (0, 0, 0)
+            heading_font = ImageFont.load_default()
+            heading_text = None
+            heading = False
+        else:
+            heading = True
+
+        try:
+            series_logo = Image.open(self._options['series_logo'])
+            try:
+                series_logo_width = self._options['champion_width']
+            except KeyError:
+                series_logo_width = 300
+
+            try:
+                series_logo_height = self._options['champion_height']
+            except KeyError:
+                series_logo_height = 300
+        except (KeyError, OSError):
+            series_logo = None
+            series_logo_width = 0
+            series_logo_height = 0
+
+        try:
+            champion_color = tuple(self._options['champion_color'])
+        except KeyError:
+            champion_color = (255, 255, 255)
+
+        #  If provided, use a font.
+        try:
+            try:
+                font = ImageFont.truetype(
+                    self._options['font'],
+                    self._options['font_size'])
+            except OSError:
+                font = ImageFont.load_default()
+            font_color = tuple(self._options['font_color'])
+        except KeyError:
+            font = ImageFont.load_default()
+            font_color = (0, 0, 0)
+
+        #  If set, use external and internal margins.
+        try:
+            margin = self._options['margin']
+        except KeyError:
+            margin = 6*font.getsize("A")[1]
+
+        try:
+            column_margin = self._options['column_margin']
+        except KeyError:
+            column_margin = 3*font.getsize("A")[1]
+
+        #  If set, use a backdrop.
+        try:
+            backdrop = Image.open(self._options['backdrop'])
+
+            if self._size is not None:
+                backdrop = backdrop.resize(self._size)
+                backdrop_size = self._size
+            else:
+                backdrop_size = backdrop.size
+
+        except (AttributeError, KeyError, IOError):
+            backdrop = None
+            backdrop_size = None
+
+        #  If set, use a logo on the backdrop.
+        try:
+            logo = Image.open(self._options['logo'])
+            logo_size = (
+                self._options['logo_width'],
+                self._options['logo_height'])
+        except (AttributeError, KeyError, IOError):
+            logo = None
+            logo_size = None
+
+        champion_data = [
+            entry for entry in self._data
+            if int(self.calc_series_rank(
+                entry.team_name,
+                **self._formatter_args)) <= 3]
+
+        #  Build main data material
+        text_width = 0
+        text_height = 0
+        for rank, entry in enumerate(champion_data, 1):
+            if rank == 1:
+                width, height = heading_font.getsize("Champion")
+                text_width = max([text_width, width + 2 * margin])
+                text_height += height
+
+                width, height = heading_font.getsize(
+                    entry.team_name)
+                text_width = max([text_width, width + 2 * margin])
+                text_height += height
+            else:
+                width, height = font.getsize("Runner Up")
+                text_width = max([text_width, width + 2 * margin])
+                text_height += height
+
+                width, height = font.getsize(
+                    entry.team_name)
+                text_width = max([text_width, width + 2 * margin])
+                text_height += height
+
+            text_height += margin
+
+        #  Remove extra margin added by last loop iteration.
+        text_height -= margin
+
+        material_width = series_logo_width + text_width
+
+        #  Build heading, if applicable.
+        heading_height = 0
+        heading_material = None
+        if heading:
+            heading_height = heading_font.getsize(str(heading_text))[1]
+            heading_height += 2*margin
+
+            material_width = max([
+                (
+                    2*margin
+                    + heading_font.getsize(str(heading_text))[0]),
+                material_width])
+
+            heading_material = Image.new(
+                'RGBA',
+                (material_width, heading_height),
+                heading_color)
+
+            draw = ImageDraw.Draw(heading_material)
+
+            if heading_text is not None:
+                draw.text(
+                    (margin, margin),
+                    heading_text,
+                    fill=heading_font_color,
+                    font=heading_font)
+
+        material_height = sum([
+            heading_height,
+            max([series_logo_height, text_height + 2 * margin])
+        ])
+
+        material = Image.new(
+            'RGBA',
+            (material_width, material_height),
+            champion_color)
+
+        #  Write heading, if applicable.
+        if heading:
+            material.paste(heading_material, (0, 0), heading_material)
+
+        if series_logo is not None:
+            series_logo = series_logo.resize(
+                (series_logo_width, series_logo_height))
+            material.paste(series_logo, (0, heading_height))
+
+        y_position = heading_height \
+            + int((max([
+                series_logo_height, 
+                text_height + 2 * margin]) - text_height) / 2)
+        x_position = series_logo_width + margin
+
+        draw = ImageDraw.Draw(material)
+
+        for rank, entry in enumerate(champion_data, 1):
+            if rank == 1:
+                draw.text(
+                    (x_position, y_position),
+                    "Champion",
+                    fill=font_color,
+                    font=heading_font)
+                y_position += heading_font.getsize("A")[1]
+
+                draw.text(
+                    (x_position, y_position),
+                    entry.team_name,
+                    fill=font_color,
+                    font=heading_font)
+                y_position += heading_font.getsize("A")[1]
+                x_position += column_margin
+            else:
+                draw.text(
+                    (x_position, y_position),
+                    "Runner Up",
+                    fill=font_color,
+                    font=font)
+                y_position += font.getsize("A")[1]
+
+                draw.text(
+                    (x_position, y_position),
+                    entry.team_name,
+                    fill=font_color,
+                    font=font)
+                y_position += font.getsize("A")[1]
+                x_position += column_margin
+
+            y_position += margin
+            x_position -= column_margin
+
+        if backdrop is not None:
+            backdrop_width, backdrop_height = backdrop_size
+
+            #  Add logo if needed.
+            if logo is not None:
+                logo = logo.resize(logo_size)
+                logo_width, logo_height = logo_size
+                text_x_position = backdrop_width-logo_width
+                y_position = backdrop_height-logo_height
+                backdrop.paste(
+                    logo,
+                    (text_x_position, y_position),
+                    logo)
+
+            if material_width > backdrop_width \
+                    or material_height > backdrop_height:
+                material.thumbnail(backdrop_size)
+                material_width, material_height = material.size
+
+            text_x_position = int((backdrop_width-material_width)/2)
+            y_position = int((backdrop_height-material_height)/2)
+            backdrop.paste(
+                material,
+                (text_x_position, y_position),
+                material)
+            material = backdrop
+
+        return material
+
 class AdditionalClassificationEntry:
     def __init__(self, name):
         self._name = name
@@ -1131,6 +1494,10 @@ class TeamClassificationEntry:
     def __init__(self, name, points):
         self._name = name
         self._points = points
+
+    @property
+    def calc_points_data(self):
+        return (self._name, self._points, None)
 
     @property
     def name_and_points(self):

@@ -13,7 +13,7 @@ from moviepy.video.io.bindings import PIL_to_npimage
 from tqdm import tqdm
 
 from replayenhancer.DefaultCards \
-    import SeriesChampion, SeriesStandings, StartingGrid, TeamStandings
+    import SeriesChampion, SeriesStandings, StartingGrid, TeamStandings, TeamChampion
 from replayenhancer.GTStandings import GTStandings
 from replayenhancer.RaceData import RaceData
 from replayenhancer.RaceResultsWithChange import RaceResultsWithChange
@@ -21,7 +21,6 @@ from replayenhancer.SeriesStandingsWithChange \
     import SeriesStandingsWithChange
 from replayenhancer.TeamStandingsWithChange import \
     TeamStandingsWithChange
-
 
 def make_video(config_file, *, framerate=None, sync=False):
     configuration = json.load(open(config_file))
@@ -107,6 +106,7 @@ def make_video(config_file, *, framerate=None, sync=False):
             duration=source_video.duration
         ).set_position(('center', 'top'))
 
+        '''
         first_lap_data = RaceData(configuration['source_telemetry'])
         with tqdm(desc="Detecting Video Start") as progress:
             while not any(
@@ -137,6 +137,12 @@ def make_video(config_file, *, framerate=None, sync=False):
         ).set_duration(
             source_video.duration
         ).subclip(start_time, end_time)
+        '''
+        main_event = mpy.CompositeVideoClip(
+            [source_video, standings_clip, timecode_clip]
+        ).set_duration(
+            30
+        ).subclip(0, 30)
 
     else:
         main_event = mpy.CompositeVideoClip(
@@ -418,6 +424,17 @@ def make_video(config_file, *, framerate=None, sync=False):
             series_champion = mpy.ImageClip(
                 pcre_series_champion.to_frame()).set_duration(20)
             end_titles.append(series_champion)
+
+        if 'team_standings' in configuration and configuration['team_standings']:
+            pcre_team_champion = TeamChampion(
+                result_data.all_driver_classification,
+                size=source_video.size,
+                **configuration)
+            Image.fromarray(pcre_team_champion.to_frame()).save(
+                output_prefix + '_team_champion.png')
+            team_champion = mpy.ImageClip(
+                pcre_team_champion.to_frame()).set_duration(20)
+            end_titles.append(team_champion)
 
     output = mpy.concatenate_videoclips(
         [starting_grid.fadeout(1), main_event]

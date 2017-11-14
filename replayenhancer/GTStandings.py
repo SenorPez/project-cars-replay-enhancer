@@ -572,7 +572,14 @@ class Header:
         x_position = int((row_height - block_height) / 2)
         y_position = int((row_height - block_height) / 2)
 
-        if self._race_data.laps_in_event:
+        if self._race_data.laps_in_event == 1:
+            draw.text(
+                (x_position, y_position),
+                "Distance: {progress:>2d}%".format(
+                    progress=int(self._race_data.leader_lap_progress / self._race_data._next_packet.track_length * 100)),
+                    fill=self.background_text_color,
+                    font=self._font)
+        elif self._race_data.laps_in_event:
             draw.text(
                 (x_position, y_position),
                 "Lap {current}/{total}".format(

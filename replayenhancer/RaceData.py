@@ -134,6 +134,11 @@ class RaceData:
         return self._next_packet.laps_in_event
 
     @property
+    def leader_lap_progress(self):
+        info = [info for info in self._next_packet.participant_info if info.race_position == 1][0]
+        return max(0, info.current_lap_distance);
+
+    @property
     def race_state(self):
         """
         Returns the current race state.
@@ -246,6 +251,7 @@ class RaceData:
                 if driver.index == index:
                     driver_name = driver.name
 
+            invalid_lap = participant_info.invalid_lap
             if participant_info.sector == 1:
                 sector = 3
             elif participant_info.sector == 2:
@@ -254,6 +260,9 @@ class RaceData:
                 sector = 1
             elif participant_info.sector == 3:
                 sector = 2
+            elif participant_info.sector == 4:
+                sector = 3
+                invalid_lap = 0
             else:
                 """
                 TODO: Investigate instance of a driver existing but having an
@@ -275,7 +284,7 @@ class RaceData:
             sector_time = SectorTime(
                 participant_info.last_sector_time,
                 sector,
-                participant_info.invalid_lap)
+                invalid_lap)
 
             self.drivers[driver_name].add_sector_time(sector_time)
 
